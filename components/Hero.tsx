@@ -9,7 +9,7 @@ export function Hero() {
   const [titleNumber, setTitleNumber] = useState(0);
   
   const titles = useMemo(
-    () => ["amazing", "new", "wonderful", "beautiful", "smart"],
+    () => ["brand strategy", "web development", "brand identity", "automation", "art direction"],
     []
   );
 
@@ -31,7 +31,7 @@ export function Hero() {
   return (
     <div className="w-full">
       <div className="container mx-auto">
-        <div className="flex gap-8 py-20 lg:py-40 items-center justify-center flex-col">
+        <div className="flex gap-8 -2 items-center justify-center flex-col">
           <div className="mb-8 flex justify-center">
             <Image
               src="/logo.svg"
@@ -44,8 +44,7 @@ export function Hero() {
           
           <div className="flex gap-4 flex-col">
             <h1 className="text-3xl md:text-5xl max-w-2xl tracking-tighter text-center font-regular">
-              <span className="text-cyan">This is something</span>
-              <span className="relative flex w-full justify-center overflow-hidden text-center md:pb-4 md:pt-1">
+              <span className="relative flex justify-center overflow-hidden text-center md:pb-4 md:pt-1">
                 &nbsp;
                 {titles.map((title, index) => (
                   <motion.span
@@ -69,6 +68,8 @@ export function Hero() {
                   </motion.span>
                 ))}
               </span>
+              <span className="text-cyan">is a tool</span>
+
             </h1>
 
             <p className="text-base md:text-lg leading-relaxed tracking-tight text-text-light max-w-2xl text-center">
@@ -77,14 +78,49 @@ export function Hero() {
             </p>
           </div>
           
-          <div className="flex flex-row gap-3">
-            <button className="px-6 py-3 rounded-xl font-semibold text-base border-2 border-black text-black hover:bg-black hover:text-white transition-all duration-300">
-              Jump on a call 📞
+            <button className="px-6 py-3 rounded-xl font-semibold text-base border-2 border-black text-black hover:bg-black hover:text-white transition-all duration-300 ">
+              schedule a call  📞
             </button>
-            <button className="px-6 py-3 rounded-xl font-semibold text-base bg-cyan text-black hover:bg-cyan/90 transition-all duration-300">
-              Get started →
-            </button>
-          </div>
+            
+            {/* Client Marquee */}
+            <div className="mt-16 w-full">
+              <div className="text-center mb-6">
+                <p className="text-sm text-text-light font-medium">Trusted by</p>
+              </div>
+              <div className="relative overflow-hidden">
+                <motion.div 
+                  className="flex whitespace-nowrap"
+                  animate={{ x: ["-0%", "-50%"] }}
+                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                >
+                  <div className="flex items-center space-x-16 text-sm text-text-light min-w-max">
+                    <span>The Bill and Melinda Gates Foundation</span>
+                    <span>Feel Films</span>
+                    <span>Here Productions</span>
+                    <span>House of Ill Fame</span>
+                    <span>The Lacrosse Lab</span>
+                    <span>Nickelodeon</span>
+                    <span>Gallery 1882</span>
+                    <span>The Lost Explorer Mezcal</span>
+                    <span>Here Productions</span>
+                    <span>Don't Tell Anyone Podcast</span>
+                    <span>Voice for Nature</span>
+                    {/* Duplicate for seamless loop */}
+                    <span>The Bill and Melinda Gates Foundation</span>
+                    <span>Feel Films</span>
+                    <span>Here Productions</span>
+                    <span>House of Ill Fame</span>
+                    <span>The Lacrosse Lab</span>
+                    <span>Nickelodeon</span>
+                    <span>Gallery 1882</span>
+                    <span>The Lost Explorer Mezcal</span>
+                    <span>Here Productions</span>
+                    <span>Don't Tell Anyone Podcast</span>
+                    <span>Voice for Nature</span>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
         </div>
       </div>
     </div>

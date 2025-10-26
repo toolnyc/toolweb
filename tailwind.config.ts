@@ -22,7 +22,6 @@ const config: Config = {
       },
       animation: {
         "fade-in-up": "fadeInUp 0.6s ease-out",
-        "marquee": "marquee 20s linear infinite",
         "bounce-slow": "bounce 2s infinite",
       },
       keyframes: {
@@ -34,14 +33,6 @@ const config: Config = {
           "100%": {
             opacity: "1",
             transform: "translateY(0)",
-          },
-        },
-        marquee: {
-          "0%": {
-            transform: "translateX(0%)",
-          },
-          "100%": {
-            transform: "translateX(-100%)",
           },
         },
       },

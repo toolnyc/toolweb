@@ -4,7 +4,7 @@ export function Footer() {
   const emailAddress = process.env.NEXT_PUBLIC_EMAIL || "mailto:admin@tool.nyc";
 
   return (
-    <footer className="w-full border-t border-black mt-auto">
+    <footer className="w-full border-t border-black mt-auto bg-[var(--color-yellow)] text-black py-2">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center h-16">
           <div className="flex items-center gap-6">

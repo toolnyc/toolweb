@@ -60,8 +60,8 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav className="w-full border-b border-black py-3 sm:py-6">
-      <div className="flex items-center justify-between max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className="w-full border-b-1 border-black py-6 fixed top-0 left-0 right-0 z-50 bg-[var(--color-yellow)]">
+      <div className="flex items-center justify-between max-w-7xl mx-auto px-6  lg:px-8">
         {/* Left side - Empty on desktop, can be used for mobile menu if needed */}
         <div className="flex items-center flex-1"></div>
         
@@ -80,7 +80,7 @@ export function Navbar() {
         {/* Right side - Date, Location, Weather */}
         <div className="flex justify-end items-center gap-2 sm:gap-4 text-xs sm:text-sm flex-1">
           <span className="text-text-light whitespace-nowrap">{currentTime}</span>
-          <span className="text-text-light hidden sm:inline">New York City</span>
+          <Image src="/nyp-edit.png" alt="New York City" width={80} height={16} className="text-text-light hidden sm:inline" />
           <span className="text-text-light hidden sm:inline">
             {weatherLoading
               ? "Loading..."

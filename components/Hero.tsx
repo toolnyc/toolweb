@@ -31,10 +31,10 @@ export function Hero() {
   return (
     <div className="w-full">
       <div>
-        <div className="flex gap-8 items-center justify-center flex-col">  
-          <div className="flex flex-col gap-4 flex-1 min-h-[40vh] my-12">
-            <h1 className="text-5xl md:text-6xl tracking-tighter text-center font-regular">
-              <span className="relative flex justify-center overflow-hidden md:pb-4 md:pt-1 whitespace-nowrap">
+        <div className="flex gap-8 items-center justify-center flex-col mt-6">  
+          <div className="flex flex-col gap-4 flex-1 h-[40vh] my-24 md:my-12">
+            <h1 className="text-5xl tracking-tighter text-center font-regular">
+              <span className="relative flex justify-center overflow-hidden pb-4 pt-1 whitespace-nowrap">
                 &nbsp;
                 {titles.map((title, index) => (
                   <motion.span
@@ -58,7 +58,7 @@ export function Hero() {
                   </motion.span>
                 ))}
               </span>
-              <span className="text-black it">is a tool.</span>
+              <span>is a tool.</span>
 
             </h1>
 
@@ -71,7 +71,7 @@ export function Hero() {
             onClick={() => {
               window.open("https://calendar.app.google/6SDnteNY8ymSgomu9", "_blank");
             }}  
-            className="hover:scale-110 max-w-md mx-auto hover:bg-[var(--color-cyan)] hover:text- capitalize px-6 py-3 rounded-xl font-semibold text-base border-2 border-black transition-all duration-300 ">
+            className="hover:scale-110 max-w-md mx-auto hover:bg-[var(--color-cyan)] hover:text- capitalize px-6 py-3 font-semibold text-base border-2 border-black transition-all duration-300 ">
               schedule a call
             </button>
             </div>

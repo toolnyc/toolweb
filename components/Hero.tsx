@@ -9,7 +9,7 @@ export function Hero() {
   const [titleNumber, setTitleNumber] = useState(0);
   
   const titles = useMemo(
-    () => ["brand strategy", "web development", "brand identity", "automation", "art direction"],
+    () => ["brand strategy", "web development", "marketing", "brand identity", "automation", "art direction", "artifical intelligence"],
     []
   );
 
@@ -30,21 +30,11 @@ export function Hero() {
 
   return (
     <div className="w-full">
-      <div className="container mx-auto">
-        <div className="flex gap-8 -2 items-center justify-center flex-col">
-          <div className="mb-8 flex justify-center">
-            <Image
-              src="/logo.svg"
-              alt="Company Logo"
-              width={160}
-              height={160}
-              className="w-32 h-32 sm:w-40 sm:h-40"
-            />
-          </div>
-          
-          <div className="flex gap-4 flex-col">
-            <h1 className="text-3xl md:text-5xl max-w-2xl tracking-tighter text-center font-regular">
-              <span className="relative flex justify-center overflow-hidden text-center md:pb-4 md:pt-1">
+      <div>
+        <div className="flex gap-8 items-center justify-center flex-col">  
+          <div className="flex flex-col gap-4 flex-1 min-h-[40vh] my-12">
+            <h1 className="text-5xl md:text-6xl tracking-tighter text-center font-regular">
+              <span className="relative flex justify-center overflow-hidden md:pb-4 md:pt-1 whitespace-nowrap">
                 &nbsp;
                 {titles.map((title, index) => (
                   <motion.span
@@ -68,32 +58,37 @@ export function Hero() {
                   </motion.span>
                 ))}
               </span>
-              <span className="text-cyan">is a tool</span>
+              <span className="text-black it">is a tool.</span>
 
             </h1>
 
-            <p className="text-base md:text-lg leading-relaxed tracking-tight text-text-light max-w-2xl text-center">
-              TOOL ® is a technical consultancy that provides your business the architecture, resources and systems
+            <p className="text-base md:text-lg leading-relaxed tracking-tight text-text-light max-w-sm text-center py-6">
+              TOOL ® is a technical & creative consultancy that provides your business the architecture, resources and systems
               to run sustainably.
             </p>
-          </div>
           
-            <button className="px-6 py-3 rounded-xl font-semibold text-base border-2 border-black text-black hover:bg-black hover:text-white transition-all duration-300 ">
-              schedule a call  📞
+            <button
+            onClick={() => {
+              window.open("https://calendar.app.google/6SDnteNY8ymSgomu9", "_blank");
+            }}  
+            className="hover:scale-110 max-w-md mx-auto hover:bg-[var(--color-cyan)] hover:text- capitalize px-6 py-3 rounded-xl font-semibold text-base border-2 border-black transition-all duration-300 ">
+              schedule a call
             </button>
+            </div>
+
             
             {/* Client Marquee */}
             <div className="mt-16 w-full">
               <div className="text-center mb-6">
-                <p className="text-sm text-text-light font-medium">Trusted by</p>
+                <p className="text-sm text-text-light font-bold">Trusted by</p>
               </div>
               <div className="relative overflow-hidden">
                 <motion.div 
                   className="flex whitespace-nowrap"
                   animate={{ x: ["-0%", "-50%"] }}
-                  transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                  transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
                 >
-                  <div className="flex items-center space-x-16 text-sm text-text-light min-w-max">
+                  <div className="flex items-center space-x-32 text-md text-text-light min-w-max">
                     <span>The Bill and Melinda Gates Foundation</span>
                     <span>Feel Films</span>
                     <span>Here Productions</span>

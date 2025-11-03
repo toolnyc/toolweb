@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "Creative & Technical Consultancy",
-  description: "Bold, creative solutions for modern businesses. We deliver innovative technical consulting with a focus on performance and user experience.",
-  themeColor: "#000000",
+  title: "Tool ® | Creative & Technical Consultancy",
+  description: "Tool ® is a technical consultancy that provides your business the architecture, resources and systems to run sustainably.",
   openGraph: {
-    title: "Creative & Technical Consultancy",
-    description: "Bold, creative solutions for modern businesses. We deliver innovative technical consulting with a focus on performance and user experience.",
+    title: "Tool ® | Creative & Technical Consultancy",
+    description: "Tool ® is a technical consultancy that provides your business the architecture, resources and systems to run sustainably.",
     type: "website",
   },
 };
@@ -24,8 +25,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        {children}
+      <body className="antialiased flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-1">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );

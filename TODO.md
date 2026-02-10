@@ -1,53 +1,69 @@
-# Tool.NYC — Remaining To-Do's
+# Tool.NYC — To-Do List
 
-## External Services (requires credentials/config)
+## You (Pete)
 
-- [ ] Add Stripe keys to `.env` (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PUBLIC_STRIPE_PUBLISHABLE_KEY`)
-- [ ] Add Resend API key to `.env` (`RESEND_API_KEY`) and verify `tool.nyc` domain
-- [ ] Create Cloudflare R2 bucket (`tool-media`), add binding to `wrangler.toml`, set `R2_PUBLIC_URL` in `.env`
-- [ ] Set Cal.com username in `/src/pages/book.astro` iframe `src`
-- [ ] Connect git repo to Cloudflare Pages, add env vars in CF dashboard
-- [ ] Point `tool.nyc` DNS to Cloudflare Pages, set up www redirect
-- [ ] Create Stripe products/prices for merch variants, store `stripe_price_id` in `product_variants`
-- [ ] Set up Stripe webhook endpoint in dashboard pointing to `/api/stripe-webhook`
+### 1. API Keys & Services
 
-## Components & Features
+- [ ] **Stripe** — add keys to `.env`: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- [ ] **Stripe webhook** — create endpoint in Stripe dashboard pointing to `/api/stripe-webhook`
+- [ ] **Stripe products** — create products/prices for merch variants, store `stripe_price_id` in `product_variants` table
+- [ ] **Resend** — add `RESEND_API_KEY` to `.env`, verify `tool.nyc` domain in Resend dashboard
+- [ ] **Cloudflare R2** — create bucket `tool-media`, generate API token, fill in `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_PUBLIC_URL` in `.env`
+- [ ] **Cal.com** — set up account, update iframe src in `/src/pages/book.astro` with your scheduling link
 
-- [ ] **CartDrawer** — slide-in cart panel (shows items, quantities, subtotal, checkout button)
-- [ ] **FileUpload** — admin component with `browser-image-compression` (client-side resize to WebP, max 1920px, quality 80), progress indicator, preview, posts to `/api/upload`
-- [ ] **GSAP + Lenis scroll animations** — smooth scroll init, ScrollTrigger fade-in/reveal for portfolio items, subtle parallax on hero
-- [ ] **VideoPlayer** component — inline video with play/pause on hover/tap for portfolio items
-- [ ] **CountdownTimer** component — extract inline countdown script from shop.astro into reusable component
-- [ ] **Accordion** component — expandable "+" sections for Services/Process/About on homepage (Hardsun pattern)
+### 2. Deploy
 
-## Content & Data
+- [ ] **Cloudflare Pages** — connect repo, set all env vars in CF dashboard
+- [ ] **DNS** — point `tool.nyc` to Cloudflare Pages, set up www redirect
+- [ ] **Supabase production** — create prod project (separate from preview), push migration, update env vars
 
-- [ ] Upload real portfolio work (~10-15 pieces) via admin
-- [ ] Write real writing snippets
-- [ ] Add real client names to `client_logos`
-- [ ] Write real site content (hero tagline, about blurb)
-- [ ] Set up Supabase production environment (separate from preview)
+### 3. Content (via Admin Dashboard)
 
-## Testing
+- [ ] Upload portfolio work (~10-15 pieces) via `/admin/portfolio/new`
+- [ ] Write writing snippets via `/admin/writing`
+- [ ] Verify/update client logos in `client_logos` table
+- [ ] Write real site copy (hero tagline, about blurb)
+- [ ] Create real clients via `/admin/clients/new`
+- [ ] Create projects for active clients with status, deliverables URL, invoice info
+- [ ] Migrate Vimeo videos to Cloudflare Stream
 
-- [ ] **Unit tests** (Vitest) — cart logic, query helpers, cookie helpers, validation
-- [ ] **Integration tests** — API routes (checkout, inquiry, webhook), DB queries, RLS policies
-- [ ] **E2E tests** (Playwright) — homepage scroll, shop checkout flow, inquiry form, portal login, admin CRUD flows
-- [ ] **Mobile viewport tests** — key pages at 375px width
-- [ ] **Lighthouse audit** — target Performance > 90, Accessibility > 90
-
-## Polish
+### 4. Assets
 
 - [ ] OG/social sharing images (meta tags are in place, need actual images)
 - [ ] Favicon and apple-touch-icon
-- [ ] Email templates for magic links, order confirmations, inquiry notifications (currently plain text)
-- [ ] Error boundary / global error handling
-- [ ] Loading states for client-side interactions
-- [ ] Admin mobile sidebar (hamburger menu collapse)
+- [ ] Any branding assets (CMYK palette files, logos for R2)
 
-## Phase 2+
+---
+
+## Claude
+
+### 1. Pre-deploy (build on request)
+
+- [ ] **FileUpload component** — admin component with `browser-image-compression` (client-side resize to WebP, max 1920px, quality 80), progress indicator, preview, posts to `/api/upload`
+- [ ] **Wire up R2 upload** — update `/api/upload.ts` to use real `MEDIA_BUCKET` binding on Cloudflare Pages runtime
+- [ ] **VideoPlayer component** — inline video with play/pause on hover/tap for portfolio items (Cloudflare Stream embed)
+- [ ] **CountdownTimer component** — extract inline countdown script from `shop.astro` into reusable component
+- [ ] **Email templates** — branded HTML templates for magic links, order confirmations, inquiry notifications (currently plain text)
+- [ ] **Error boundary / global error handling**
+- [ ] **Loading states** for client-side interactions (cart, forms, etc.)
+- [ ] **Admin mobile sidebar** — hamburger menu collapse for small screens
+
+### 2. Animations (when you're ready for polish)
+
+- [ ] **GSAP + Lenis scroll animations** — smooth scroll init, ScrollTrigger fade-in/reveal for portfolio items, subtle parallax on hero
+
+### 3. Testing
+
+- [ ] **Vitest setup** — unit tests for cart logic, query helpers, cookie helpers, validation
+- [ ] **Integration tests** — API routes (checkout, inquiry, webhook), DB queries, RLS policies
+- [ ] **Playwright setup** — E2E tests for homepage scroll, shop checkout, inquiry form, portal login, admin CRUD
+- [ ] **Mobile viewport tests** — key pages at 375px width
+- [ ] **Lighthouse audit** — target Performance > 90, Accessibility > 90
+
+---
+
+## Phase 2+ (later)
 
 - [ ] DocuSeal integration (e-signatures for contracts)
 - [ ] Social media auto-post (Buffer or direct API to LinkedIn/Instagram)
 - [ ] Analytics (Plausible or Fathom)
-- [ ] Video hosting migration from Vimeo to Cloudflare Stream

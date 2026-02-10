@@ -38,7 +38,7 @@ Two environments (names TBD):
 
 ## Stack
 
-Astro 5 SSR → Cloudflare Pages · Supabase (Postgres + RLS + Auth) · Stripe · Cloudflare R2 · Resend · Bunny.net Stream · Cal.com · GSAP + Lenis · Tailwind
+Astro 5 SSR → Cloudflare Pages · Supabase (Postgres + RLS + Auth) · Stripe · Cloudflare R2 · Cloudflare Stream · Resend · Cal.com · GSAP + Lenis · Tailwind
 
 ## Cloudflare Workers Constraints
 

@@ -80,7 +80,7 @@ The `verbs/` project is a mature Astro 5 SSR app with the same stack (Supabase +
 | Database | **Supabase** (PostgreSQL) | Auth, DB, RLS policies |
 | Payments | **Stripe** | Merch checkout + invoice embedding |
 | Media Storage | **Cloudflare R2** | S3-compatible, no egress fees |
-| Video Hosting | **Bunny.net Stream** (portfolio) + **R2** (short clips) | Indie, cheap, good player |
+| Video Hosting | **Cloudflare Stream** + **R2** (short clips) | Same ecosystem as Pages/R2, adaptive bitrate player |
 | Email | **Resend** | Transactional emails (magic links, order confirmations, intake notifications) |
 | Scheduling | **Cal.com** (hosted free plan) | Embedded via iframe on /book |
 | Contract Signing | **DocuSeal** (API integration) | Open source e-signatures |
@@ -153,7 +153,7 @@ CREATE TABLE portfolio_items (
   title TEXT NOT NULL,
   description TEXT,                           -- Short caption, optional
   category portfolio_category NOT NULL,
-  media_url TEXT NOT NULL,                    -- R2 URL (image) or Bunny embed URL (video)
+  media_url TEXT NOT NULL,                    -- R2 URL (image) or Cloudflare Stream embed URL (video)
   media_type portfolio_media_type NOT NULL DEFAULT 'image',
   thumbnail_url TEXT,                         -- For video items, a still frame
   external_url TEXT,                          -- For web projects, link to live site
@@ -841,7 +841,7 @@ tests/
 - Writing snippets interspersed between portfolio rows
 - Client name list as a simple text section
 - "Work with us" sticky bar replacing Hardsun's "Add to bag"
-- Video items play inline on hover/tap (short clips) or show Bunny.net embed
+- Video items play inline on hover/tap (short clips) or show Cloudflare Stream embed
 - Content mix: ~50% static images, ~25% motion/video, ~25% web project links
 
 ### Tasks
@@ -1194,7 +1194,7 @@ These should be resolved before or during implementation:
    - JS-based masonry (Masonry.js or custom)
    - Recommendation: CSS Grid with predefined row patterns that repeat. Admin assigns `small`, `medium`, `large` per item; the grid arranges them in a curated pattern.
 
-5. **Video hosting migration**: Timeline for moving existing Vimeo content to Bunny.net Stream. Can happen in parallel with development.
+5. **Video hosting migration**: Timeline for moving existing Vimeo content to Cloudflare Stream. Can happen in parallel with development.
 
 6. **Analytics**: Not discussed. Recommend Plausible or Fathom (privacy-friendly, no cookie banners needed).
 

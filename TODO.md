@@ -50,4 +50,4 @@
 - [ ] DocuSeal integration (e-signatures for contracts)
 - [ ] Social media auto-post (Buffer or direct API to LinkedIn/Instagram)
 - [ ] Analytics (Plausible or Fathom)
-- [ ] Video hosting migration from Vimeo to Bunny.net Stream
+- [ ] Video hosting migration from Vimeo to Cloudflare Stream

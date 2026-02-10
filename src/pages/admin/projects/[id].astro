@@ -1,0 +1,164 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+const { id } = Astro.params;
+
+let project: any = null;
+let client: any = null;
+let error = '';
+let success = '';
+
+if (supabaseAdmin && id) {
+  const { data: projectData } = await supabaseAdmin
+    .from('projects')
+    .select('*, clients(*)')
+    .eq('id', id)
+    .single();
+
+  if (!projectData) {
+    return Astro.redirect('/admin/clients');
+  }
+
+  project = projectData;
+  client = projectData.clients;
+}
+
+if (Astro.request.method === 'POST' && supabaseAdmin && id) {
+  const formData = await Astro.request.formData();
+
+  const { error: updateError } = await supabaseAdmin
+    .from('projects')
+    .update({
+      title: formData.get('title'),
+      status: formData.get('status'),
+      deliverables_url: formData.get('deliverables_url') || null,
+      stripe_invoice_id: formData.get('stripe_invoice_id') || null,
+      stripe_invoice_url: formData.get('stripe_invoice_url') || null,
+      notes: formData.get('notes') || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  if (updateError) {
+    error = updateError.message;
+  } else {
+    success = 'Project updated';
+    const { data } = await supabaseAdmin
+      .from('projects')
+      .select('*, clients(*)')
+      .eq('id', id)
+      .single();
+    if (data) {
+      project = data;
+      client = data.clients;
+    }
+  }
+}
+---
+
+<Admin title={`Project: ${project?.title || 'Project'}`}>
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+  {success && <p class="mb-4 bg-green-50 text-green-700 p-3 rounded">{success}</p>}
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold">Project Details</h1>
+    {client && (
+      <p class="text-neutral-600 mt-2">
+        Client: <a href={`/admin/clients/${client.id}`} class="text-neutral-900 hover:underline">{client.name}</a>
+      </p>
+    )}
+  </div>
+
+  {project && (
+    <form method="POST" class="bg-white rounded border border-neutral-200 p-6 max-w-2xl">
+      <div class="space-y-6">
+        <div>
+          <label for="title" class="block text-sm font-semibold mb-2">Title *</label>
+          <input
+            type="text"
+            id="title"
+            name="title"
+            value={project.title}
+            required
+            class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          />
+        </div>
+
+        <div>
+          <label for="status" class="block text-sm font-semibold mb-2">Status *</label>
+          <select
+            id="status"
+            name="status"
+            required
+            class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          >
+            <option value="inquiry" selected={project.status === 'inquiry'}>Inquiry</option>
+            <option value="discovery" selected={project.status === 'discovery'}>Discovery</option>
+            <option value="proposal" selected={project.status === 'proposal'}>Proposal</option>
+            <option value="active" selected={project.status === 'active'}>Active</option>
+            <option value="review" selected={project.status === 'review'}>Review</option>
+            <option value="complete" selected={project.status === 'complete'}>Complete</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="deliverables_url" class="block text-sm font-semibold mb-2">Deliverables URL</label>
+          <input
+            type="text"
+            id="deliverables_url"
+            name="deliverables_url"
+            value={project.deliverables_url || ''}
+            placeholder="https://dropbox.com/..."
+            class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          />
+          <p class="text-xs text-neutral-500 mt-1">Dropbox shared folder link</p>
+        </div>
+
+        <div>
+          <label for="stripe_invoice_id" class="block text-sm font-semibold mb-2">Stripe Invoice ID</label>
+          <input
+            type="text"
+            id="stripe_invoice_id"
+            name="stripe_invoice_id"
+            value={project.stripe_invoice_id || ''}
+            placeholder="in_..."
+            class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          />
+        </div>
+
+        <div>
+          <label for="stripe_invoice_url" class="block text-sm font-semibold mb-2">Stripe Invoice URL</label>
+          <input
+            type="text"
+            id="stripe_invoice_url"
+            name="stripe_invoice_url"
+            value={project.stripe_invoice_url || ''}
+            placeholder="https://invoice.stripe.com/..."
+            class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          />
+          <p class="text-xs text-neutral-500 mt-1">Stripe hosted invoice URL</p>
+        </div>
+
+        <div>
+          <label for="notes" class="block text-sm font-semibold mb-2">Internal Notes</label>
+          <textarea
+            id="notes"
+            name="notes"
+            rows="6"
+            class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          >{project.notes}</textarea>
+        </div>
+      </div>
+
+      <div class="flex gap-4 mt-8">
+        <a href={`/admin/clients/${project.client_id}`} class="px-4 py-2 text-neutral-600 hover:text-neutral-900">
+          Back to Client
+        </a>
+        <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+          Save Changes
+        </button>
+      </div>
+    </form>
+  )}
+</Admin>

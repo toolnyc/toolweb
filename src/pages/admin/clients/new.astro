@@ -1,0 +1,91 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+let error = '';
+
+if (Astro.request.method === 'POST' && supabaseAdmin) {
+  const formData = await Astro.request.formData();
+
+  const { error: insertError } = await supabaseAdmin
+    .from('clients')
+    .insert({
+      name: formData.get('name'),
+      email: formData.get('email'),
+      company: formData.get('company') || null,
+      status: formData.get('status'),
+    });
+
+  if (insertError) {
+    error = insertError.message;
+  } else {
+    return Astro.redirect('/admin/clients');
+  }
+}
+---
+
+<Admin title="New Client">
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold">New Client</h1>
+  </div>
+
+  <form method="POST" class="bg-white rounded border border-neutral-200 p-6 max-w-2xl">
+    <div class="space-y-6">
+      <div>
+        <label for="name" class="block text-sm font-semibold mb-2">Name *</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          required
+          class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+        />
+      </div>
+
+      <div>
+        <label for="email" class="block text-sm font-semibold mb-2">Email *</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          required
+          class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+        />
+      </div>
+
+      <div>
+        <label for="company" class="block text-sm font-semibold mb-2">Company</label>
+        <input
+          type="text"
+          id="company"
+          name="company"
+          class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+        />
+      </div>
+
+      <div>
+        <label for="status" class="block text-sm font-semibold mb-2">Status *</label>
+        <select
+          id="status"
+          name="status"
+          required
+          class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+        >
+          <option value="active" selected>Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="flex gap-4 mt-8">
+      <a href="/admin/clients" class="px-4 py-2 text-neutral-600 hover:text-neutral-900">
+        Cancel
+      </a>
+      <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+        Create Client
+      </button>
+    </div>
+  </form>
+</Admin>

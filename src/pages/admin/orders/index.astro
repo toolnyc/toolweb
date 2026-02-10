@@ -1,0 +1,146 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+let orders: any[] = [];
+let error = '';
+
+const statusFilter = Astro.url.searchParams.get('status') || 'all';
+
+if (supabaseAdmin) {
+  let query = supabaseAdmin
+    .from('orders')
+    .select('*, product_variants(*, products(*))')
+    .order('created_at', { ascending: false });
+
+  if (statusFilter !== 'all') {
+    query = query.eq('status', statusFilter);
+  }
+
+  const { data, error: fetchError } = await query;
+
+  if (fetchError) {
+    error = fetchError.message;
+  } else {
+    orders = data || [];
+  }
+}
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+}
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+---
+
+<Admin title="Orders">
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <div class="flex justify-between items-center mb-8">
+    <div class="flex gap-4 items-center">
+      <h1 class="text-2xl font-bold">Orders</h1>
+      <div class="flex gap-2">
+        <a
+          href="/admin/orders"
+          class:list={[
+            'px-3 py-1 text-sm rounded',
+            statusFilter === 'all' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+          ]}
+        >
+          All
+        </a>
+        <a
+          href="/admin/orders?status=paid"
+          class:list={[
+            'px-3 py-1 text-sm rounded',
+            statusFilter === 'paid' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+          ]}
+        >
+          Paid
+        </a>
+        <a
+          href="/admin/orders?status=shipped"
+          class:list={[
+            'px-3 py-1 text-sm rounded',
+            statusFilter === 'shipped' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+          ]}
+        >
+          Shipped
+        </a>
+        <a
+          href="/admin/orders?status=delivered"
+          class:list={[
+            'px-3 py-1 text-sm rounded',
+            statusFilter === 'delivered' ? 'bg-neutral-900 text-white' : 'bg-neutral-100 text-neutral-600'
+          ]}
+        >
+          Delivered
+        </a>
+      </div>
+    </div>
+  </div>
+
+  {orders.length > 0 ? (
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-neutral-50 border-b border-neutral-200">
+          <tr>
+            <th class="text-left p-4 text-sm font-semibold">Order #</th>
+            <th class="text-left p-4 text-sm font-semibold">Customer</th>
+            <th class="text-left p-4 text-sm font-semibold">Product</th>
+            <th class="text-left p-4 text-sm font-semibold">Amount</th>
+            <th class="text-left p-4 text-sm font-semibold">Status</th>
+            <th class="text-left p-4 text-sm font-semibold">Date</th>
+            <th class="text-right p-4 text-sm font-semibold">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order) => (
+            <tr class="border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50">
+              <td class="p-4">
+                <a href={`/admin/orders/${order.id}`} class="font-medium hover:underline">
+                  #{order.order_number}
+                </a>
+              </td>
+              <td class="p-4">
+                <div class="text-sm">
+                  <div class="font-medium">{order.customer_name}</div>
+                  <div class="text-neutral-600">{order.customer_email}</div>
+                </div>
+              </td>
+              <td class="p-4 text-sm text-neutral-600">
+                {order.product_variants?.products?.name || 'N/A'}
+                {order.product_variants?.label && ` - ${order.product_variants.label}`}
+              </td>
+              <td class="p-4 text-sm text-neutral-600">{formatPrice(order.amount_paid)}</td>
+              <td class="p-4">
+                <span class:list={[
+                  'px-2 py-1 text-xs rounded',
+                  order.status === 'delivered' ? 'bg-green-100 text-green-700' :
+                  order.status === 'shipped' ? 'bg-blue-100 text-blue-700' :
+                  order.status === 'refunded' ? 'bg-red-100 text-red-700' :
+                  'bg-yellow-100 text-yellow-700'
+                ]}>
+                  {order.status}
+                </span>
+              </td>
+              <td class="p-4 text-sm text-neutral-600">{formatDate(order.created_at)}</td>
+              <td class="p-4 text-right">
+                <a href={`/admin/orders/${order.id}`} class="text-sm text-neutral-600 hover:text-neutral-900">
+                  View
+                </a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center">
+      <p class="text-neutral-500">No orders found</p>
+    </div>
+  )}
+</Admin>

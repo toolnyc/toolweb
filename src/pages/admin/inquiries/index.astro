@@ -1,0 +1,198 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+let inquiries: any[] = [];
+let error = '';
+
+if (supabaseAdmin) {
+  const { data, error: fetchError } = await supabaseAdmin
+    .from('project_inquiries')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (fetchError) {
+    error = fetchError.message;
+  } else {
+    inquiries = data || [];
+  }
+}
+
+if (Astro.request.method === 'POST' && supabaseAdmin) {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action');
+  const inquiryId = formData.get('inquiry_id');
+
+  if (action === 'mark-reviewed') {
+    const { error: updateError } = await supabaseAdmin
+      .from('project_inquiries')
+      .update({ status: 'reviewed' })
+      .eq('id', inquiryId);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      return Astro.redirect('/admin/inquiries');
+    }
+  }
+
+  if (action === 'decline') {
+    const { error: updateError } = await supabaseAdmin
+      .from('project_inquiries')
+      .update({ status: 'declined' })
+      .eq('id', inquiryId);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      return Astro.redirect('/admin/inquiries');
+    }
+  }
+
+  if (action === 'convert') {
+    const inquiry = inquiries.find(i => i.id === inquiryId);
+    if (inquiry) {
+      const { data: newClient, error: clientError } = await supabaseAdmin
+        .from('clients')
+        .insert({
+          name: inquiry.name,
+          email: inquiry.email,
+          company: inquiry.company || null,
+          status: 'active',
+        })
+        .select()
+        .single();
+
+      if (clientError) {
+        error = clientError.message;
+      } else {
+        const { error: projectError } = await supabaseAdmin
+          .from('projects')
+          .insert({
+            client_id: newClient.id,
+            title: `${inquiry.project_type || 'New'} Project`,
+            status: 'discovery',
+          });
+
+        if (projectError) {
+          error = projectError.message;
+        } else {
+          await supabaseAdmin
+            .from('project_inquiries')
+            .update({ status: 'converted' })
+            .eq('id', inquiryId);
+
+          return Astro.redirect(`/admin/clients/${newClient.id}`);
+        }
+      }
+    }
+  }
+}
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+---
+
+<Admin title="Inquiries">
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold">Project Inquiries</h1>
+  </div>
+
+  {inquiries.length > 0 ? (
+    <div class="space-y-4">
+      {inquiries.map((inquiry) => (
+        <details class="bg-white rounded border border-neutral-200 overflow-hidden">
+          <summary class="p-6 cursor-pointer hover:bg-neutral-50 flex justify-between items-center">
+            <div class="flex-1">
+              <div class="flex items-center gap-4">
+                <span class="font-semibold">{inquiry.name}</span>
+                <span class:list={[
+                  'px-2 py-1 text-xs rounded',
+                  inquiry.status === 'new' ? 'bg-blue-100 text-blue-700' :
+                  inquiry.status === 'reviewed' ? 'bg-yellow-100 text-yellow-700' :
+                  inquiry.status === 'converted' ? 'bg-green-100 text-green-700' :
+                  'bg-neutral-100 text-neutral-600'
+                ]}>
+                  {inquiry.status}
+                </span>
+              </div>
+              <div class="text-sm text-neutral-600 mt-1">
+                {inquiry.email} · {inquiry.project_type || 'General'} · {formatDate(inquiry.created_at)}
+              </div>
+            </div>
+          </summary>
+
+          <div class="p-6 border-t border-neutral-200 bg-neutral-50">
+            <div class="space-y-4">
+              {inquiry.company && (
+                <div>
+                  <p class="text-sm font-semibold text-neutral-600">Company</p>
+                  <p class="text-neutral-900">{inquiry.company}</p>
+                </div>
+              )}
+
+              <div>
+                <p class="text-sm font-semibold text-neutral-600">Description</p>
+                <p class="text-neutral-900">{inquiry.description}</p>
+              </div>
+
+              {inquiry.budget_range && (
+                <div>
+                  <p class="text-sm font-semibold text-neutral-600">Budget Range</p>
+                  <p class="text-neutral-900">{inquiry.budget_range}</p>
+                </div>
+              )}
+
+              {inquiry.timeline && (
+                <div>
+                  <p class="text-sm font-semibold text-neutral-600">Timeline</p>
+                  <p class="text-neutral-900">{inquiry.timeline}</p>
+                </div>
+              )}
+
+              {inquiry.status !== 'converted' && inquiry.status !== 'declined' && (
+                <div class="flex gap-3 mt-6 pt-4 border-t border-neutral-200">
+                  <form method="POST" class="inline">
+                    <input type="hidden" name="action" value="mark-reviewed" />
+                    <input type="hidden" name="inquiry_id" value={inquiry.id} />
+                    <button type="submit" class="px-4 py-2 bg-neutral-100 text-neutral-900 rounded hover:bg-neutral-200">
+                      Mark Reviewed
+                    </button>
+                  </form>
+
+                  <form method="POST" class="inline">
+                    <input type="hidden" name="action" value="convert" />
+                    <input type="hidden" name="inquiry_id" value={inquiry.id} />
+                    <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+                      Convert to Client
+                    </button>
+                  </form>
+
+                  <form method="POST" class="inline">
+                    <input type="hidden" name="action" value="decline" />
+                    <input type="hidden" name="inquiry_id" value={inquiry.id} />
+                    <button
+                      type="submit"
+                      class="px-4 py-2 text-red-600 hover:text-red-700"
+                      onclick="return confirm('Mark as declined?')"
+                    >
+                      Decline
+                    </button>
+                  </form>
+                </div>
+              )}
+            </div>
+          </div>
+        </details>
+      ))}
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center">
+      <p class="text-neutral-500">No inquiries yet</p>
+    </div>
+  )}
+</Admin>

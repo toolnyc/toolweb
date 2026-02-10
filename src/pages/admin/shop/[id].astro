@@ -1,0 +1,308 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+const { id } = Astro.params;
+
+let product: any = null;
+let variants: any[] = [];
+let error = '';
+let success = '';
+
+if (supabaseAdmin && id) {
+  const { data: productData } = await supabaseAdmin
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (!productData) {
+    return Astro.redirect('/admin/shop');
+  }
+
+  product = productData;
+
+  const { data: variantsData } = await supabaseAdmin
+    .from('product_variants')
+    .select('*')
+    .eq('product_id', id)
+    .order('sort_order', { ascending: true });
+
+  variants = variantsData || [];
+}
+
+if (Astro.request.method === 'POST' && supabaseAdmin && id) {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action');
+
+  if (action === 'update') {
+    const { error: updateError } = await supabaseAdmin
+      .from('products')
+      .update({
+        name: formData.get('name'),
+        description: formData.get('description') || null,
+        price: parseFloat(formData.get('price') as string),
+        image_url: formData.get('image_url') || null,
+        status: formData.get('status'),
+        drop_date: formData.get('drop_date') || null,
+        shipping_domestic: parseFloat(formData.get('shipping_domestic') as string) || 5,
+        shipping_international: parseFloat(formData.get('shipping_international') as string) || 15,
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      success = 'Product updated';
+      const { data } = await supabaseAdmin.from('products').select('*').eq('id', id).single();
+      if (data) product = data;
+    }
+  }
+
+  if (action === 'add-variant') {
+    const { error: insertError } = await supabaseAdmin
+      .from('product_variants')
+      .insert({
+        product_id: id,
+        label: formData.get('label'),
+        stock_count: parseInt(formData.get('stock_count') as string) || 0,
+        sort_order: variants.length,
+      });
+
+    if (insertError) {
+      error = insertError.message;
+    } else {
+      return Astro.redirect(`/admin/shop/${id}`);
+    }
+  }
+
+  if (action === 'delete-variant') {
+    const variantId = formData.get('variant_id');
+    const { error: deleteError } = await supabaseAdmin
+      .from('product_variants')
+      .delete()
+      .eq('id', variantId);
+
+    if (deleteError) {
+      error = deleteError.message;
+    } else {
+      return Astro.redirect(`/admin/shop/${id}`);
+    }
+  }
+
+  if (action === 'update-variant') {
+    const variantId = formData.get('variant_id');
+    const { error: updateError } = await supabaseAdmin
+      .from('product_variants')
+      .update({
+        stock_count: parseInt(formData.get('stock_count') as string) || 0,
+      })
+      .eq('id', variantId);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      return Astro.redirect(`/admin/shop/${id}`);
+    }
+  }
+}
+---
+
+<Admin title={`Edit: ${product?.name || 'Product'}`}>
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+  {success && <p class="mb-4 bg-green-50 text-green-700 p-3 rounded">{success}</p>}
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold">Edit Product</h1>
+  </div>
+
+  {product && (
+    <div class="space-y-8">
+      <form method="POST" class="bg-white rounded border border-neutral-200 p-6 max-w-2xl">
+        <input type="hidden" name="action" value="update" />
+        <h2 class="text-lg font-semibold mb-6">Product Information</h2>
+
+        <div class="space-y-6">
+          <div>
+            <label for="name" class="block text-sm font-semibold mb-2">Name *</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={product.name}
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div>
+            <label for="description" class="block text-sm font-semibold mb-2">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              rows="4"
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            >{product.description}</textarea>
+          </div>
+
+          <div>
+            <label for="price" class="block text-sm font-semibold mb-2">Price *</label>
+            <input
+              type="number"
+              id="price"
+              name="price"
+              step="0.01"
+              value={product.price}
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div>
+            <label for="image_url" class="block text-sm font-semibold mb-2">Image URL</label>
+            <input
+              type="text"
+              id="image_url"
+              name="image_url"
+              value={product.image_url || ''}
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="status" class="block text-sm font-semibold mb-2">Status *</label>
+              <select
+                id="status"
+                name="status"
+                required
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              >
+                <option value="draft" selected={product.status === 'draft'}>Draft</option>
+                <option value="upcoming" selected={product.status === 'upcoming'}>Upcoming</option>
+                <option value="active" selected={product.status === 'active'}>Active</option>
+                <option value="sold_out" selected={product.status === 'sold_out'}>Sold Out</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="drop_date" class="block text-sm font-semibold mb-2">Drop Date</label>
+              <input
+                type="datetime-local"
+                id="drop_date"
+                name="drop_date"
+                value={product.drop_date ? new Date(product.drop_date).toISOString().slice(0, 16) : ''}
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="shipping_domestic" class="block text-sm font-semibold mb-2">Domestic Shipping ($)</label>
+              <input
+                type="number"
+                id="shipping_domestic"
+                name="shipping_domestic"
+                step="0.01"
+                value={product.shipping_domestic}
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              />
+            </div>
+
+            <div>
+              <label for="shipping_international" class="block text-sm font-semibold mb-2">International Shipping ($)</label>
+              <input
+                type="number"
+                id="shipping_international"
+                name="shipping_international"
+                step="0.01"
+                value={product.shipping_international}
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-4 mt-8">
+          <a href="/admin/shop" class="px-4 py-2 text-neutral-600 hover:text-neutral-900">
+            Back to Shop
+          </a>
+          <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+            Save Changes
+          </button>
+        </div>
+      </form>
+
+      <div class="bg-white rounded border border-neutral-200 p-6">
+        <h2 class="text-lg font-semibold mb-6">Variants</h2>
+
+        {variants.length > 0 ? (
+          <div class="space-y-3 mb-6">
+            {variants.map((variant) => (
+              <div class="flex items-center gap-4 p-4 bg-neutral-50 rounded">
+                <div class="flex-1">
+                  <span class="font-medium">{variant.label}</span>
+                  <span class="text-sm text-neutral-600 ml-3">Stock: {variant.stock_count}</span>
+                  {variant.stripe_price_id && (
+                    <span class="text-xs text-neutral-400 ml-3">{variant.stripe_price_id}</span>
+                  )}
+                </div>
+                <form method="POST" class="flex items-center gap-2">
+                  <input type="hidden" name="action" value="update-variant" />
+                  <input type="hidden" name="variant_id" value={variant.id} />
+                  <input
+                    type="number"
+                    name="stock_count"
+                    value={variant.stock_count}
+                    class="w-20 px-2 py-1 text-sm border border-neutral-300 rounded"
+                  />
+                  <button type="submit" class="px-3 py-1 text-sm bg-neutral-100 rounded hover:bg-neutral-200">
+                    Update
+                  </button>
+                </form>
+                <form method="POST">
+                  <input type="hidden" name="action" value="delete-variant" />
+                  <input type="hidden" name="variant_id" value={variant.id} />
+                  <button
+                    type="submit"
+                    class="text-sm text-red-600 hover:text-red-700"
+                    onclick="return confirm('Delete this variant?')"
+                  >
+                    Delete
+                  </button>
+                </form>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-neutral-500 mb-6">No variants yet</p>
+        )}
+
+        <form method="POST" class="border-t border-neutral-200 pt-6">
+          <input type="hidden" name="action" value="add-variant" />
+          <h3 class="text-sm font-semibold mb-4">Add Variant</h3>
+          <div class="flex gap-4">
+            <input
+              type="text"
+              name="label"
+              placeholder="Label (e.g., S, M, L)"
+              required
+              class="flex-1 px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+            <input
+              type="number"
+              name="stock_count"
+              placeholder="Stock"
+              value="0"
+              class="w-24 px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+            <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+              Add
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )}
+</Admin>

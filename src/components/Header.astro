@@ -1,0 +1,28 @@
+---
+/**
+ * Site header — fixed top bar with TOOL wordmark and nav links.
+ * z-40 so it sits above content but below StickyBar (z-50).
+ */
+---
+
+<header class="fixed top-0 left-0 right-0 z-40 bg-white border-b border-neutral-200">
+  <nav class="flex items-center justify-between px-6 py-4 md:px-8 md:py-5">
+    <a href="/" class="text-sm font-bold uppercase tracking-[0.2em] text-neutral-900">
+      Tool
+    </a>
+    <div class="flex items-center gap-6">
+      <a
+        href="/shop"
+        class="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+      >
+        Shop
+      </a>
+      <a
+        href="/book"
+        class="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
+      >
+        Book
+      </a>
+    </div>
+  </nav>
+</header>

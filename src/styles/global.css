@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-white text-neutral-900;
+  }
+}
+
+@layer components {
+  /* 1px gap grid — Hardsun pattern */
+  .content-grid {
+    display: grid;
+    gap: 1px;
+    background-color: #e5e5e5;
+  }
+
+  .content-grid > * {
+    background-color: white;
+  }
+}

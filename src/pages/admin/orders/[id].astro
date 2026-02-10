@@ -1,0 +1,185 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+const { id } = Astro.params;
+
+let order: any = null;
+let error = '';
+let success = '';
+
+if (supabaseAdmin && id) {
+  const { data } = await supabaseAdmin
+    .from('orders')
+    .select('*, product_variants(*, products(*))')
+    .eq('id', id)
+    .single();
+
+  if (!data) {
+    return Astro.redirect('/admin/orders');
+  }
+
+  order = data;
+}
+
+if (Astro.request.method === 'POST' && supabaseAdmin && id) {
+  const formData = await Astro.request.formData();
+
+  const { error: updateError } = await supabaseAdmin
+    .from('orders')
+    .update({
+      status: formData.get('status'),
+      tracking_number: formData.get('tracking_number') || null,
+    })
+    .eq('id', id);
+
+  if (updateError) {
+    error = updateError.message;
+  } else {
+    success = 'Order updated';
+    const { data } = await supabaseAdmin
+      .from('orders')
+      .select('*, product_variants(*, products(*))')
+      .eq('id', id)
+      .single();
+    if (data) order = data;
+  }
+}
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+}
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+---
+
+<Admin title={`Order #${order?.order_number || 'Order'}`}>
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+  {success && <p class="mb-4 bg-green-50 text-green-700 p-3 rounded">{success}</p>}
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold">Order #{order?.order_number}</h1>
+    <p class="text-neutral-600 mt-1">Placed on {formatDate(order.created_at)}</p>
+  </div>
+
+  {order && (
+    <div class="space-y-6">
+      <div class="bg-white rounded border border-neutral-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">Customer Information</h2>
+        <div class="space-y-2">
+          <div>
+            <span class="text-sm text-neutral-600">Name:</span>
+            <span class="ml-2 font-medium">{order.customer_name}</span>
+          </div>
+          <div>
+            <span class="text-sm text-neutral-600">Email:</span>
+            <span class="ml-2">{order.customer_email}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded border border-neutral-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">Shipping Address</h2>
+        <div class="text-neutral-900">
+          {order.shipping_address.line1}<br />
+          {order.shipping_address.line2 && <>{order.shipping_address.line2}<br /></>}
+          {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.postal_code}<br />
+          {order.shipping_address.country}
+        </div>
+      </div>
+
+      <div class="bg-white rounded border border-neutral-200 p-6">
+        <h2 class="text-lg font-semibold mb-4">Order Details</h2>
+        <div class="space-y-3">
+          <div class="flex justify-between">
+            <div>
+              <div class="font-medium">{order.product_variants?.products?.name}</div>
+              {order.product_variants?.label && (
+                <div class="text-sm text-neutral-600">Size: {order.product_variants.label}</div>
+              )}
+            </div>
+            <div class="text-right">
+              <div>Qty: {order.quantity}</div>
+            </div>
+          </div>
+          <div class="border-t border-neutral-200 pt-3 space-y-1">
+            <div class="flex justify-between text-sm">
+              <span class="text-neutral-600">Subtotal:</span>
+              <span>{formatPrice(order.amount_paid - order.shipping_cost)}</span>
+            </div>
+            <div class="flex justify-between text-sm">
+              <span class="text-neutral-600">Shipping:</span>
+              <span>{formatPrice(order.shipping_cost)}</span>
+            </div>
+            <div class="flex justify-between font-semibold pt-2 border-t border-neutral-200">
+              <span>Total:</span>
+              <span>{formatPrice(order.amount_paid)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form method="POST" class="bg-white rounded border border-neutral-200 p-6 max-w-2xl">
+        <h2 class="text-lg font-semibold mb-6">Update Order Status</h2>
+
+        <div class="space-y-6">
+          <div>
+            <label for="status" class="block text-sm font-semibold mb-2">Status *</label>
+            <select
+              id="status"
+              name="status"
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            >
+              <option value="paid" selected={order.status === 'paid'}>Paid</option>
+              <option value="shipped" selected={order.status === 'shipped'}>Shipped</option>
+              <option value="delivered" selected={order.status === 'delivered'}>Delivered</option>
+              <option value="refunded" selected={order.status === 'refunded'}>Refunded</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="tracking_number" class="block text-sm font-semibold mb-2">Tracking Number</label>
+            <input
+              type="text"
+              id="tracking_number"
+              name="tracking_number"
+              value={order.tracking_number || ''}
+              placeholder="Enter tracking number"
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+        </div>
+
+        <div class="flex gap-4 mt-8">
+          <a href="/admin/orders" class="px-4 py-2 text-neutral-600 hover:text-neutral-900">
+            Back to Orders
+          </a>
+          <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+            Update Order
+          </button>
+        </div>
+      </form>
+
+      {order.stripe_payment_intent_id && (
+        <div class="bg-neutral-50 rounded border border-neutral-200 p-4">
+          <p class="text-xs text-neutral-500">
+            Stripe Payment Intent: <code class="text-neutral-700">{order.stripe_payment_intent_id}</code>
+          </p>
+          <p class="text-xs text-neutral-500 mt-1">
+            Stripe Session: <code class="text-neutral-700">{order.stripe_session_id}</code>
+          </p>
+        </div>
+      )}
+    </div>
+  )}
+</Admin>

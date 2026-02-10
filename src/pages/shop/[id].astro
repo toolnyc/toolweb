@@ -1,0 +1,169 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import StickyBar from '../../components/StickyBar.astro';
+import '../../styles/global.css';
+import { getProductById } from '../../lib/queries';
+
+const { id } = Astro.params;
+const product = await getProductById(id!);
+
+if (!product) return Astro.redirect('/shop');
+
+function formatPrice(price: number) {
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+}
+
+const hasStock = product.variants.some(v => v.stock_count > 0);
+---
+
+<BaseLayout title={`${product.name} — Tool`}>
+  <Header />
+  <main class="pb-14 pt-20 px-6 md:px-8">
+    <a href="/shop" class="text-sm text-neutral-400 hover:text-neutral-600 mb-8 block mt-8 transition-colors">
+      &larr; Back to shop
+    </a>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
+      <!-- Left column: Product image -->
+      <div>
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={product.name}
+            class="w-full aspect-square object-cover"
+          />
+        ) : (
+          <div class="w-full aspect-square bg-neutral-100" />
+        )}
+      </div>
+
+      <!-- Right column: Product info -->
+      <div>
+        <h1 class="text-2xl font-bold">{product.name}</h1>
+        <p class="text-xl text-neutral-600 mt-2">{formatPrice(product.price)}</p>
+
+        {product.description && (
+          <p class="text-neutral-500 mt-4">{product.description}</p>
+        )}
+
+        {product.variants.length > 0 && (
+          <div>
+            <p class="text-sm font-semibold mt-6 mb-2">Size</p>
+            <div class="flex flex-wrap gap-2">
+              {product.variants
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map((variant) => (
+                  <button
+                    type="button"
+                    data-variant-id={variant.id}
+                    data-stock={variant.stock_count}
+                    disabled={variant.stock_count <= 0}
+                    class:list={[
+                      'border rounded px-4 py-2 text-sm transition-colors',
+                      variant.stock_count <= 0
+                        ? 'opacity-50 line-through cursor-not-allowed border-neutral-200'
+                        : 'border-neutral-300 hover:border-neutral-900 cursor-pointer',
+                    ]}
+                  >
+                    {variant.label}
+                  </button>
+                ))}
+            </div>
+          </div>
+        )}
+
+        <div class="mt-6">
+          <label for="quantity" class="text-sm font-semibold block mb-2">Quantity</label>
+          <input
+            type="number"
+            id="quantity"
+            name="quantity"
+            min="1"
+            value="1"
+            class="border border-neutral-300 rounded px-3 py-2 w-20 text-sm"
+          />
+        </div>
+
+        <button
+          id="add-to-cart"
+          type="button"
+          data-product-id={product.id}
+          data-product-name={product.name}
+          data-price={product.price}
+          data-image-url={product.image_url || ''}
+          disabled={!hasStock}
+          class:list={[
+            'w-full py-3 rounded mt-6 font-medium text-center transition-colors',
+            hasStock
+              ? 'bg-neutral-900 text-white hover:bg-neutral-800 cursor-pointer'
+              : 'bg-neutral-900 text-white opacity-50 cursor-not-allowed',
+          ]}
+        >
+          {hasStock ? 'Add to bag' : 'Sold out'}
+        </button>
+
+        <div class="text-sm text-neutral-400 mt-4 space-y-1">
+          <p>Ships within 1 week</p>
+          <p>{formatPrice(product.shipping_domestic)} domestic &middot; {formatPrice(product.shipping_international)} international</p>
+        </div>
+      </div>
+    </div>
+  </main>
+  <StickyBar />
+  <Footer />
+</BaseLayout>
+
+<script>
+  // Variant selection
+  const variantButtons = document.querySelectorAll('[data-variant-id]');
+  const addToCartBtn = document.querySelector('#add-to-cart') as HTMLButtonElement;
+  const quantityInput = document.querySelector('#quantity') as HTMLInputElement;
+  let selectedVariantId: string | null = null;
+
+  variantButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if ((btn as HTMLButtonElement).disabled) return;
+      variantButtons.forEach(b => {
+        b.classList.remove('bg-neutral-900', 'text-white');
+        b.classList.add('border-neutral-300');
+      });
+      btn.classList.add('bg-neutral-900', 'text-white');
+      btn.classList.remove('border-neutral-300');
+      selectedVariantId = (btn as HTMLElement).dataset.variantId!;
+    });
+  });
+
+  // Auto-select first in-stock variant
+  const firstInStock = document.querySelector('[data-variant-id]:not([disabled])') as HTMLButtonElement | null;
+  if (firstInStock) {
+    firstInStock.click();
+  }
+
+  // Add to cart
+  addToCartBtn?.addEventListener('click', async () => {
+    if (!selectedVariantId) {
+      alert('Please select a size');
+      return;
+    }
+    const quantity = parseInt(quantityInput?.value || '1', 10);
+    const { addToCart } = await import('../../lib/cart');
+    addToCart({
+      variantId: selectedVariantId,
+      productId: addToCartBtn.dataset.productId!,
+      productName: addToCartBtn.dataset.productName!,
+      variantLabel: document.querySelector(`[data-variant-id="${selectedVariantId}"]`)?.textContent?.trim() || '',
+      price: parseFloat(addToCartBtn.dataset.price!),
+      imageUrl: addToCartBtn.dataset.imageUrl || null,
+    }, quantity);
+    // Update cart count in sticky bar if it exists
+    const cartCount = document.querySelector('#cart-count');
+    if (cartCount) {
+      const { getCartCount } = await import('../../lib/cart');
+      cartCount.textContent = getCartCount().toString();
+    }
+    addToCartBtn.textContent = 'Added!';
+    setTimeout(() => { addToCartBtn.textContent = 'Add to bag'; }, 1500);
+  });
+</script>

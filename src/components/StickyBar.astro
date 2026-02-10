@@ -1,0 +1,27 @@
+---
+/**
+ * Sticky bottom CTA bar — fixed to viewport bottom.
+ * z-50 to stay above all other content including the header.
+ *
+ * NOTE: The page layout (BaseLayout) should add pb-14 to <body> so page
+ * content isn't hidden behind this bar.
+ */
+---
+
+<div
+  class="fixed bottom-0 left-0 right-0 z-50 h-14 bg-neutral-900 text-white shadow-[0_-1px_3px_rgba(0,0,0,0.1)]"
+>
+  <div class="flex items-center justify-between h-full px-6 md:px-8">
+    <!-- Wordmark — hidden on mobile to save space -->
+    <span class="hidden md:block text-xs font-bold uppercase tracking-[0.2em]">
+      Tool
+    </span>
+
+    <a
+      href="/book"
+      class="ml-auto md:ml-0 text-sm font-medium hover:text-[#00FFFF] transition-colors"
+    >
+      Work with us
+    </a>
+  </div>
+</div>

@@ -1,0 +1,205 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+const { id } = Astro.params;
+
+let client: any = null;
+let projects: any[] = [];
+let error = '';
+let success = '';
+
+if (supabaseAdmin && id) {
+  const { data: clientData } = await supabaseAdmin
+    .from('clients')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (!clientData) {
+    return Astro.redirect('/admin/clients');
+  }
+
+  client = clientData;
+
+  const { data: projectsData } = await supabaseAdmin
+    .from('projects')
+    .select('*')
+    .eq('client_id', id)
+    .order('created_at', { ascending: false });
+
+  projects = projectsData || [];
+}
+
+if (Astro.request.method === 'POST' && supabaseAdmin && id) {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action');
+
+  if (action === 'update') {
+    const { error: updateError } = await supabaseAdmin
+      .from('clients')
+      .update({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        company: formData.get('company') || null,
+        status: formData.get('status'),
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      success = 'Client updated';
+      const { data } = await supabaseAdmin
+        .from('clients')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (data) client = data;
+    }
+  }
+
+  if (action === 'add-project') {
+    const { error: insertError } = await supabaseAdmin
+      .from('projects')
+      .insert({
+        client_id: id,
+        title: formData.get('title'),
+        status: 'discovery',
+      });
+
+    if (insertError) {
+      error = insertError.message;
+    } else {
+      return Astro.redirect(`/admin/clients/${id}`);
+    }
+  }
+}
+---
+
+<Admin title={`Client: ${client?.name || 'Client'}`}>
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+  {success && <p class="mb-4 bg-green-50 text-green-700 p-3 rounded">{success}</p>}
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold">Client Details</h1>
+  </div>
+
+  {client && (
+    <div class="space-y-8">
+      <form method="POST" class="bg-white rounded border border-neutral-200 p-6 max-w-2xl">
+        <input type="hidden" name="action" value="update" />
+        <h2 class="text-lg font-semibold mb-6">Client Information</h2>
+
+        <div class="space-y-6">
+          <div>
+            <label for="name" class="block text-sm font-semibold mb-2">Name *</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={client.name}
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div>
+            <label for="email" class="block text-sm font-semibold mb-2">Email *</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={client.email}
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div>
+            <label for="company" class="block text-sm font-semibold mb-2">Company</label>
+            <input
+              type="text"
+              id="company"
+              name="company"
+              value={client.company || ''}
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div>
+            <label for="status" class="block text-sm font-semibold mb-2">Status *</label>
+            <select
+              id="status"
+              name="status"
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            >
+              <option value="active" selected={client.status === 'active'}>Active</option>
+              <option value="inactive" selected={client.status === 'inactive'}>Inactive</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-4 mt-8">
+          <a href="/admin/clients" class="px-4 py-2 text-neutral-600 hover:text-neutral-900">
+            Back to Clients
+          </a>
+          <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+            Save Changes
+          </button>
+        </div>
+      </form>
+
+      <div class="bg-white rounded border border-neutral-200 p-6">
+        <h2 class="text-lg font-semibold mb-6">Projects</h2>
+
+        {projects.length > 0 ? (
+          <div class="space-y-4 mb-6">
+            {projects.map((project) => (
+              <div class="flex justify-between items-center p-4 bg-neutral-50 rounded">
+                <div>
+                  <a href={`/admin/projects/${project.id}`} class="font-medium hover:underline">
+                    {project.title}
+                  </a>
+                  <div class="mt-1">
+                    <span class:list={[
+                      'px-2 py-1 text-xs rounded',
+                      project.status === 'complete' ? 'bg-green-100 text-green-700' :
+                      project.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    ]}>
+                      {project.status}
+                    </span>
+                  </div>
+                </div>
+                <a href={`/admin/projects/${project.id}`} class="text-sm text-neutral-600 hover:text-neutral-900">
+                  Edit
+                </a>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-neutral-500 mb-6">No projects yet</p>
+        )}
+
+        <form method="POST" class="border-t border-neutral-200 pt-6">
+          <input type="hidden" name="action" value="add-project" />
+          <h3 class="text-sm font-semibold mb-4">Add Project</h3>
+          <div class="flex gap-4">
+            <input
+              type="text"
+              name="title"
+              placeholder="Project title"
+              required
+              class="flex-1 px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+            <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+              Add Project
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )}
+</Admin>

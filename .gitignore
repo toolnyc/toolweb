@@ -1,0 +1,29 @@
+# build
+dist/
+.astro/
+
+# deps
+node_modules/
+
+# env
+.env
+.env.local
+.env.production
+
+# cloudflare
+.wrangler/
+.dev.vars
+
+# editor / tools
+.vscode/
+.idea/
+.agents/
+.claude/
+*.swp
+*.swo
+.DS_Store
+
+# test
+test-results/
+playwright-report/
+coverage/

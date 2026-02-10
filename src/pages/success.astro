@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import StickyBar from '../components/StickyBar.astro';
+import '../styles/global.css';
+
+---
+
+<BaseLayout title="Order confirmed — Tool">
+  <Header />
+  <main class="pb-14 pt-20">
+    <div class="mx-auto max-w-xl px-6 py-24 md:py-32 text-center">
+      <h1 class="text-3xl font-bold mb-4">Order confirmed</h1>
+      <p class="text-neutral-500 text-lg mb-2">Thanks for your purchase.</p>
+      <p class="text-neutral-400 text-sm mb-8">You'll receive a confirmation email shortly.</p>
+      <a href="/shop" class="text-neutral-400 hover:text-neutral-600 text-sm">&larr; Continue shopping</a>
+    </div>
+  </main>
+  <Footer />
+  <StickyBar />
+</BaseLayout>

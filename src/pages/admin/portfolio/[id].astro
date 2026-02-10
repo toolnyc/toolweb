@@ -1,0 +1,232 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { supabaseAdmin } from '../../../lib/supabase';
+
+const { id } = Astro.params;
+
+let portfolioItem: any = null;
+let error = '';
+let success = '';
+
+if (supabaseAdmin && id) {
+  const { data } = await supabaseAdmin
+    .from('portfolio_items')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (!data) {
+    return Astro.redirect('/admin/portfolio');
+  }
+
+  portfolioItem = data;
+}
+
+if (Astro.request.method === 'POST' && supabaseAdmin && id) {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action');
+
+  if (action === 'delete') {
+    const { error: deleteError } = await supabaseAdmin
+      .from('portfolio_items')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) {
+      error = deleteError.message;
+    } else {
+      return Astro.redirect('/admin/portfolio');
+    }
+  } else {
+    const { error: updateError } = await supabaseAdmin
+      .from('portfolio_items')
+      .update({
+        title: formData.get('title'),
+        description: formData.get('description') || null,
+        category: formData.get('category'),
+        media_url: formData.get('media_url'),
+        media_type: formData.get('media_type'),
+        thumbnail_url: formData.get('thumbnail_url') || null,
+        external_url: formData.get('external_url') || null,
+        display_size: formData.get('display_size'),
+        sort_order: parseInt(formData.get('sort_order') as string) || 0,
+        status: formData.get('status'),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      success = 'Portfolio item updated';
+      const { data } = await supabaseAdmin
+        .from('portfolio_items')
+        .select('*')
+        .eq('id', id)
+        .single();
+      if (data) portfolioItem = data;
+    }
+  }
+}
+---
+
+<Admin title={`Edit: ${portfolioItem?.title || 'Portfolio Item'}`}>
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+  {success && <p class="mb-4 bg-green-50 text-green-700 p-3 rounded">{success}</p>}
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold">Edit Portfolio Item</h1>
+  </div>
+
+  {portfolioItem && (
+    <>
+      <form method="POST" class="bg-white rounded border border-neutral-200 p-6 max-w-2xl">
+        <div class="space-y-6">
+          <div>
+            <label for="title" class="block text-sm font-semibold mb-2">Title *</label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={portfolioItem.title}
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div>
+            <label for="description" class="block text-sm font-semibold mb-2">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              rows="4"
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            >{portfolioItem.description}</textarea>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="category" class="block text-sm font-semibold mb-2">Category *</label>
+              <select
+                id="category"
+                name="category"
+                required
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              >
+                <option value="motion" selected={portfolioItem.category === 'motion'}>Motion</option>
+                <option value="graphic" selected={portfolioItem.category === 'graphic'}>Graphic</option>
+                <option value="web" selected={portfolioItem.category === 'web'}>Web</option>
+                <option value="brand" selected={portfolioItem.category === 'brand'}>Brand</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="media_type" class="block text-sm font-semibold mb-2">Media Type *</label>
+              <select
+                id="media_type"
+                name="media_type"
+                required
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              >
+                <option value="image" selected={portfolioItem.media_type === 'image'}>Image</option>
+                <option value="video" selected={portfolioItem.media_type === 'video'}>Video</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label for="media_url" class="block text-sm font-semibold mb-2">Media URL *</label>
+            <input
+              type="text"
+              id="media_url"
+              name="media_url"
+              value={portfolioItem.media_url}
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div>
+            <label for="thumbnail_url" class="block text-sm font-semibold mb-2">Thumbnail URL</label>
+            <input
+              type="text"
+              id="thumbnail_url"
+              name="thumbnail_url"
+              value={portfolioItem.thumbnail_url || ''}
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div>
+            <label for="external_url" class="block text-sm font-semibold mb-2">External URL</label>
+            <input
+              type="text"
+              id="external_url"
+              name="external_url"
+              value={portfolioItem.external_url || ''}
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label for="display_size" class="block text-sm font-semibold mb-2">Display Size *</label>
+              <select
+                id="display_size"
+                name="display_size"
+                required
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              >
+                <option value="small" selected={portfolioItem.display_size === 'small'}>Small</option>
+                <option value="medium" selected={portfolioItem.display_size === 'medium'}>Medium</option>
+                <option value="large" selected={portfolioItem.display_size === 'large'}>Large</option>
+              </select>
+            </div>
+
+            <div>
+              <label for="sort_order" class="block text-sm font-semibold mb-2">Sort Order</label>
+              <input
+                type="number"
+                id="sort_order"
+                name="sort_order"
+                value={portfolioItem.sort_order}
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="status" class="block text-sm font-semibold mb-2">Status *</label>
+            <select
+              id="status"
+              name="status"
+              required
+              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+            >
+              <option value="draft" selected={portfolioItem.status === 'draft'}>Draft</option>
+              <option value="published" selected={portfolioItem.status === 'published'}>Published</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-4 mt-8">
+          <a href="/admin/portfolio" class="px-4 py-2 text-neutral-600 hover:text-neutral-900">
+            Back to Portfolio
+          </a>
+          <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+            Save Changes
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-8 pt-8 border-t border-neutral-200 max-w-2xl">
+        <form method="POST" onsubmit="return confirm('Delete this portfolio item? This cannot be undone.')">
+          <input type="hidden" name="action" value="delete" />
+          <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+            Delete Portfolio Item
+          </button>
+        </form>
+      </div>
+    </>
+  )}
+</Admin>

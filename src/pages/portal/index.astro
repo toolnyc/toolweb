@@ -1,0 +1,65 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+
+const error = Astro.url.searchParams.get('error');
+---
+
+<BaseLayout title="Client Portal — Tool">
+  <main class="flex min-h-screen items-center justify-center px-4">
+    <div class="w-full max-w-sm">
+      <div class="mb-8">
+        <a href="/" class="text-lg font-bold tracking-widest uppercase">Tool</a>
+        <p class="mt-2 text-sm text-neutral-500">Client Portal</p>
+      </div>
+
+      {error === 'invalid' && (
+        <p class="mb-4 bg-red-50 px-3 py-2 text-sm text-red-600">Invalid login link.</p>
+      )}
+      {error === 'expired' && (
+        <p class="mb-4 bg-red-50 px-3 py-2 text-sm text-red-600">Login link expired. Request a new one.</p>
+      )}
+
+      <form id="magic-link-form" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-1">
+          <label for="email" class="text-sm font-medium">Email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            required
+            autocomplete="email"
+            placeholder="you@company.com"
+            class="border border-neutral-300 px-3 py-2 text-sm"
+          />
+        </div>
+        <button type="submit" class="bg-neutral-900 px-4 py-2 text-sm text-white">
+          Send login link
+        </button>
+      </form>
+
+      <div id="success-message" class="hidden mt-4 bg-neutral-100 px-4 py-3 text-sm text-neutral-600">
+        Check your email for a login link.
+      </div>
+
+      <p class="mt-6 text-center text-sm text-neutral-400">
+        <a href="/" class="hover:text-neutral-600">Back to site</a>
+      </p>
+    </div>
+  </main>
+
+  <script>
+    const form = document.getElementById('magic-link-form') as HTMLFormElement;
+    const successMsg = document.getElementById('success-message')!;
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      await fetch('/api/auth/magic-link', { method: 'POST', body: formData });
+
+      form.classList.add('hidden');
+      successMsg.classList.remove('hidden');
+    });
+  </script>
+</BaseLayout>

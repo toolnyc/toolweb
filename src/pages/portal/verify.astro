@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/global.css';
+---
+
+<BaseLayout title="Verifying — Tool">
+  <main class="flex min-h-screen items-center justify-center px-4">
+    <div class="text-center">
+      <p class="text-sm text-neutral-500">Verifying your login...</p>
+    </div>
+  </main>
+
+  <script>
+    // Supabase magic links redirect with hash params
+    // Extract and forward to our callback endpoint
+    const hash = window.location.hash.substring(1);
+    const params = new URLSearchParams(hash);
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+
+    if (accessToken && refreshToken) {
+      // Set cookies via our callback
+      const url = new URL('/api/auth/callback', window.location.origin);
+      url.searchParams.set('access_token', accessToken);
+      url.searchParams.set('refresh_token', refreshToken);
+      window.location.href = url.toString();
+    } else {
+      // Try token_hash flow
+      const searchParams = new URLSearchParams(window.location.search);
+      const tokenHash = searchParams.get('token_hash');
+      if (tokenHash) {
+        const url = new URL('/api/auth/callback', window.location.origin);
+        url.searchParams.set('token_hash', tokenHash);
+        url.searchParams.set('type', searchParams.get('type') || 'magiclink');
+        window.location.href = url.toString();
+      } else {
+        window.location.href = '/portal?error=invalid';
+      }
+    }
+  </script>
+</BaseLayout>

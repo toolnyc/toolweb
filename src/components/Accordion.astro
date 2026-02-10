@@ -1,0 +1,34 @@
+---
+interface Props {
+  title: string;
+  open?: boolean;
+}
+
+const { title, open = false } = Astro.props;
+---
+
+<div class="accordion" data-accordion>
+  <button class="accordion-trigger" type="button" aria-expanded={open ? 'true' : 'false'}>
+    <span>{title}</span>
+    <span class="accordion-icon">{open ? '×' : '+'}</span>
+  </button>
+  <div class:list={['accordion-content', { 'is-open': open }]}>
+    <div class="px-2 py-3">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('[data-accordion]').forEach((accordion) => {
+    const trigger = accordion.querySelector('.accordion-trigger') as HTMLButtonElement;
+    const content = accordion.querySelector('.accordion-content') as HTMLElement;
+    const icon = accordion.querySelector('.accordion-icon') as HTMLElement;
+
+    trigger?.addEventListener('click', () => {
+      const isOpen = content.classList.toggle('is-open');
+      icon.textContent = isOpen ? '×' : '+';
+      trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+  });
+</script>

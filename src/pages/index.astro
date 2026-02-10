@@ -3,7 +3,8 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import StickyBar from '../components/StickyBar.astro';
-import '../styles/global.css';
+import Accordion from '../components/Accordion.astro';
+import WritingBlock from '../components/WritingBlock.astro';
 
 import {
   getPublishedPortfolio,
@@ -14,13 +15,19 @@ import {
 import type { PortfolioItem } from '../lib/types';
 
 // Fetch all data in parallel
-const [portfolio, writing, clients, heroTagline, aboutBlurb] = await Promise.all([
+const [portfolio, writing, clients, heroTagline, aboutBlurb, servicesBlurb, processBlurb] = await Promise.all([
   getPublishedPortfolio(),
   getPublishedWriting(),
   getVisibleClientLogos(),
   getSiteContentByKey('hero_tagline'),
   getSiteContentByKey('about_blurb'),
+  getSiteContentByKey('services_blurb'),
+  getSiteContentByKey('process_blurb'),
 ]);
+
+// Map display_size to responsive column spans
+const lgSpanMap: Record<string, number> = { small: 8, medium: 12, large: 16 };
+const mdSpanMap: Record<string, number> = { small: 6, medium: 6, large: 12 };
 
 // Chunk portfolio items for interleaving with writing snippets
 const chunkSize = 4;
@@ -33,143 +40,140 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
 <BaseLayout>
   <Header />
 
-  <main class="pb-14">
+  <main class="pb-12">
     {/* ── 1. Hero ─────────────────────────────────────────── */}
-    <section class="min-h-screen flex flex-col items-center justify-center px-8">
-      <h1 class="text-6xl md:text-8xl tracking-widest font-bold uppercase text-neutral-900">
-        TOOL
-      </h1>
-      <p class="mt-6 text-lg md:text-xl text-neutral-500 max-w-lg mx-auto text-center">
-        {heroTagline?.content ?? 'Full-service creative technical consultancy'}
-      </p>
+    <section class="min-h-[100svh] flex items-end site-grid pb-8">
+      <div class="col-span-6 lg:col-span-24">
+        <h1 class="text-hero font-bold uppercase tracking-tight">TOOL</h1>
+        <p class="text-body text-caption-gray mt-2 max-w-md">
+          {heroTagline?.content ?? 'Full-service creative technical consultancy'}
+        </p>
+      </div>
     </section>
 
     {/* ── 2. Portfolio grid with writing snippets ─────────── */}
-    <section>
+    <section class="site-grid">
       {portfolioChunks.map((chunk, chunkIndex) => (
         <>
-          {/* Portfolio grid chunk */}
-          <div class="content-grid grid-cols-1 md:grid-cols-2">
-            {chunk.map((item) => {
-              const isLarge = item.display_size === 'large';
-              const isMedium = item.display_size === 'medium';
-              const wrapperClass = [
-                isLarge ? 'md:col-span-2' : '',
-                isMedium ? 'min-h-[60vh]' : '',
-              ]
-                .filter(Boolean)
-                .join(' ');
+          {chunk.map((item) => {
+            const lgSpan = lgSpanMap[item.display_size] ?? 8;
+            const mdSpan = mdSpanMap[item.display_size] ?? 6;
+            return (
+              <div
+                class="col-span-6 relative overflow-hidden"
+                style={`grid-column: span 6`}
+                data-md-span={mdSpan}
+                data-lg-span={lgSpan}
+              >
+                {item.media_type === 'video' ? (
+                  <video
+                    src={item.media_url}
+                    poster={item.thumbnail_url ?? undefined}
+                    autoplay
+                    muted
+                    loop
+                    playsinline
+                    class="w-full h-auto block"
+                  />
+                ) : (
+                  <img
+                    src={item.media_url}
+                    alt={item.title}
+                    class="w-full h-auto block"
+                  />
+                )}
 
-              return (
-                <div class:list={['relative overflow-hidden', wrapperClass]}>
-                  {item.media_type === 'video' ? (
-                    <video
-                      src={item.media_url}
-                      poster={item.thumbnail_url ?? undefined}
-                      autoplay
-                      muted
-                      loop
-                      playsinline
-                      class:list={[
-                        'w-full h-auto block',
-                        isMedium ? 'h-full object-cover' : '',
-                      ]}
-                    />
-                  ) : (
-                    <img
-                      src={item.media_url}
-                      alt={item.title}
-                      class:list={[
-                        'w-full h-auto block',
-                        isMedium ? 'h-full object-cover' : '',
-                      ]}
-                    />
-                  )}
+                {item.external_url && (
+                  <a
+                    href={item.external_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="absolute inset-0 flex items-end p-2"
+                  >
+                    <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
+                      View project &rarr;
+                    </span>
+                  </a>
+                )}
+              </div>
+            );
+          })}
 
-                  {item.external_url && (
-                    <a
-                      href={item.external_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="absolute inset-0 flex items-end justify-end p-4"
-                    >
-                      <span class="text-xs text-neutral-500 bg-white/90 px-2 py-1">
-                        View project &rarr;
-                      </span>
-                    </a>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Writing snippet after this chunk (if available) */}
+          {/* Writing snippet after this chunk */}
           {writing[chunkIndex] && (
-            <div class="bg-white py-16 md:py-24 px-8 md:px-16 text-center">
-              <p class="text-2xl md:text-3xl font-light leading-relaxed max-w-3xl mx-auto">
-                {writing[chunkIndex].content}
-              </p>
-              {writing[chunkIndex].attribution && (
-                <p class="text-sm text-neutral-400 mt-4">
-                  {writing[chunkIndex].attribution}
-                </p>
-              )}
-            </div>
+            <WritingBlock snippet={writing[chunkIndex]} />
           )}
         </>
       ))}
 
-      {/* Remaining writing snippets that didn't pair with a portfolio chunk */}
+      {/* Remaining writing snippets */}
       {writing.slice(portfolioChunks.length).map((snippet) => (
-        <div class="bg-white py-16 md:py-24 px-8 md:px-16 text-center">
-          <p class="text-2xl md:text-3xl font-light leading-relaxed max-w-3xl mx-auto">
-            {snippet.content}
-          </p>
-          {snippet.attribution && (
-            <p class="text-sm text-neutral-400 mt-4">{snippet.attribution}</p>
-          )}
-        </div>
+        <WritingBlock snippet={snippet} />
       ))}
     </section>
 
     {/* ── 3. Client list ──────────────────────────────────── */}
     {clients.length > 0 && (
-      <section class="py-16 md:py-24 px-8">
-        <h2 class="text-xs uppercase tracking-widest text-neutral-400 mb-8 text-center">
-          Select Clients
-        </h2>
-        <p class="text-lg text-neutral-500 text-center">
-          {clients.map((client, i) => (
-            <>
-              {i > 0 && <span> &middot; </span>}
-              {client.website_url ? (
-                <a
-                  href={client.website_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="hover:text-neutral-900 transition-colors"
-                >
-                  {client.name}
-                </a>
-              ) : (
-                <span>{client.name}</span>
-              )}
-            </>
-          ))}
-        </p>
+      <section class="site-grid py-8">
+        <div class="col-span-6 lg:col-span-24">
+          <p class="text-body text-caption-gray">
+            {clients.map((client, i) => (
+              <>
+                {i > 0 && <span> &middot; </span>}
+                {client.website_url ? (
+                  <a
+                    href={client.website_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-neutral-900 transition-colors"
+                  >
+                    {client.name}
+                  </a>
+                ) : (
+                  <span>{client.name}</span>
+                )}
+              </>
+            ))}
+          </p>
+        </div>
       </section>
     )}
 
-    {/* ── 4. About ────────────────────────────────────────── */}
-    <section class="py-16 md:py-24 px-8 max-w-2xl mx-auto text-center">
-      <p class="text-lg text-neutral-600 leading-relaxed">
-        {aboutBlurb?.content ?? 'Branding, design, and software development.'}
-      </p>
+    {/* ── 4. Accordion sections ───────────────────────────── */}
+    <section class="site-grid">
+      <div class="col-span-6 lg:col-span-24 space-y-[1px]">
+        <Accordion title="Services">
+          <p class="text-body text-caption-gray max-w-2xl">
+            {servicesBlurb?.content ?? 'Branding, graphic design, web design & development, motion graphics, video production, technical consulting, and creative direction.'}
+          </p>
+        </Accordion>
+        <Accordion title="Process">
+          <p class="text-body text-caption-gray max-w-2xl">
+            {processBlurb?.content ?? 'We start with a discovery conversation to understand your goals, then move through research, concepting, design, build, and launch. Every project is different — we tailor the process to fit.'}
+          </p>
+        </Accordion>
+        <Accordion title="About">
+          <p class="text-body text-caption-gray max-w-2xl">
+            {aboutBlurb?.content ?? 'Tool is a creative technical consultancy based in New York. We work with brands, startups, and cultural institutions on branding, design, and software development.'}
+          </p>
+        </Accordion>
+      </div>
     </section>
-
-    {/* ── 5. Footer ───────────────────────────────────────── */}
-    <Footer />
   </main>
 
+  <Footer />
   <StickyBar />
 </BaseLayout>
+
+<style is:global>
+  /* Responsive column spans for portfolio items */
+  @media (min-width: 800px) {
+    [data-md-span="6"] { grid-column: span 6 !important; }
+    [data-md-span="12"] { grid-column: span 12 !important; }
+  }
+  @media (min-width: 1000px) {
+    [data-lg-span="8"] { grid-column: span 8 !important; }
+    [data-lg-span="12"] { grid-column: span 12 !important; }
+    [data-lg-span="16"] { grid-column: span 16 !important; }
+  }
+</style>

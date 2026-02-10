@@ -1,28 +1,15 @@
 ---
 /**
- * Site header — fixed top bar with TOOL wordmark and nav links.
+ * Site header — sticky 24-col grid nav.
  * z-40 so it sits above content but below StickyBar (z-50).
  */
 ---
 
-<header class="fixed top-0 left-0 right-0 z-40 bg-white border-b border-neutral-200">
-  <nav class="flex items-center justify-between px-6 py-4 md:px-8 md:py-5">
-    <a href="/" class="text-sm font-bold uppercase tracking-[0.2em] text-neutral-900">
-      Tool
-    </a>
-    <div class="flex items-center gap-6">
-      <a
-        href="/shop"
-        class="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
-      >
-        Shop
-      </a>
-      <a
-        href="/book"
-        class="text-sm text-neutral-600 hover:text-neutral-900 transition-colors"
-      >
-        Book
-      </a>
-    </div>
+<header class="sticky top-0 z-40 bg-white">
+  <nav class="site-grid items-center py-[6.5px]">
+    <a href="/" class="col-span-2 text-body font-medium uppercase tracking-widest">Tool</a>
+    <div class="hidden lg:block lg:col-span-18"></div>
+    <a href="/shop" class="col-span-2 text-body text-right lg:text-center hover:text-caption-gray transition-colors">Shop</a>
+    <a href="/book" class="col-span-2 text-body text-right lg:text-center hover:text-caption-gray transition-colors">Book</a>
   </nav>
 </header>

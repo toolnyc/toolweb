@@ -1,4 +1,6 @@
 ---
+import '../styles/global.css';
+
 interface Props {
   title?: string;
   description?: string;
@@ -18,9 +20,10 @@ const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://tool.nyc';
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={siteUrl} />
+    <link rel="preload" href="/fonts/SpaceGrotesk-Variable.woff2" as="font" type="font/woff2" crossorigin />
     <title>{title}</title>
   </head>
-  <body>
+  <body class="font-sans">
     <slot />
   </body>
 </html>

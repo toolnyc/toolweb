@@ -3,7 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import StickyBar from '../../components/StickyBar.astro';
-import '../../styles/global.css';
+import Accordion from '../../components/Accordion.astro';
 import { getProductById } from '../../lib/queries';
 
 const { id } = Astro.params;
@@ -20,38 +20,38 @@ const hasStock = product.variants.some(v => v.stock_count > 0);
 
 <BaseLayout title={`${product.name} — Tool`}>
   <Header />
-  <main class="pb-14 pt-20 px-6 md:px-8">
-    <a href="/shop" class="text-sm text-neutral-400 hover:text-neutral-600 mb-8 block mt-8 transition-colors">
-      &larr; Back to shop
-    </a>
+  <main class="pb-12">
+    <div class="site-grid py-2">
+      <a href="/shop" class="col-span-6 text-body text-caption-gray hover:text-neutral-900 transition-colors">&larr; Back to shop</a>
+    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-16">
-      <!-- Left column: Product image -->
-      <div>
+    <div class="site-grid">
+      <!-- Product image -->
+      <div class="col-span-6 lg:col-span-16">
         {product.image_url ? (
           <img
             src={product.image_url}
             alt={product.name}
-            class="w-full aspect-square object-cover"
+            class="w-full aspect-square object-cover bg-lite-gray"
           />
         ) : (
-          <div class="w-full aspect-square bg-neutral-100" />
+          <div class="w-full aspect-square bg-lite-gray" />
         )}
       </div>
 
-      <!-- Right column: Product info -->
-      <div>
-        <h1 class="text-2xl font-bold">{product.name}</h1>
-        <p class="text-xl text-neutral-600 mt-2">{formatPrice(product.price)}</p>
+      <!-- Product info -->
+      <div class="col-span-6 lg:col-span-8 mt-4 lg:mt-0">
+        <p class="text-body font-medium">{product.name}</p>
+        <p class="text-body text-caption-gray mt-1">{formatPrice(product.price)}</p>
 
         {product.description && (
-          <p class="text-neutral-500 mt-4">{product.description}</p>
+          <p class="text-body text-caption-gray mt-3">{product.description}</p>
         )}
 
         {product.variants.length > 0 && (
-          <div>
-            <p class="text-sm font-semibold mt-6 mb-2">Size</p>
-            <div class="flex flex-wrap gap-2">
+          <div class="mt-4">
+            <p class="text-body font-medium mb-2">Size</p>
+            <div class="flex flex-wrap gap-1">
               {product.variants
                 .sort((a, b) => a.sort_order - b.sort_order)
                 .map((variant) => (
@@ -61,10 +61,8 @@ const hasStock = product.variants.some(v => v.stock_count > 0);
                     data-stock={variant.stock_count}
                     disabled={variant.stock_count <= 0}
                     class:list={[
-                      'border rounded px-4 py-2 text-sm transition-colors',
-                      variant.stock_count <= 0
-                        ? 'opacity-50 line-through cursor-not-allowed border-neutral-200'
-                        : 'border-neutral-300 hover:border-neutral-900 cursor-pointer',
+                      'filter-pill transition-colors',
+                      variant.stock_count <= 0 && 'opacity-40 line-through cursor-not-allowed',
                     ]}
                   >
                     {variant.label}
@@ -74,15 +72,15 @@ const hasStock = product.variants.some(v => v.stock_count > 0);
           </div>
         )}
 
-        <div class="mt-6">
-          <label for="quantity" class="text-sm font-semibold block mb-2">Quantity</label>
+        <div class="mt-4">
+          <label for="quantity" class="text-body font-medium block mb-1">Quantity</label>
           <input
             type="number"
             id="quantity"
             name="quantity"
             min="1"
             value="1"
-            class="border border-neutral-300 rounded px-3 py-2 w-20 text-sm"
+            class="py-2 text-body border-b border-neutral-300 bg-transparent focus:outline-none focus:border-neutral-900 w-16 transition-colors"
           />
         </div>
 
@@ -95,24 +93,26 @@ const hasStock = product.variants.some(v => v.stock_count > 0);
           data-image-url={product.image_url || ''}
           disabled={!hasStock}
           class:list={[
-            'w-full py-3 rounded mt-6 font-medium text-center transition-colors',
+            'w-full py-3 text-body font-medium text-center mt-4 transition-colors',
             hasStock
-              ? 'bg-neutral-900 text-white hover:bg-neutral-800 cursor-pointer'
-              : 'bg-neutral-900 text-white opacity-50 cursor-not-allowed',
+              ? 'bg-black text-white hover:opacity-90 cursor-pointer'
+              : 'bg-black text-white opacity-40 cursor-not-allowed',
           ]}
         >
           {hasStock ? 'Add to bag' : 'Sold out'}
         </button>
 
-        <div class="text-sm text-neutral-400 mt-4 space-y-1">
-          <p>Ships within 1 week</p>
-          <p>{formatPrice(product.shipping_domestic)} domestic &middot; {formatPrice(product.shipping_international)} international</p>
+        <div class="mt-4">
+          <Accordion title="Shipping">
+            <p class="text-body text-caption-gray">Ships within 1 week</p>
+            <p class="text-body text-caption-gray mt-1">{formatPrice(product.shipping_domestic)} domestic &middot; {formatPrice(product.shipping_international)} international</p>
+          </Accordion>
         </div>
       </div>
     </div>
   </main>
-  <StickyBar />
   <Footer />
+  <StickyBar />
 </BaseLayout>
 
 <script>
@@ -126,11 +126,9 @@ const hasStock = product.variants.some(v => v.stock_count > 0);
     btn.addEventListener('click', () => {
       if ((btn as HTMLButtonElement).disabled) return;
       variantButtons.forEach(b => {
-        b.classList.remove('bg-neutral-900', 'text-white');
-        b.classList.add('border-neutral-300');
+        b.classList.remove('active', 'bg-neutral-900', 'text-white');
       });
-      btn.classList.add('bg-neutral-900', 'text-white');
-      btn.classList.remove('border-neutral-300');
+      btn.classList.add('active');
       selectedVariantId = (btn as HTMLElement).dataset.variantId!;
     });
   });

@@ -3,7 +3,6 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import StickyBar from '../components/StickyBar.astro';
-import '../styles/global.css';
 import { getActiveProducts } from '../lib/queries';
 
 const products = await getActiveProducts();
@@ -17,31 +16,33 @@ function formatPrice(price: number) {
 
 <BaseLayout title="Shop — Tool">
   <Header />
-  <main class="pb-14 pt-20">
-    <h1 class="text-3xl font-bold text-center mb-12 mt-8">Shop</h1>
+  <main class="pb-12">
+    <div class="site-grid py-6">
+      <p class="col-span-6 md:col-span-8 text-body font-medium">Shop</p>
+    </div>
 
     {activeProducts.length === 0 && upcomingProducts.length === 0 && (
-      <p class="text-neutral-400 text-center py-24">
-        Nothing here right now. Check back sometime.
-      </p>
+      <div class="site-grid py-24">
+        <p class="col-span-6 text-body text-caption-gray">Nothing here right now. Check back sometime.</p>
+      </div>
     )}
 
     {activeProducts.length > 0 && (
-      <div class="content-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      <div class="site-grid">
         {activeProducts.map((product) => (
-          <a href={`/shop/${product.id}`} class="block bg-white">
+          <a href={`/shop/${product.id}`} class="col-span-3 md:col-span-4 lg:col-span-8 block">
             {product.image_url ? (
               <img
                 src={product.image_url}
                 alt={product.name}
-                class="aspect-square object-cover w-full bg-white"
+                class="aspect-square object-cover w-full bg-lite-gray"
               />
             ) : (
-              <div class="aspect-square w-full bg-neutral-100" />
+              <div class="aspect-square w-full bg-lite-gray" />
             )}
-            <div class="p-4">
-              <p class="font-medium">{product.name}</p>
-              <p class="text-neutral-500 text-sm">{formatPrice(product.price)}</p>
+            <div class="py-2">
+              <p class="text-body font-medium">{product.name}</p>
+              <p class="text-body text-caption-gray">{formatPrice(product.price)}</p>
             </div>
           </a>
         ))}
@@ -49,27 +50,27 @@ function formatPrice(price: number) {
     )}
 
     {upcomingProducts.length > 0 && (
-      <div class:list={[
-        'content-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3',
-        activeProducts.length > 0 && 'mt-16',
-      ]}>
+      <div class:list={['site-grid', activeProducts.length > 0 && 'mt-8']}>
+        {activeProducts.length > 0 && (
+          <p class="col-span-6 lg:col-span-24 text-body text-caption-gray mb-2">Upcoming</p>
+        )}
         {upcomingProducts.map((product) => (
-          <a href={`/shop/${product.id}`} class="block bg-white">
+          <a href={`/shop/${product.id}`} class="col-span-3 md:col-span-4 lg:col-span-8 block">
             {product.image_url ? (
               <img
                 src={product.image_url}
                 alt={product.name}
-                class="aspect-square object-cover w-full bg-white"
+                class="aspect-square object-cover w-full bg-lite-gray"
               />
             ) : (
-              <div class="aspect-square w-full bg-neutral-100" />
+              <div class="aspect-square w-full bg-lite-gray" />
             )}
-            <div class="p-4">
-              <p class="font-medium">{product.name}</p>
-              <p class="text-neutral-500 text-sm">{formatPrice(product.price)}</p>
+            <div class="py-2">
+              <p class="text-body font-medium">{product.name}</p>
+              <p class="text-body text-caption-gray">{formatPrice(product.price)}</p>
               {product.drop_date && (
                 <span
-                  class="text-xs text-neutral-400 mt-1 block"
+                  class="text-body text-caption-gray block"
                   data-drop-date={product.drop_date}
                 >
                   Drops {new Date(product.drop_date).toLocaleDateString('en-US', {
@@ -84,8 +85,8 @@ function formatPrice(price: number) {
       </div>
     )}
   </main>
-  <StickyBar />
   <Footer />
+  <StickyBar />
 </BaseLayout>
 
 <script>

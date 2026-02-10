@@ -2,26 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Space Grotesk';
+  src: url('/fonts/SpaceGrotesk-Variable.woff2') format('woff2');
+  font-weight: 300 700;
+  font-display: swap;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
   body {
-    @apply bg-white text-neutral-900;
+    @apply bg-white text-neutral-900 font-sans text-body;
+    overscroll-behavior: none;
   }
+  img, video { display: block; width: 100%; height: auto; }
+  a { color: inherit; text-decoration: none; }
 }
 
 @layer components {
-  /* 1px gap grid — Hardsun pattern */
+  /* 24→12→6 column site grid */
+  .site-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  @media (min-width: 800px) {
+    .site-grid { grid-template-columns: repeat(12, 1fr); }
+  }
+  @media (min-width: 1000px) {
+    .site-grid { grid-template-columns: repeat(24, 1fr); }
+  }
+
+  /* 1px gap grid for tight image mosaic */
   .content-grid {
     display: grid;
     gap: 1px;
     background-color: #e5e5e5;
   }
+  .content-grid > * { background-color: white; }
 
-  .content-grid > * {
-    background-color: white;
+  /* Accordion */
+  .accordion-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 12px 8px;
+    cursor: pointer;
+    background: #f4f4f4;
+    border: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
   }
+  .accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
+  }
+  .accordion-content.is-open { max-height: 2000px; }
+
+  /* Filter pill */
+  .filter-pill {
+    @apply bg-lite-gray px-2 py-[6.5px] text-body cursor-pointer;
+  }
+  .filter-pill:hover, .filter-pill.active {
+    @apply bg-neutral-200;
+  }
+}
+
+@layer utilities {
+  .col-span-14 { grid-column: span 14; }
+  .col-span-16 { grid-column: span 16; }
+  .col-span-18 { grid-column: span 18; }
+  .col-span-20 { grid-column: span 20; }
+  .col-span-24 { grid-column: span 24; }
 }

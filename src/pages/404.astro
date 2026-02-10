@@ -3,17 +3,16 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import StickyBar from '../components/StickyBar.astro';
-import '../styles/global.css';
 ---
 
 <BaseLayout title="Not found — Tool">
   <Header />
-  <main class="pb-14 pt-20">
-    <div class="flex min-h-[60vh] items-center justify-center px-6">
-      <div class="text-center">
-        <p class="text-6xl font-bold text-neutral-200 mb-4">404</p>
-        <p class="text-neutral-400 mb-8">Nothing here.</p>
-        <a href="/" class="text-neutral-400 hover:text-neutral-600 text-sm">&larr; Back to Tool</a>
+  <main class="pb-12">
+    <div class="site-grid py-24">
+      <div class="col-span-6 md:col-span-8">
+        <p class="text-body font-medium">404</p>
+        <p class="text-body text-caption-gray mt-1">Nothing here.</p>
+        <a href="/" class="text-body text-caption-gray hover:text-neutral-900 mt-4 block transition-colors">&larr; Back to Tool</a>
       </div>
     </div>
   </main>

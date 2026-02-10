@@ -1,0 +1,64 @@
+---
+import type { PortfolioItem as PortfolioItemType } from '../lib/types';
+
+interface Props {
+  item: PortfolioItemType;
+}
+
+const { item } = Astro.props;
+
+// Map display_size to column spans: mobile always 6, desktop varies
+const lgSpanMap = { small: 8, medium: 12, large: 16 } as const;
+const mdSpanMap = { small: 6, medium: 6, large: 12 } as const;
+const lgSpan = lgSpanMap[item.display_size] ?? 8;
+const mdSpan = mdSpanMap[item.display_size] ?? 6;
+---
+
+<div
+  class="col-span-6 relative overflow-hidden"
+  data-md-span={mdSpan}
+  data-lg-span={lgSpan}
+>
+  {item.media_type === 'video' ? (
+    <video
+      src={item.media_url}
+      poster={item.thumbnail_url ?? undefined}
+      autoplay
+      muted
+      loop
+      playsinline
+      class="w-full h-auto block"
+    />
+  ) : (
+    <img
+      src={item.media_url}
+      alt={item.title}
+      class="w-full h-auto block"
+    />
+  )}
+
+  {item.external_url && (
+    <a
+      href={item.external_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="absolute inset-0 flex items-end p-2"
+    >
+      <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
+        View project &rarr;
+      </span>
+    </a>
+  )}
+</div>
+
+<style is:global>
+  @media (min-width: 800px) {
+    [data-md-span="6"] { grid-column: span 6; }
+    [data-md-span="12"] { grid-column: span 12; }
+  }
+  @media (min-width: 1000px) {
+    [data-lg-span="8"] { grid-column: span 8; }
+    [data-lg-span="12"] { grid-column: span 12; }
+    [data-lg-span="16"] { grid-column: span 16; }
+  }
+</style>

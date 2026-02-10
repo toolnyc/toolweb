@@ -3,28 +3,31 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import StickyBar from '../components/StickyBar.astro';
-import '../styles/global.css';
 ---
 
 <BaseLayout title="Book — Tool">
   <Header />
-  <main class="pb-14 pt-20">
-    <div class="mx-auto max-w-3xl px-6 py-12 md:py-24">
-      <h1 class="text-3xl font-bold mb-2 text-center">Let's talk</h1>
-      <p class="text-neutral-500 text-center mb-10">Pick a time that works for you.</p>
-
-      <!-- Cal.com embed placeholder — replace data-cal-link with actual Cal.com username -->
-      <div class="rounded border border-neutral-200 overflow-hidden" style="min-height: 600px;">
+  <main class="pb-12">
+    <div class="site-grid py-6">
+      <div class="col-span-6 md:col-span-8 mb-4">
+        <p class="text-body font-medium">Book a call</p>
+        <p class="text-body text-caption-gray mt-1">Pick a time that works for you.</p>
+      </div>
+    </div>
+    <div class="site-grid">
+      <div class="col-span-6 lg:col-span-24">
+        <!-- Cal.com embed — replace src with actual Cal.com username -->
         <iframe
           src="https://cal.com"
-          style="width: 100%; height: 700px; border: none;"
+          style="width: 100%; height: 80vh; border: none;"
           title="Book a call"
           loading="lazy"
         ></iframe>
       </div>
-
-      <p class="text-center text-sm text-neutral-400 mt-6">
-        Prefer email? Reach out at <a href="mailto:hello@tool.nyc" class="underline hover:text-neutral-600">hello@tool.nyc</a>
+    </div>
+    <div class="site-grid py-4">
+      <p class="col-span-6 md:col-span-8 text-body text-caption-gray">
+        Prefer email? <a href="mailto:hello@tool.nyc" class="hover:text-neutral-900 transition-colors">hello@tool.nyc</a>
       </p>
     </div>
   </main>

@@ -1,0 +1,128 @@
+---
+/**
+ * CartDrawer — slide-in panel from right.
+ * Renders cart items from cart.ts, shows subtotal, checkout button.
+ * Entirely client-side: reads/writes localStorage.
+ */
+---
+
+<div id="cart-overlay" class="fixed inset-0 bg-black/40 z-[60] hidden"></div>
+<div id="cart-drawer" class="fixed top-0 right-0 bottom-0 w-full sm:w-[380px] bg-white z-[70] translate-x-full transition-transform duration-300 ease-in-out">
+  <div class="flex flex-col h-full">
+    <div class="flex items-center justify-between px-2 py-3 border-b border-neutral-200">
+      <span class="text-body font-medium">Cart</span>
+      <button id="cart-close" class="text-body text-caption-gray hover:text-neutral-900 transition-colors" type="button">&times;</button>
+    </div>
+
+    <div id="cart-items" class="flex-1 overflow-y-auto px-2 py-3">
+      <p id="cart-empty" class="text-body text-caption-gray">Your cart is empty.</p>
+    </div>
+
+    <div id="cart-footer" class="border-t border-neutral-200 px-2 py-3 hidden">
+      <div class="flex justify-between text-body font-medium mb-3">
+        <span>Subtotal</span>
+        <span id="cart-subtotal">$0.00</span>
+      </div>
+      <a href="/api/checkout" id="cart-checkout-btn" class="block w-full py-3 bg-black text-white text-body font-medium text-center hover:opacity-90 transition-opacity">Checkout</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { getCart, removeFromCart, updateQuantity, getCartSubtotal } from '../lib/cart';
+
+  const overlay = document.getElementById('cart-overlay')!;
+  const drawer = document.getElementById('cart-drawer')!;
+  const closeBtn = document.getElementById('cart-close')!;
+  const itemsContainer = document.getElementById('cart-items')!;
+  const emptyMsg = document.getElementById('cart-empty')!;
+  const footer = document.getElementById('cart-footer')!;
+  const subtotalEl = document.getElementById('cart-subtotal')!;
+
+  function formatPrice(price: number) {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(price);
+  }
+
+  function renderCart() {
+    const cart = getCart();
+    if (cart.length === 0) {
+      emptyMsg.classList.remove('hidden');
+      footer.classList.add('hidden');
+      // Clear item elements
+      itemsContainer.querySelectorAll('.cart-item').forEach(el => el.remove());
+      return;
+    }
+
+    emptyMsg.classList.add('hidden');
+    footer.classList.remove('hidden');
+    subtotalEl.textContent = formatPrice(getCartSubtotal());
+
+    // Clear and re-render
+    itemsContainer.querySelectorAll('.cart-item').forEach(el => el.remove());
+
+    cart.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'cart-item flex gap-3 py-2 border-b border-neutral-100';
+      el.innerHTML = `
+        ${item.imageUrl ? `<img src="${item.imageUrl}" alt="" class="w-16 h-16 object-cover bg-neutral-100" />` : '<div class="w-16 h-16 bg-neutral-100"></div>'}
+        <div class="flex-1 min-w-0">
+          <p class="text-body font-medium truncate">${item.productName}</p>
+          <p class="text-body text-caption-gray">${item.variantLabel} &middot; ${formatPrice(item.price)}</p>
+          <div class="flex items-center gap-2 mt-1">
+            <button data-qty-minus="${item.variantId}" class="text-body text-caption-gray hover:text-neutral-900" type="button">−</button>
+            <span class="text-body">${item.quantity}</span>
+            <button data-qty-plus="${item.variantId}" class="text-body text-caption-gray hover:text-neutral-900" type="button">+</button>
+            <button data-remove="${item.variantId}" class="text-body text-caption-gray hover:text-neutral-900 ml-auto" type="button">Remove</button>
+          </div>
+        </div>
+      `;
+      itemsContainer.appendChild(el);
+    });
+
+    // Bind qty/remove buttons
+    itemsContainer.querySelectorAll('[data-qty-minus]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const vid = (btn as HTMLElement).dataset.qtyMinus!;
+        const item = getCart().find(i => i.variantId === vid);
+        if (item) updateQuantity(vid, item.quantity - 1);
+        renderCart();
+      });
+    });
+    itemsContainer.querySelectorAll('[data-qty-plus]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const vid = (btn as HTMLElement).dataset.qtyPlus!;
+        const item = getCart().find(i => i.variantId === vid);
+        if (item) updateQuantity(vid, item.quantity + 1);
+        renderCart();
+      });
+    });
+    itemsContainer.querySelectorAll('[data-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        removeFromCart((btn as HTMLElement).dataset.remove!);
+        renderCart();
+      });
+    });
+  }
+
+  function openCart() {
+    renderCart();
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      drawer.classList.remove('translate-x-full');
+    });
+  }
+
+  function closeCart() {
+    drawer.classList.add('translate-x-full');
+    setTimeout(() => overlay.classList.add('hidden'), 300);
+  }
+
+  closeBtn.addEventListener('click', closeCart);
+  overlay.addEventListener('click', closeCart);
+
+  // Listen for custom event to open cart
+  document.addEventListener('open-cart', openCart);
+
+  // Also allow clicking a #cart-trigger button anywhere on the page
+  document.querySelector('#cart-trigger')?.addEventListener('click', openCart);
+</script>

@@ -1,0 +1,20 @@
+---
+import type { WritingSnippet } from '../lib/types';
+
+interface Props {
+  snippet: WritingSnippet;
+}
+
+const { snippet } = Astro.props;
+---
+
+<div class="col-span-6 lg:col-span-24 py-8 md:py-12">
+  <p class="text-snippet max-w-3xl">
+    {snippet.content}
+  </p>
+  {snippet.attribution && (
+    <p class="text-body text-caption-gray mt-2">
+      {snippet.attribution}
+    </p>
+  )}
+</div>

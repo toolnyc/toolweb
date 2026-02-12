@@ -41,10 +41,17 @@
   /* 1px gap grid for tight image mosaic */
   .content-grid {
     display: grid;
+    grid-template-columns: repeat(1, 1fr);
     gap: 1px;
     background-color: #e5e5e5;
   }
   .content-grid > * { background-color: white; }
+  @media (min-width: 800px) {
+    .content-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1000px) {
+    .content-grid { grid-template-columns: repeat(4, 1fr); }
+  }
 
   /* Accordion */
   .accordion-trigger {

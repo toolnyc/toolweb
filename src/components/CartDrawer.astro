@@ -23,7 +23,8 @@
         <span>Subtotal</span>
         <span id="cart-subtotal">$0.00</span>
       </div>
-      <a href="/api/checkout" id="cart-checkout-btn" class="block w-full py-3 bg-black text-white text-body font-medium text-center hover:opacity-90 transition-opacity">Checkout</a>
+      <button type="button" id="cart-checkout-btn" class="block w-full py-3 bg-black text-white text-body font-medium text-center hover:opacity-90 transition-opacity disabled:opacity-50">Checkout</button>
+      <p id="cart-error" class="text-red-600 text-sm mt-2 hidden"></p>
     </div>
   </div>
 </div>
@@ -125,4 +126,45 @@
 
   // Also allow clicking a #cart-trigger button anywhere on the page
   document.querySelector('#cart-trigger')?.addEventListener('click', openCart);
+
+  // Checkout via POST
+  const checkoutBtn = document.getElementById('cart-checkout-btn') as HTMLButtonElement;
+  const cartError = document.getElementById('cart-error')!;
+
+  checkoutBtn?.addEventListener('click', async () => {
+    const cart = getCart();
+    if (cart.length === 0) return;
+
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = 'Processing...';
+    cartError.classList.add('hidden');
+
+    try {
+      const item = cart[0];
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          variantId: item.variantId,
+          quantity: item.quantity,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        cartError.textContent = data.error || 'Checkout failed. Please try again.';
+        cartError.classList.remove('hidden');
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Checkout';
+      }
+    } catch {
+      cartError.textContent = 'Something went wrong. Please try again.';
+      cartError.classList.remove('hidden');
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = 'Checkout';
+    }
+  });
 </script>

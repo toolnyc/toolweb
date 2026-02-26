@@ -107,7 +107,7 @@ import StickyBar from '../components/StickyBar.astro';
       if (res.ok) {
         window.location.href = '/inquiry/thanks';
       } else {
-        const data = await res.json().catch(() => ({}));
+        const data = await res.json().catch(() => ({})) as { error?: string };
         alert(data.error || 'Something went wrong. Please try again.');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Send';

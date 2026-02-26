@@ -24,8 +24,32 @@ export interface PortfolioItem {
   display_size: DisplaySize;
   sort_order: number;
   status: ContentStatus;
+  slug: string | null;
+  problem: string | null;
+  solution: string | null;
+  impact: string | null;
+  is_case_study: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface CaseStudyImage {
+  id: string;
+  portfolio_item_id: string;
+  media_url: string;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface Testimonial {
+  id: string;
+  quote: string;
+  attribution: string;
+  company: string | null;
+  sort_order: number;
+  is_visible: boolean;
+  created_at: string;
 }
 
 export interface WritingSnippet {

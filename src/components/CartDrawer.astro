@@ -150,7 +150,7 @@
         }),
       });
 
-      const data = await res.json();
+      const data: { url?: string; error?: string } = await res.json();
 
       if (res.ok && data.url) {
         window.location.href = data.url;

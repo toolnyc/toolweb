@@ -30,7 +30,16 @@ const mdSpan = mdSpanMap[item.display_size] ?? 6;
     />
   )}
 
-  {item.external_url && (
+  {item.is_case_study && item.slug ? (
+    <a
+      href={`/work/${item.slug}`}
+      class="absolute inset-0 flex items-end p-2"
+    >
+      <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
+        View case study &rarr;
+      </span>
+    </a>
+  ) : item.external_url && (
     <a
       href={item.external_url}
       target="_blank"

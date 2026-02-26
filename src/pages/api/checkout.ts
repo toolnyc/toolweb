@@ -6,7 +6,7 @@ export const POST: APIRoute = async ({ request }) => {
     const stripe = getStripe();
     const supabaseAdmin = getSupabaseAdmin();
 
-    const body = await request.json();
+    const body: { variantId?: string; quantity?: number; shippingCountry?: string } = await request.json();
     const { variantId, quantity = 1, shippingCountry = 'US' } = body;
 
     if (!variantId) {

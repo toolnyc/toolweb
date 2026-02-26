@@ -1,6 +1,8 @@
 import { getSupabase } from './env';
 import type {
   PortfolioItem,
+  CaseStudyImage,
+  Testimonial,
   WritingSnippet,
   ClientLogo,
   Product,
@@ -105,6 +107,53 @@ export async function getSiteContentByKey(key: string): Promise<SiteContent | nu
 
   if (error) return null;
   return data as SiteContent;
+}
+
+// -- Case study queries --
+
+export async function getCaseStudyBySlug(slug: string): Promise<(PortfolioItem & { images: CaseStudyImage[] }) | null> {
+  const { data, error } = await getSupabase()
+    .from('portfolio_items')
+    .select('*, images:case_study_images(*)')
+    .eq('slug', slug)
+    .eq('is_case_study', true)
+    .eq('status', 'published')
+    .single();
+
+  if (error) return null;
+
+  const item = data as PortfolioItem & { images: CaseStudyImage[] };
+  item.images = (item.images ?? []).sort((a, b) => a.sort_order - b.sort_order);
+  return item;
+}
+
+export async function getPublishedCaseStudies(): Promise<PortfolioItem[]> {
+  const { data, error } = await getSupabase()
+    .from('portfolio_items')
+    .select('*')
+    .eq('is_case_study', true)
+    .eq('status', 'published')
+    .order('sort_order');
+
+  if (error) {
+    console.error('Error fetching case studies:', error);
+    return [];
+  }
+  return data ?? [];
+}
+
+export async function getVisibleTestimonials(): Promise<Testimonial[]> {
+  const { data, error } = await getSupabase()
+    .from('testimonials')
+    .select('*')
+    .eq('is_visible', true)
+    .order('sort_order');
+
+  if (error) {
+    console.error('Error fetching testimonials:', error);
+    return [];
+  }
+  return data ?? [];
 }
 
 // -- Client portal queries (still anon client — RLS handles scoping) --

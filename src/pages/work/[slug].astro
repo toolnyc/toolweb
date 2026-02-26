@@ -1,0 +1,107 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import StickyBar from '../../components/StickyBar.astro';
+import VideoPlayer from '../../components/VideoPlayer.astro';
+import { getCaseStudyBySlug } from '../../lib/queries';
+
+const { slug } = Astro.params;
+
+if (!slug) {
+  return Astro.redirect('/');
+}
+
+const caseStudy = await getCaseStudyBySlug(slug);
+
+if (!caseStudy) {
+  return Astro.redirect('/');
+}
+---
+
+<BaseLayout title={`${caseStudy.title} — Tool`} description={caseStudy.problem ?? caseStudy.description ?? ''}>
+  <Header />
+
+  <main class="pb-12">
+    {/* ── Cover ────────────────────────────────────────────── */}
+    <section class="min-h-[80svh] flex items-end site-grid pb-8">
+      <div class="col-span-6 lg:col-span-24">
+        {caseStudy.media_type === 'video' ? (
+          <VideoPlayer src={caseStudy.media_url} poster={caseStudy.thumbnail_url ?? undefined} title={caseStudy.title} />
+        ) : (
+          <img
+            src={caseStudy.media_url}
+            alt={caseStudy.title}
+            class="w-full h-auto block"
+          />
+        )}
+        <h1 class="text-hero font-bold uppercase tracking-tight mt-6 anim-fade-up" data-anim="cs-title">
+          {caseStudy.title}
+        </h1>
+        {caseStudy.description && (
+          <p class="text-body text-caption-gray mt-2 max-w-md anim-fade-up" data-anim="cs-subtitle">
+            {caseStudy.description}
+          </p>
+        )}
+      </div>
+    </section>
+
+    {/* ── Problem / Solution ───────────────────────────────── */}
+    {(caseStudy.problem || caseStudy.solution) && (
+      <section class="site-grid py-8">
+        {caseStudy.problem && (
+          <div class="col-span-6 md:col-span-6 lg:col-span-12 anim-fade-up">
+            <h2 class="text-body font-medium mb-2">Problem</h2>
+            <p class="text-body text-caption-gray max-w-lg">{caseStudy.problem}</p>
+          </div>
+        )}
+        {caseStudy.solution && (
+          <div class="col-span-6 md:col-span-6 lg:col-span-12 anim-fade-up">
+            <h2 class="text-body font-medium mb-2">Solution</h2>
+            <p class="text-body text-caption-gray max-w-lg">{caseStudy.solution}</p>
+          </div>
+        )}
+      </section>
+    )}
+
+    {/* ── The Work (image gallery) ─────────────────────────── */}
+    {caseStudy.images.length > 0 && (
+      <section class="site-grid py-4">
+        {caseStudy.images.map((img) => (
+          <div class="col-span-6 lg:col-span-24 anim-fade-up">
+            <img
+              src={img.media_url}
+              alt={img.caption ?? caseStudy.title}
+              class="w-full h-auto block"
+            />
+            {img.caption && (
+              <p class="text-body text-caption-gray mt-1">{img.caption}</p>
+            )}
+          </div>
+        ))}
+      </section>
+    )}
+
+    {/* ── Impact ───────────────────────────────────────────── */}
+    {caseStudy.impact && (
+      <section class="site-grid py-8">
+        <div class="col-span-6 lg:col-span-24 anim-fade-up">
+          <p class="text-snippet max-w-2xl">{caseStudy.impact}</p>
+        </div>
+      </section>
+    )}
+
+    {/* ── CTA ──────────────────────────────────────────────── */}
+    <section class="site-grid py-8 border-t border-neutral-200">
+      <div class="col-span-6 lg:col-span-24 anim-fade-up">
+        <p class="text-body mb-4">Want results like this?</p>
+        <a href="/book" class="inline-block text-body border border-neutral-900 px-4 py-2 hover:bg-neutral-900 hover:text-white transition-colors">
+          Let's talk
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+  <StickyBar />
+</BaseLayout>

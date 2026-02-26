@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import StickyBar from '../components/StickyBar.astro';
+import CountdownTimer from '../components/CountdownTimer.astro';
 import { getActiveProducts } from '../lib/queries';
 
 const products = await getActiveProducts();
@@ -69,14 +70,8 @@ function formatPrice(price: number) {
               <p class="text-body font-medium">{product.name}</p>
               <p class="text-body text-caption-gray">{formatPrice(product.price)}</p>
               {product.drop_date && (
-                <span
-                  class="text-body text-caption-gray block"
-                  data-drop-date={product.drop_date}
-                >
-                  Drops {new Date(product.drop_date).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                <span class="text-body text-caption-gray block">
+                  <CountdownTimer dropDate={product.drop_date} />
                 </span>
               )}
             </div>
@@ -88,27 +83,3 @@ function formatPrice(price: number) {
   <Footer />
   <StickyBar />
 </BaseLayout>
-
-<script>
-  function updateCountdowns() {
-    document.querySelectorAll('[data-drop-date]').forEach(el => {
-      const dropDate = new Date(el.getAttribute('data-drop-date')!);
-      const now = new Date();
-      const diff = dropDate.getTime() - now.getTime();
-      if (diff <= 0) {
-        el.textContent = 'Available now';
-        return;
-      }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      if (days > 0) {
-        el.textContent = `Drops in ${days}d ${hours}h`;
-      } else {
-        el.textContent = `Drops in ${hours}h ${mins}m`;
-      }
-    });
-  }
-  updateCountdowns();
-  setInterval(updateCountdowns, 60000);
-</script>

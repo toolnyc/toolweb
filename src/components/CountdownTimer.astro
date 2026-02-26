@@ -1,0 +1,48 @@
+---
+interface Props {
+  dropDate: string;
+}
+
+const { dropDate } = Astro.props;
+
+// Server-side initial text (fallback before JS hydrates)
+const now = new Date();
+const drop = new Date(dropDate);
+const diff = drop.getTime() - now.getTime();
+
+let initialText: string;
+if (diff <= 0) {
+  initialText = 'Available now';
+} else {
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  initialText = days > 0 ? `Drops in ${days}d ${hours}h` : `Drops in ${hours}h ${mins}m`;
+}
+---
+
+<span class="countdown-timer" data-drop-date={dropDate}>{initialText}</span>
+
+<script>
+  function updateCountdowns() {
+    document.querySelectorAll<HTMLElement>('.countdown-timer[data-drop-date]').forEach(el => {
+      const dropDate = new Date(el.dataset.dropDate!);
+      const now = new Date();
+      const diff = dropDate.getTime() - now.getTime();
+      if (diff <= 0) {
+        el.textContent = 'Available now';
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      if (days > 0) {
+        el.textContent = `Drops in ${days}d ${hours}h`;
+      } else {
+        el.textContent = `Drops in ${hours}h ${mins}m`;
+      }
+    });
+  }
+  updateCountdowns();
+  setInterval(updateCountdowns, 60000);
+</script>

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../lib/supabase';
 import { stripe } from '../../lib/stripe';
 import { resend } from '../../lib/resend';
+import { sendOrderConfirmationEmail } from '../../lib/emails';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -70,34 +71,67 @@ export const POST: APIRoute = async ({ request }) => {
         console.error('Error inserting order:', orderError);
       }
 
-      // Decrement stock
+      // Decrement stock and fetch variant/product info for the confirmation email
+      let productName = 'Item';
+      let variantLabel = '';
+      let itemPrice = amountTotal;
+
       if (variantId) {
         const { data: variant } = await supabaseAdmin
           .from('product_variants')
-          .select('stock_count')
+          .select('stock_count, label, product_id')
           .eq('id', variantId)
           .single();
 
         if (variant) {
+          variantLabel = variant.label || '';
+
           await supabaseAdmin
             .from('product_variants')
             .update({ stock_count: Math.max(0, variant.stock_count - quantity) })
             .eq('id', variantId);
+
+          // Fetch the product name
+          const { data: product } = await supabaseAdmin
+            .from('products')
+            .select('name, price')
+            .eq('id', variant.product_id)
+            .single();
+
+          if (product) {
+            productName = product.name;
+            itemPrice = product.price * quantity;
+          }
         }
       }
 
-      // Send confirmation email
-      if (resend && customerEmail) {
-        try {
-          await resend.emails.send({
-            from: 'Tool <noreply@tool.nyc>',
-            to: [customerEmail],
-            subject: 'Order confirmed — Tool',
-            text: `Thanks for your order, ${customerName}! We'll ship it within a week and send tracking info.`,
-          });
-        } catch (emailErr) {
-          console.error('Failed to send order confirmation:', emailErr);
-        }
+      // Fetch the order ID (order_number) for the confirmation email
+      let orderId = sessionId;
+      const { data: insertedOrder } = await supabaseAdmin
+        .from('orders')
+        .select('order_number')
+        .eq('stripe_session_id', sessionId)
+        .single();
+
+      if (insertedOrder?.order_number) {
+        orderId = `#${insertedOrder.order_number}`;
+      }
+
+      // Send branded confirmation email
+      if (customerEmail) {
+        await sendOrderConfirmationEmail(customerEmail, {
+          customerName: customerName || 'there',
+          items: [
+            {
+              name: productName,
+              variant: variantLabel,
+              quantity,
+              price: itemPrice,
+            },
+          ],
+          total: amountTotal,
+          orderId,
+        });
       }
 
       return new Response('OK', { status: 200 });

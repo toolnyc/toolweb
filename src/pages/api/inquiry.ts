@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../lib/supabase';
-import { resend } from '../../lib/resend';
+import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
 
 // Simple in-memory rate limiting (per IP, 5 per hour)
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -52,29 +52,18 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response(JSON.stringify({ error: 'Failed to submit' }), { status: 500 });
     }
 
-    // Send notification email to admin
-    if (resend) {
-      try {
-        await resend.emails.send({
-          from: 'Tool <noreply@tool.nyc>',
-          to: ['hello@tool.nyc'],
-          subject: `New inquiry from ${name}`,
-          text: [
-            `Name: ${name}`,
-            `Email: ${email}`,
-            company ? `Company: ${company}` : null,
-            project_type ? `Type: ${project_type}` : null,
-            `Description: ${description}`,
-            budget_range ? `Budget: ${budget_range}` : null,
-            timeline ? `Timeline: ${timeline}` : null,
-          ]
-            .filter(Boolean)
-            .join('\n'),
-        });
-      } catch (emailErr) {
-        console.error('Failed to send notification email:', emailErr);
-      }
-    }
+    // Send branded notification email to admin and auto-reply to submitter
+    await Promise.allSettled([
+      sendInquiryNotificationEmail({
+        name,
+        email,
+        company: company || undefined,
+        message: description,
+        budget: budget_range || undefined,
+        timeline: timeline || undefined,
+      }),
+      sendInquiryAutoReplyEmail(email, name),
+    ]);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

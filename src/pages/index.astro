@@ -44,8 +44,8 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
     {/* ── 1. Hero ─────────────────────────────────────────── */}
     <section class="min-h-[100svh] flex items-end site-grid pb-8">
       <div class="col-span-6 lg:col-span-24">
-        <h1 class="text-hero font-bold uppercase tracking-tight">TOOL</h1>
-        <p class="text-body text-caption-gray mt-2 max-w-md">
+        <h1 class="text-hero font-bold uppercase tracking-tight anim-fade-up" data-anim="hero-title">TOOL</h1>
+        <p class="text-body text-caption-gray mt-2 max-w-md anim-fade-up" data-anim="hero-subtitle">
           {heroTagline?.content ?? 'Full-service creative technical consultancy'}
         </p>
       </div>
@@ -60,7 +60,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
             const mdSpan = mdSpanMap[item.display_size] ?? 6;
             return (
               <div
-                class="col-span-6 relative overflow-hidden"
+                class="col-span-6 relative overflow-hidden anim-fade-up"
                 style={`grid-column: span 6`}
                 data-md-span={mdSpan}
                 data-lg-span={lgSpan}
@@ -114,7 +114,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
 
     {/* ── 3. Client list ──────────────────────────────────── */}
     {clients.length > 0 && (
-      <section class="site-grid py-8">
+      <section class="site-grid py-8 anim-fade" data-anim="clients">
         <div class="col-span-6 lg:col-span-24">
           <p class="text-body text-caption-gray">
             {clients.map((client, i) => (
@@ -140,7 +140,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
     )}
 
     {/* ── 4. Accordion sections ───────────────────────────── */}
-    <section class="site-grid">
+    <section class="site-grid anim-fade" data-anim="accordion">
       <div class="col-span-6 lg:col-span-24 space-y-[1px]">
         <Accordion title="Services">
           <p class="text-body text-caption-gray max-w-2xl">

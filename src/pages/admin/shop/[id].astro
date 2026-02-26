@@ -1,5 +1,6 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
+import FileUpload from '../../../components/FileUpload.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 
 const { id } = Astro.params;
@@ -158,16 +159,12 @@ if (Astro.request.method === 'POST' && supabaseAdmin && id) {
             />
           </div>
 
-          <div>
-            <label for="image_url" class="block text-sm font-semibold mb-2">Image URL</label>
-            <input
-              type="text"
-              id="image_url"
-              name="image_url"
-              value={product.image_url || ''}
-              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
-            />
-          </div>
+          <FileUpload
+            name="image_url"
+            label="Product Image"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            currentUrl={product.image_url || ''}
+          />
 
           <div class="grid grid-cols-2 gap-4">
             <div>

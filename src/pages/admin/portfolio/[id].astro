@@ -1,5 +1,6 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
+import FileUpload from '../../../components/FileUpload.astro';
 import { supabaseAdmin } from '../../../lib/supabase';
 
 const { id } = Astro.params;
@@ -134,28 +135,19 @@ if (Astro.request.method === 'POST' && supabaseAdmin && id) {
             </div>
           </div>
 
-          <div>
-            <label for="media_url" class="block text-sm font-semibold mb-2">Media URL *</label>
-            <input
-              type="text"
-              id="media_url"
-              name="media_url"
-              value={portfolioItem.media_url}
-              required
-              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
-            />
-          </div>
+          <FileUpload
+            name="media_url"
+            label="Media File *"
+            accept="image/jpeg,image/png,image/webp,image/gif,video/mp4"
+            currentUrl={portfolioItem.media_url}
+          />
 
-          <div>
-            <label for="thumbnail_url" class="block text-sm font-semibold mb-2">Thumbnail URL</label>
-            <input
-              type="text"
-              id="thumbnail_url"
-              name="thumbnail_url"
-              value={portfolioItem.thumbnail_url || ''}
-              class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
-            />
-          </div>
+          <FileUpload
+            name="thumbnail_url"
+            label="Thumbnail Image"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            currentUrl={portfolioItem.thumbnail_url || ''}
+          />
 
           <div>
             <label for="external_url" class="block text-sm font-semibold mb-2">External URL</label>

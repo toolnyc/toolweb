@@ -1,0 +1,140 @@
+---
+interface Props {
+  src: string;
+  poster?: string;
+  title: string;
+}
+
+const { src, poster, title } = Astro.props;
+
+const isCloudflareStream = src.includes('cloudflarestream.com');
+
+// Build Cloudflare Stream iframe URL with autoplay params
+function buildStreamUrl(url: string, posterUrl?: string): string {
+  const base = url.replace(/\/manifest\/video\.m3u8$/, '');
+  // If it's already an iframe URL, use as-is; otherwise convert to iframe embed
+  const iframeSrc = base.includes('/iframe') ? base : `${base}/iframe`;
+  const params = new URLSearchParams({
+    autoplay: 'true',
+    muted: 'true',
+    loop: 'true',
+    controls: 'false',
+  });
+  if (posterUrl) {
+    params.set('poster', posterUrl);
+  }
+  return `${iframeSrc}?${params.toString()}`;
+}
+
+const iframeSrc = isCloudflareStream ? buildStreamUrl(src, poster) : null;
+
+// Unique ID for this player instance
+const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<div class="video-player relative w-full" id={playerId} data-playing="true">
+  {isCloudflareStream ? (
+    <iframe
+      src={iframeSrc}
+      title={title}
+      allow="autoplay; fullscreen"
+      allowfullscreen
+      class="w-full border-0"
+      style="aspect-ratio: 16/9;"
+      loading="lazy"
+    />
+  ) : (
+    <video
+      src={src}
+      poster={poster ?? undefined}
+      autoplay
+      muted
+      loop
+      playsinline
+      class="w-full h-auto block"
+      data-video
+    />
+  )}
+
+  {/* Play icon overlay — visible when paused */}
+  <div class="play-overlay absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-200">
+    <svg
+      width="40"
+      height="40"
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <polygon points="12,8 34,20 12,32" fill="white" fill-opacity="0.5" />
+    </svg>
+  </div>
+
+  {/* Transparent click target */}
+  <button
+    class="absolute inset-0 w-full h-full cursor-pointer bg-transparent border-0 p-0 m-0"
+    aria-label={`Play or pause ${title}`}
+    data-toggle
+  />
+</div>
+
+<style>
+  .video-player[data-playing="false"] .play-overlay {
+    opacity: 1;
+  }
+
+  .video-player[data-playing="true"] .play-overlay {
+    opacity: 0;
+  }
+</style>
+
+<script>
+  function initVideoPlayers() {
+    document.querySelectorAll<HTMLDivElement>('.video-player').forEach((player) => {
+      const toggle = player.querySelector<HTMLButtonElement>('[data-toggle]');
+      if (!toggle || toggle.dataset.bound) return;
+      toggle.dataset.bound = 'true';
+
+      const video = player.querySelector<HTMLVideoElement>('[data-video]');
+      const iframe = player.querySelector<HTMLIFrameElement>('iframe');
+
+      if (video) {
+        // Native video: direct play/pause
+        toggle.addEventListener('click', () => {
+          if (video.paused) {
+            video.play();
+            player.dataset.playing = 'true';
+          } else {
+            video.pause();
+            player.dataset.playing = 'false';
+          }
+        });
+
+        // Sync state if video pauses/plays externally
+        video.addEventListener('pause', () => { player.dataset.playing = 'false'; });
+        video.addEventListener('play', () => { player.dataset.playing = 'true'; });
+      } else if (iframe) {
+        // Cloudflare Stream iframe: toggle via postMessage
+        let isPlaying = true;
+
+        toggle.addEventListener('click', () => {
+          if (isPlaying) {
+            iframe.contentWindow?.postMessage({ type: 'pause' }, '*');
+            isPlaying = false;
+            player.dataset.playing = 'false';
+          } else {
+            iframe.contentWindow?.postMessage({ type: 'play' }, '*');
+            isPlaying = true;
+            player.dataset.playing = 'true';
+          }
+        });
+      }
+    });
+  }
+
+  // Run on initial load
+  initVideoPlayers();
+
+  // Re-run after Astro page transitions (View Transitions)
+  document.addEventListener('astro:after-swap', initVideoPlayers);
+</script>

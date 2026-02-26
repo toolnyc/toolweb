@@ -3,7 +3,6 @@ compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./dist"
 
-# R2 bucket binding — uncomment once bucket is created
-# [[r2_buckets]]
-# binding = "MEDIA_BUCKET"
-# bucket_name = "tool-media"
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tool-media"

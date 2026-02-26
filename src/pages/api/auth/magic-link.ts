@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { supabaseAdmin } from '../../../lib/supabase';
+import { sendMagicLinkEmail } from '../../../lib/emails';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -31,12 +32,26 @@ export const POST: APIRoute = async ({ request }) => {
 
     const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321';
 
-    await supabaseAdmin.auth.signInWithOtp({
+    // Use generateLink to get the magic link URL without Supabase sending its own email
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
       email,
       options: {
-        emailRedirectTo: `${siteUrl}/api/auth/callback`,
+        redirectTo: `${siteUrl}/api/auth/callback`,
       },
     });
+
+    if (linkError || !linkData?.properties?.action_link) {
+      console.error('Failed to generate magic link:', linkError);
+      // Still return success to avoid leaking info
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Send branded email via Resend
+    await sendMagicLinkEmail(email, linkData.properties.action_link);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

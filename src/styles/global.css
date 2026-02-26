@@ -83,3 +83,12 @@
   .col-span-20 { grid-column: span 20; }
   .col-span-24 { grid-column: span 24; }
 }
+
+/* Animation initial states — hidden until GSAP reveals */
+.anim-fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+}
+.anim-fade {
+  opacity: 0;
+}

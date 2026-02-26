@@ -1,8 +1,19 @@
 /// <reference path="../.astro/types.d.ts" />
 /// <reference types="astro/client" />
+/// <reference types="@cloudflare/workers-types" />
 
 declare namespace App {
   interface Locals {
+    runtime: {
+      env: {
+        MEDIA_BUCKET: R2Bucket;
+        ASSETS: { fetch: (req: Request | string) => Promise<Response> };
+        [key: string]: unknown;
+      };
+      cf: IncomingRequestCfProperties;
+      caches: CacheStorage;
+      ctx: ExecutionContext;
+    };
     user?: {
       id: string;
       email?: string;

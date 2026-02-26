@@ -45,15 +45,36 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const ext = file.name.split('.').pop() || 'bin';
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-    // R2 upload — requires Cloudflare Pages runtime with MEDIA_BUCKET binding
-    // In production, use: env.MEDIA_BUCKET.put(filename, file.stream(), { httpMetadata: { contentType: file.type } })
-    // For now, return the expected URL shape
     const publicUrl = import.meta.env.R2_PUBLIC_URL;
-
     if (!publicUrl) {
-      return new Response(JSON.stringify({ error: 'R2 not configured' }), { status: 500 });
+      return new Response(JSON.stringify({ error: 'R2_PUBLIC_URL not configured' }), {
+        status: 500,
+      });
     }
 
+    // Check for Cloudflare R2 binding (available in Cloudflare Pages runtime)
+    const bucket = locals.runtime?.env?.MEDIA_BUCKET;
+
+    if (bucket) {
+      // Production path: upload via R2 binding
+      await bucket.put(filename, file.stream() as ReadableStream, {
+        httpMetadata: { contentType: file.type },
+      });
+
+      const url = `${publicUrl}/${filename}`;
+
+      return new Response(
+        JSON.stringify({
+          url,
+          filename,
+          size: file.size,
+          type: file.type,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Dev fallback: R2 binding not available (local dev without wrangler)
     const url = `${publicUrl}/${filename}`;
 
     return new Response(
@@ -62,7 +83,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
         filename,
         size: file.size,
         type: file.type,
-        note: 'R2 upload requires Cloudflare Pages runtime with MEDIA_BUCKET binding. Configure in wrangler.toml.',
+        dev: true,
+        note: 'Local dev mode — file not uploaded to R2. Run with wrangler for real uploads.',
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     );

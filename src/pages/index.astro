@@ -5,6 +5,7 @@ import Footer from '../components/Footer.astro';
 import StickyBar from '../components/StickyBar.astro';
 import Accordion from '../components/Accordion.astro';
 import WritingBlock from '../components/WritingBlock.astro';
+import VideoPlayer from '../components/VideoPlayer.astro';
 
 import {
   getPublishedPortfolio,
@@ -66,15 +67,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                 data-lg-span={lgSpan}
               >
                 {item.media_type === 'video' ? (
-                  <video
-                    src={item.media_url}
-                    poster={item.thumbnail_url ?? undefined}
-                    autoplay
-                    muted
-                    loop
-                    playsinline
-                    class="w-full h-auto block"
-                  />
+                  <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} />
                 ) : (
                   <img
                     src={item.media_url}

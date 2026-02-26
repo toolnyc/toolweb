@@ -1,5 +1,6 @@
 ---
 import type { PortfolioItem as PortfolioItemType } from '../lib/types';
+import VideoPlayer from './VideoPlayer.astro';
 
 interface Props {
   item: PortfolioItemType;
@@ -20,15 +21,7 @@ const mdSpan = mdSpanMap[item.display_size] ?? 6;
   data-lg-span={lgSpan}
 >
   {item.media_type === 'video' ? (
-    <video
-      src={item.media_url}
-      poster={item.thumbnail_url ?? undefined}
-      autoplay
-      muted
-      loop
-      playsinline
-      class="w-full h-auto block"
-    />
+    <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} />
   ) : (
     <img
       src={item.media_url}

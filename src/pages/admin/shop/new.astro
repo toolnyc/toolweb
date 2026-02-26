@@ -1,11 +1,13 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
 import FileUpload from '../../../components/FileUpload.astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 let error = '';
 
-if (Astro.request.method === 'POST' && supabaseAdmin) {
+if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
 
   const { error: insertError } = await supabaseAdmin

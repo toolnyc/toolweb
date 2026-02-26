@@ -1,12 +1,10 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../lib/supabase';
-import { stripe } from '../../lib/stripe';
+import { getSupabaseAdmin, getStripe, getEnv } from '../../lib/env';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    if (!stripe || !supabaseAdmin) {
-      return new Response(JSON.stringify({ error: 'Not configured' }), { status: 500 });
-    }
+    const stripe = getStripe();
+    const supabaseAdmin = getSupabaseAdmin();
 
     const body = await request.json();
     const { variantId, quantity = 1, shippingCountry = 'US' } = body;
@@ -55,7 +53,7 @@ export const POST: APIRoute = async ({ request }) => {
       ? Number(product.shipping_domestic)
       : Number(product.shipping_international);
 
-    const siteUrl = (import.meta.env.PUBLIC_SITE_URL || 'http://localhost:4321').replace(/\/$/, '');
+    const siteUrl = (getEnv().PUBLIC_SITE_URL || 'http://localhost:4321').replace(/\/$/, '');
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

@@ -1,12 +1,10 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
 import { setAuthCookies } from '../../../lib/cookies';
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
   try {
-    if (!supabaseAdmin) {
-      return new Response(JSON.stringify({ error: 'Auth not configured' }), { status: 500 });
-    }
+    const supabaseAdmin = getSupabaseAdmin();
 
     const formData = await request.formData();
     const email = formData.get('email') as string;

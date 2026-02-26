@@ -1,12 +1,14 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 let snippets: any[] = [];
 let error = '';
 let success = '';
 
-if (supabaseAdmin) {
+{
   const { data } = await supabaseAdmin
     .from('writing_snippets')
     .select('*')
@@ -15,7 +17,7 @@ if (supabaseAdmin) {
   snippets = data || [];
 }
 
-if (Astro.request.method === 'POST' && supabaseAdmin) {
+if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const action = formData.get('action');
 

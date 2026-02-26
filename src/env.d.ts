@@ -8,6 +8,15 @@ declare namespace App {
       env: {
         MEDIA_BUCKET: R2Bucket;
         ASSETS: { fetch: (req: Request | string) => Promise<Response> };
+        PUBLIC_SUPABASE_URL: string;
+        PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY: string;
+        SUPABASE_SECRET_KEY?: string;
+        STRIPE_SECRET_KEY?: string;
+        STRIPE_WEBHOOK_SECRET?: string;
+        PUBLIC_STRIPE_PUBLISHABLE_KEY?: string;
+        R2_PUBLIC_URL?: string;
+        RESEND_API_KEY?: string;
+        PUBLIC_SITE_URL?: string;
         [key: string]: unknown;
       };
       cf: IncomingRequestCfProperties;
@@ -29,19 +38,9 @@ declare namespace App {
 }
 
 interface ImportMetaEnv {
-  readonly PUBLIC_SUPABASE_URL: string;
-  readonly PUBLIC_SUPABASE_ANON_KEY: string;
-  readonly SUPABASE_SERVICE_KEY: string;
-  readonly STRIPE_SECRET_KEY: string;
-  readonly STRIPE_WEBHOOK_SECRET: string;
-  readonly PUBLIC_STRIPE_PUBLISHABLE_KEY: string;
-  readonly R2_ACCOUNT_ID: string;
-  readonly R2_ACCESS_KEY_ID: string;
-  readonly R2_SECRET_ACCESS_KEY: string;
-  readonly R2_BUCKET_NAME: string;
-  readonly R2_PUBLIC_URL: string;
-  readonly RESEND_API_KEY: string;
-  readonly PUBLIC_SITE_URL: string;
+  readonly PROD: boolean;
+  readonly DEV: boolean;
+  readonly MODE: string;
 }
 
 interface ImportMeta {

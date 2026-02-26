@@ -1,11 +1,13 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 let clients: any[] = [];
 let error = '';
 
-if (supabaseAdmin) {
+{
   const { data, error: fetchError } = await supabaseAdmin
     .from('clients')
     .select('*')

@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { getEnv } from '../../lib/env';
 
 const ALLOWED_TYPES = new Set([
   'image/jpeg',
@@ -45,7 +46,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const ext = file.name.split('.').pop() || 'bin';
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-    const publicUrl = import.meta.env.R2_PUBLIC_URL;
+    const publicUrl = getEnv().R2_PUBLIC_URL;
     if (!publicUrl) {
       return new Response(JSON.stringify({ error: 'R2_PUBLIC_URL not configured' }), {
         status: 500,

@@ -1,12 +1,14 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 let contentItems: any[] = [];
 let error = '';
 let success = '';
 
-if (supabaseAdmin) {
+{
   const { data } = await supabaseAdmin
     .from('site_content')
     .select('*')
@@ -16,7 +18,7 @@ if (supabaseAdmin) {
   contentItems = data || [];
 }
 
-if (Astro.request.method === 'POST' && supabaseAdmin) {
+if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
   const contentId = formData.get('content_id');
 

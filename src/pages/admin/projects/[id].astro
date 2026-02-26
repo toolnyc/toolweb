@@ -1,7 +1,8 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
 
+const supabaseAdmin = getSupabaseAdmin();
 const { id } = Astro.params;
 
 let project: any = null;
@@ -9,7 +10,7 @@ let client: any = null;
 let error = '';
 let success = '';
 
-if (supabaseAdmin && id) {
+if (id) {
   const { data: projectData } = await supabaseAdmin
     .from('projects')
     .select('*, clients(*)')
@@ -24,7 +25,7 @@ if (supabaseAdmin && id) {
   client = projectData.clients;
 }
 
-if (Astro.request.method === 'POST' && supabaseAdmin && id) {
+if (Astro.request.method === 'POST' && id) {
   const formData = await Astro.request.formData();
 
   const { error: updateError } = await supabaseAdmin

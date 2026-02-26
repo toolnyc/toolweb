@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getSupabase } from './env';
 import type {
   PortfolioItem,
   WritingSnippet,
@@ -15,7 +15,7 @@ import type {
 // -- Public queries (anon client, respects RLS) --
 
 export async function getPublishedPortfolio(): Promise<PortfolioItem[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('portfolio_items')
     .select('*')
     .eq('status', 'published')
@@ -29,7 +29,7 @@ export async function getPublishedPortfolio(): Promise<PortfolioItem[]> {
 }
 
 export async function getPublishedWriting(): Promise<WritingSnippet[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('writing_snippets')
     .select('*')
     .eq('status', 'published')
@@ -43,7 +43,7 @@ export async function getPublishedWriting(): Promise<WritingSnippet[]> {
 }
 
 export async function getVisibleClientLogos(): Promise<ClientLogo[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('client_logos')
     .select('*')
     .eq('is_visible', true)
@@ -57,7 +57,7 @@ export async function getVisibleClientLogos(): Promise<ClientLogo[]> {
 }
 
 export async function getActiveProducts(): Promise<(Product & { variants: ProductVariant[] })[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('products')
     .select('*, variants:product_variants(*)')
     .in('status', ['active', 'upcoming'])
@@ -71,7 +71,7 @@ export async function getActiveProducts(): Promise<(Product & { variants: Produc
 }
 
 export async function getProductById(id: string): Promise<(Product & { variants: ProductVariant[] }) | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('products')
     .select('*, variants:product_variants(*)')
     .eq('id', id)
@@ -85,7 +85,7 @@ export async function getProductById(id: string): Promise<(Product & { variants:
 }
 
 export async function getSiteContent(group?: string): Promise<SiteContent[]> {
-  let query = supabase.from('site_content').select('*').order('sort_order');
+  let query = getSupabase().from('site_content').select('*').order('sort_order');
   if (group) query = query.eq('content_group', group);
 
   const { data, error } = await query;
@@ -97,7 +97,7 @@ export async function getSiteContent(group?: string): Promise<SiteContent[]> {
 }
 
 export async function getSiteContentByKey(key: string): Promise<SiteContent | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('site_content')
     .select('*')
     .eq('content_key', key)
@@ -110,7 +110,7 @@ export async function getSiteContentByKey(key: string): Promise<SiteContent | nu
 // -- Client portal queries (still anon client — RLS handles scoping) --
 
 export async function getClientByAuthId(authUserId: string): Promise<Client | null> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('clients')
     .select('*')
     .eq('auth_user_id', authUserId)
@@ -121,7 +121,7 @@ export async function getClientByAuthId(authUserId: string): Promise<Client | nu
 }
 
 export async function getProjectsByClientId(clientId: string): Promise<Project[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('projects')
     .select('*')
     .eq('client_id', clientId)
@@ -138,7 +138,7 @@ export async function getProjectsByClientId(clientId: string): Promise<Project[]
 // Admin pages should import supabaseAdmin directly for full access
 
 export async function getNewInquiries(): Promise<ProjectInquiry[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('project_inquiries')
     .select('*')
     .eq('status', 'new')
@@ -152,7 +152,7 @@ export async function getNewInquiries(): Promise<ProjectInquiry[]> {
 }
 
 export async function getRecentOrders(limit = 20): Promise<Order[]> {
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('orders')
     .select('*')
     .order('created_at', { ascending: false })

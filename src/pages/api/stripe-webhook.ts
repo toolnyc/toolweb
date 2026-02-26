@@ -1,14 +1,15 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../lib/supabase';
-import { stripe } from '../../lib/stripe';
-import { resend } from '../../lib/resend';
+import { getSupabaseAdmin, getStripe, getResendOrNull, getEnv } from '../../lib/env';
 import { sendOrderConfirmationEmail } from '../../lib/emails';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const webhookSecret = import.meta.env.STRIPE_WEBHOOK_SECRET;
+    const env = getEnv();
+    const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
+    const stripe = getStripe();
+    const supabaseAdmin = getSupabaseAdmin();
 
-    if (!webhookSecret || !stripe || !supabaseAdmin) {
+    if (!webhookSecret) {
       return new Response('Webhook not configured', { status: 500 });
     }
 
@@ -152,6 +153,7 @@ export const POST: APIRoute = async ({ request }) => {
 
     if (event.type === 'invoice.payment_failed') {
       // Notify admin
+      const resend = getResendOrNull();
       if (resend) {
         const invoice = event.data.object as unknown as Record<string, unknown>;
         try {

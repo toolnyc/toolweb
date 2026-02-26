@@ -7,7 +7,7 @@ interface Props {
 }
 
 const { title = 'Tool — Creative Technical Consultancy', description = 'Full-service creative technical consultancy. Branding, design, and software development.' } = Astro.props;
-const siteUrl = import.meta.env.PUBLIC_SITE_URL || 'https://tool.nyc';
+const siteUrl = (Astro.locals.runtime?.env?.PUBLIC_SITE_URL as string) || 'https://tool.nyc';
 ---
 
 <!doctype html>

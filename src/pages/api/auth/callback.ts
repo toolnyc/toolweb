@@ -1,14 +1,16 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
 import { setAuthCookies } from '../../../lib/cookies';
 
 export const GET: APIRoute = async ({ url, cookies, redirect }) => {
   const token_hash = url.searchParams.get('token_hash');
   const type = url.searchParams.get('type') as 'magiclink' | 'email' | undefined;
 
-  if (!token_hash || !supabaseAdmin) {
+  if (!token_hash) {
     return redirect('/portal?error=invalid');
   }
+
+  const supabaseAdmin = getSupabaseAdmin();
 
   const { data, error } = await supabaseAdmin.auth.verifyOtp({
     token_hash,

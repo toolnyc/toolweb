@@ -1,8 +1,10 @@
 import { defineMiddleware } from 'astro:middleware';
-import { supabaseAdmin } from './lib/supabase';
+import { initClients, getSupabaseAdminOrNull } from './lib/env';
 import { getAuthTokens, setAuthCookies, clearAuthCookies } from './lib/cookies';
 
 export const onRequest = defineMiddleware(async (context, next) => {
+  initClients(context.locals.runtime.env);
+
   const { pathname } = context.url;
 
   const isAdminRoute = pathname.startsWith('/admin') && pathname !== '/admin/login';
@@ -12,6 +14,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     pathname !== '/portal/verify';
 
   const { accessToken, refreshToken } = getAuthTokens(context.cookies);
+  const supabaseAdmin = getSupabaseAdminOrNull();
 
   if (!accessToken || !supabaseAdmin) {
     if (isAdminRoute) return context.redirect('/admin/login');

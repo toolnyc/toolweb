@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { supabaseAdmin } from '../../lib/supabase';
+import { getSupabaseAdmin } from '../../lib/env';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
 
 // Simple in-memory rate limiting (per IP, 5 per hour)
@@ -7,9 +7,7 @@ const rateLimit = new Map<string, { count: number; resetAt: number }>();
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    if (!supabaseAdmin) {
-      return new Response(JSON.stringify({ error: 'Not configured' }), { status: 500 });
-    }
+    const supabaseAdmin = getSupabaseAdmin();
 
     // Rate limiting
     const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';

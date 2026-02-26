@@ -1,21 +1,21 @@
 ---
 import Admin from '../../layouts/Admin.astro';
-import { supabaseAdmin } from '../../lib/supabase';
+import { getSupabaseAdmin } from '../../lib/env';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 let activeProjectCount = 0;
 let newInquiryCount = 0;
 let pendingOrderCount = 0;
 
-if (supabaseAdmin) {
-  const [projectsRes, inquiriesRes, ordersRes] = await Promise.all([
-    supabaseAdmin.from('projects').select('id', { count: 'exact', head: true }).in('status', ['discovery', 'proposal', 'active', 'review']),
-    supabaseAdmin.from('project_inquiries').select('id', { count: 'exact', head: true }).eq('status', 'new'),
-    supabaseAdmin.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
-  ]);
-  activeProjectCount = projectsRes.count ?? 0;
-  newInquiryCount = inquiriesRes.count ?? 0;
-  pendingOrderCount = ordersRes.count ?? 0;
-}
+const [projectsRes, inquiriesRes, ordersRes] = await Promise.all([
+  supabaseAdmin.from('projects').select('id', { count: 'exact', head: true }).in('status', ['discovery', 'proposal', 'active', 'review']),
+  supabaseAdmin.from('project_inquiries').select('id', { count: 'exact', head: true }).eq('status', 'new'),
+  supabaseAdmin.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
+]);
+activeProjectCount = projectsRes.count ?? 0;
+newInquiryCount = inquiriesRes.count ?? 0;
+pendingOrderCount = ordersRes.count ?? 0;
 ---
 
 <Admin title="Dashboard">

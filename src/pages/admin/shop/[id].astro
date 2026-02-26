@@ -1,8 +1,9 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
 import FileUpload from '../../../components/FileUpload.astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
 
+const supabaseAdmin = getSupabaseAdmin();
 const { id } = Astro.params;
 
 let product: any = null;
@@ -10,7 +11,7 @@ let variants: any[] = [];
 let error = '';
 let success = '';
 
-if (supabaseAdmin && id) {
+if (id) {
   const { data: productData } = await supabaseAdmin
     .from('products')
     .select('*')
@@ -32,7 +33,7 @@ if (supabaseAdmin && id) {
   variants = variantsData || [];
 }
 
-if (Astro.request.method === 'POST' && supabaseAdmin && id) {
+if (Astro.request.method === 'POST' && id) {
   const formData = await Astro.request.formData();
   const action = formData.get('action');
 

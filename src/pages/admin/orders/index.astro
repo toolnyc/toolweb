@@ -1,13 +1,15 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
-import { supabaseAdmin } from '../../../lib/supabase';
+import { getSupabaseAdmin } from '../../../lib/env';
+
+const supabaseAdmin = getSupabaseAdmin();
 
 let orders: any[] = [];
 let error = '';
 
 const statusFilter = Astro.url.searchParams.get('status') || 'all';
 
-if (supabaseAdmin) {
+{
   let query = supabaseAdmin
     .from('orders')
     .select('*, product_variants(*, products(*))')

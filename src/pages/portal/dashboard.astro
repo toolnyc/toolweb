@@ -1,14 +1,16 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { supabaseAdmin } from '../../lib/supabase';
+import { getSupabaseAdmin } from '../../lib/env';
 import type { Project } from '../../lib/types';
 
 const client = Astro.locals.client;
 if (!client) return Astro.redirect('/portal');
 
+const supabaseAdmin = getSupabaseAdmin();
+
 // Fetch projects for this client
 let projects: Project[] = [];
-if (supabaseAdmin) {
+{
   const { data } = await supabaseAdmin
     .from('projects')
     .select('*')

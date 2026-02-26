@@ -1,4 +1,4 @@
-import { resend } from './resend';
+import { getResendOrNull } from './env';
 
 const FROM_ADDRESS = 'Tool <hello@tool.nyc>';
 
@@ -94,6 +94,7 @@ export async function sendMagicLinkEmail(to: string, magicLinkUrl: string): Prom
     </p>
   `);
 
+  const resend = getResendOrNull();
   if (!resend) {
     console.warn('Resend not configured — skipping magic link email');
     return;
@@ -194,6 +195,7 @@ export async function sendOrderConfirmationEmail(
     </table>
   `);
 
+  const resend = getResendOrNull();
   if (!resend) {
     console.warn('Resend not configured — skipping order confirmation email');
     return;
@@ -267,6 +269,7 @@ export async function sendInquiryNotificationEmail(inquiry: InquiryDetails): Pro
     </table>
   `);
 
+  const resend = getResendOrNull();
   if (!resend) {
     console.warn('Resend not configured — skipping inquiry notification email');
     return;
@@ -304,6 +307,7 @@ export async function sendInquiryAutoReplyEmail(to: string, name: string): Promi
     </p>
   `);
 
+  const resend = getResendOrNull();
   if (!resend) {
     console.warn('Resend not configured — skipping inquiry auto-reply email');
     return;

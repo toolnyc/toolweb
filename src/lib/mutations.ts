@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase';
+import { getSupabaseAdmin } from './env';
 import type {
   PortfolioItem,
   WritingSnippet,
@@ -16,8 +16,7 @@ import type {
 } from './types';
 
 function admin() {
-  if (!supabaseAdmin) throw new Error('supabaseAdmin not configured (missing SUPABASE_SERVICE_KEY)');
-  return supabaseAdmin;
+  return getSupabaseAdmin();
 }
 
 // -- Portfolio --

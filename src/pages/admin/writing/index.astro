@@ -38,6 +38,25 @@ if (Astro.request.method === 'POST') {
     }
   }
 
+  if (action === 'update') {
+    const snippetId = formData.get('snippet_id');
+    const { error: updateError } = await supabaseAdmin
+      .from('writing_snippets')
+      .update({
+        content: formData.get('content'),
+        attribution: formData.get('attribution') || null,
+        status: formData.get('status'),
+        sort_order: parseInt(formData.get('sort_order') as string) || 0,
+      })
+      .eq('id', snippetId);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      return Astro.redirect('/admin/writing');
+    }
+  }
+
   if (action === 'delete') {
     const snippetId = formData.get('snippet_id');
     const { error: deleteError } = await supabaseAdmin
@@ -114,25 +133,61 @@ if (Astro.request.method === 'POST') {
     <div class="space-y-4 max-w-2xl">
       {snippets.map((snippet) => (
         <div class="bg-white rounded border border-neutral-200 p-6">
-          <div class="flex justify-between items-start gap-4 mb-4">
-            <div class="flex-1">
-              <p class="text-neutral-900 mb-2">{snippet.content}</p>
-              {snippet.attribution && (
-                <p class="text-sm text-neutral-500">— {snippet.attribution}</p>
-              )}
-            </div>
-            <div class="flex items-center gap-3">
-              <span class:list={[
-                'px-2 py-1 text-xs rounded',
-                snippet.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-              ]}>
-                {snippet.status}
-              </span>
-              <span class="text-sm text-neutral-400">#{snippet.sort_order}</span>
-            </div>
-          </div>
+          <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="update" />
+            <input type="hidden" name="snippet_id" value={snippet.id} />
 
-          <form method="POST" class="inline">
+            <div>
+              <label class="block text-sm font-semibold mb-2">Content</label>
+              <textarea
+                name="content"
+                rows="3"
+                required
+                class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+              >{snippet.content}</textarea>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm font-semibold mb-2">Attribution</label>
+                <input
+                  type="text"
+                  name="attribution"
+                  value={snippet.attribution || ''}
+                  placeholder="Optional"
+                  class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold mb-2">Status</label>
+                <select
+                  name="status"
+                  required
+                  class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                >
+                  <option value="draft" selected={snippet.status === 'draft'}>Draft</option>
+                  <option value="published" selected={snippet.status === 'published'}>Published</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold mb-2">Sort Order</label>
+                <input
+                  type="number"
+                  name="sort_order"
+                  value={snippet.sort_order}
+                  class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+                Save
+              </button>
+            </div>
+          </form>
+
+          <form method="POST" class="mt-3 pt-3 border-t border-neutral-100">
             <input type="hidden" name="action" value="delete" />
             <input type="hidden" name="snippet_id" value={snippet.id} />
             <button

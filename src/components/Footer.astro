@@ -4,6 +4,22 @@
  */
 ---
 
+<script>
+  function updateClock() {
+    const el = document.getElementById('footer-clock');
+    if (!el) return;
+    const now = new Date();
+    el.textContent = now.toLocaleTimeString('en-US', {
+      timeZone: 'America/New_York',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }) + ' BK';
+  }
+  updateClock();
+  setInterval(updateClock, 10_000);
+</script>
+
 <footer class="border-t border-neutral-200">
   <div class="site-grid py-6">
     <a href="/" class="col-span-2 lg:col-span-8 text-body font-medium uppercase tracking-widest">Tool</a>
@@ -12,6 +28,9 @@
       <a href="https://instagram.com/tool.nyc" target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 transition-colors">Instagram</a>
       <a href="https://linkedin.com/company/tool-nyc" target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 transition-colors">LinkedIn</a>
     </div>
-    <p class="col-span-6 lg:col-span-8 text-body text-caption-gray lg:text-right mt-2 lg:mt-0">&copy; 2026 Tool</p>
+    <p class="col-span-6 lg:col-span-8 text-body text-caption-gray lg:text-right mt-2 lg:mt-0">
+      <span>&copy; <span id="footer-year">{new Date().getFullYear()}</span> Tool</span>
+      <span class="ml-4" style="font-variant-numeric: tabular-nums; min-width: 5.5ch; display: inline-block; text-align: right;" id="footer-clock"></span>
+    </p>
   </div>
 </footer>

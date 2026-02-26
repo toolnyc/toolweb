@@ -1,0 +1,430 @@
+{
+  "version": 1,
+  "skills": {
+    "address-sanitizer": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "165f9056f22a6253f7f205e6a666a8d61e1c4493315d6c4a9d98afe7a7511f7a"
+    },
+    "aflpp": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "fcb13070b483be95c98a63482614edfb2e60929f43bbe574cbce7e9de5308118"
+    },
+    "agentic-actions-auditor": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "d8b8c57a208625070d397a0190f923e32eaf6558810a89cd468cdf35fde6ccfb"
+    },
+    "agents-sdk": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "ee8445129b8b6e4732492ed7c0f0b32c6a20c2a289dbbbdfb84b3c17047b0659"
+    },
+    "algorand-vulnerability-scanner": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "fef00608032be87a600139e91ddd952627a84cf0b0801e6000cf14b898691c92"
+    },
+    "ask-questions-if-underspecified": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "7178ae6d25b054d311eee5abf947bc988e79d5ea0ae1d349f32d7a490493f525"
+    },
+    "atheris": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "07b63b72d2ae8a2751a023f8e31e936e4efe149d67b8812759e6402da0e10349"
+    },
+    "audit-context-building": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "3f18904093acbd6c42bc8770f3ca5b02f98de8d6ba5cf7b1f45b5383921e757d"
+    },
+    "audit-prep-assistant": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "6d94dd28e61329add4ab0ef85b6a7e37896c1e2ffd55692f0b51d80463426dcc"
+    },
+    "building-ai-agent-on-cloudflare": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "83b06457499cc0d6791a44b04504018fa131fc027c631d7e1b28fe5bfc7932ac"
+    },
+    "building-mcp-server-on-cloudflare": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "b2785b1e1b2e0e764807bb9af0a878ff5d22c6ff379781e018a8ee062bcaf88c"
+    },
+    "cairo-vulnerability-scanner": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "9ea28bd0d54390f89cf7edc3481369b53512115fc73644b9277a6e488ff15f26"
+    },
+    "canvas-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "a2fe47d24b3fd8e52faef731fff099c557e698083cd644b2e5695cc4dd8c7715"
+    },
+    "cargo-fuzz": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "00e8e9e919e39cb0739dbec41038c723bc644ba82f83787188d5a975887421ea"
+    },
+    "claude-in-chrome-troubleshooting": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "c01e7e35243bb81f1af70d9d7ce9a1b09afc0a40c6d2c8a434c34dc37be4b1e6"
+    },
+    "cloudflare": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "5e3cd2bb90ee02796d0158fadaa6a1a90ef24b71f86f2abc6d668541010285b1"
+    },
+    "code-maturity-assessor": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "824fd57d717d38fe79c36cbc8a0b4f78b24084df117730c151138737a373ea84"
+    },
+    "codeql": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "1f5d67ee3f1945ffafb12e5aed4b56dc20ece9dca23c7d077306fc2c4828be7f"
+    },
+    "constant-time-analysis": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "e313b2b4e5eae435b485a48eca481d036ff44040786ec84251afece26b37b166"
+    },
+    "constant-time-testing": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "ad234d23c940e59f7e6535e1547e82690aa7e4dd041a0f1b9c45ccc229ac60fa"
+    },
+    "cosmos-vulnerability-scanner": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "df6bc30a2b6c3d5400bdc19596c70e03b5631ef3e4e11bc75f18e8694a5eb51e"
+    },
+    "coverage-analysis": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "ea5b9a4adb286bc7698dd7aa115897ac259211544afeeef29e85c3e86feda5e6"
+    },
+    "debug-buttercup": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "150185180b95f9004b705763a552b0f823f404e17cc37ce17debcc15f564604e"
+    },
+    "designing-workflow-skills": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "6195a72a439909bf84dcffac0bbe30638bbf91398f2a0d58b220d3488364b8b7"
+    },
+    "devcontainer-setup": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "fa7690d43a2b1937527d3448bd943581d4802df92aa79350c6758875a3b38aee"
+    },
+    "differential-review": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "5b23eaac1f3a88b6d820bb1e65c2e714afdd4153e55d712fbd102815a3efbd01"
+    },
+    "durable-objects": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "ac59e3d5e9f077c273a424a1611a9e5f23e0e8c11e0969f9a1f4370733604745"
+    },
+    "dwarf-expert": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "8cabff9b38836ff707fe8d9165f05c38c29bef9d4da222256203a199065a5953"
+    },
+    "entry-point-analyzer": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "c95d0d0e521571e18f97036d94c64727771232a35017322ab45cb0b0e484be17"
+    },
+    "firebase-apk-scanner": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "7746b181bda03fc19d28d5502d840c1a911713cb4959084bdd959ec380c63e0b"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "063a0e6448123cd359ad0044cc46b0e490cc7964d45ef4bb9fd842bd2ffbca67"
+    },
+    "fuzzing-dictionary": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "55f6eff8c4781fecee1ef1cf4a6ae831116fee8349410c4be5f7e289c7ca83cc"
+    },
+    "fuzzing-obstacles": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "1903af075204bd8c11343e6ca9af2f481959e59172ac237b9a2ecffa9a522524"
+    },
+    "git-cleanup": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "ecda92a48975b49a81283611d06cadfeacbba27970facb510781e808fedc19aa"
+    },
+    "guidelines-advisor": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "6758a2111fa4248b6981b0cb8bd936e14eca3c3cadc15e2d7cdedf973da85626"
+    },
+    "harness-writing": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "5ae4711d431c4ec5031a74c87f91f5d4c525cce43bbda2865cccd1001e6aa738"
+    },
+    "insecure-defaults": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "b3d5dba6b18379f47ce17994ceb872434550dffc18c775075f60d27864b36d8b"
+    },
+    "interpreting-culture-index": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "90aa93808d3db1e528a66aa9b54ced78b07320d18ab119b59df71df5003ec543"
+    },
+    "let-fate-decide": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "c91dc34070964e10d0f35e9cfb0c39970499059303644ca830b030c05fce716f"
+    },
+    "libafl": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "0f515d94c42b824515f4ba413a9e98c42670ec8fdd81925679fb93efcdcc8d11"
+    },
+    "libfuzzer": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "c1983ef8e7b82370417045911a7f9e74d55d190a9b56c53cc63d87618afc5201"
+    },
+    "modern-python": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "fb23cdde660840865454af8ea05bd8d8ddefa0082d4e52f2cf34385997eafd84"
+    },
+    "ossfuzz": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "8d34900449132fd07f45429b918d9e7ebe78551d090e159ab8ad469e43430082"
+    },
+    "property-based-testing": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "534153af7a54c94fc297625290a9f7055aa3b4ec8d9aaa77247463c25deab79c"
+    },
+    "remotion-best-practices": {
+      "source": "remotion-dev/skills",
+      "sourceType": "github",
+      "computedHash": "9851afb52e1b892c43b2af973bda1776ce01fedfdfe704e0cfd70069a3a9c300"
+    },
+    "ruzzy": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "36f4e6728b06473b3cf9e47dba4e7a288d7a187637b29e2d2140dbb99d136662"
+    },
+    "sandbox-sdk": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "88b13f09ddec64523b86fb9ec957743fe7e41e0224eb9e71ae71315d66b1879d"
+    },
+    "sarif-parsing": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "fbee59decd30538ced43588a731d0c173659409d11f4b9d9873b3a85d62ab345"
+    },
+    "seatbelt-sandboxer": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "348431c4664a58acfa822a4149b4822f9d3bfa0fe7a44499bc8de47b81d1f37e"
+    },
+    "second-opinion": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "5052566ed407a403d6be9745f3160ec75b86e64786deb09dee0b3756082160c4"
+    },
+    "secure-workflow-guide": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "3b22c1835a3f0325942dfda4b7e8aa5c2da1aee4fe91302cb7d1187bd938669e"
+    },
+    "semgrep": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "da8e4ec9fa41f78487aee71b6b1d9e3c8f155933de4bb046d476e1586d2edcc3"
+    },
+    "semgrep-rule-creator": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "5eb65e48b678ffa4167f65085d2717ddb1749a40a64a1e12d0c7334fa757b64a"
+    },
+    "semgrep-rule-variant-creator": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "e39113bee216d295cd9516de7e23a3413905998b329bb04874003f23c3bfc95d"
+    },
+    "sentry-cocoa-sdk": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "094e28ff29b82a3cb26983cd81a3b5d60f56970492284ad2ef5ff437a744bf82"
+    },
+    "sentry-create-alert": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "7c92a9467e9f8878713fef8ec47a0adcec59151d15834cb16ab5a8895fb0f701"
+    },
+    "sentry-fix-issues": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "5673b169d2a0eb6e4651a57eba4263d1c04dce10e2955c97902f1e9f80109a52"
+    },
+    "sentry-go-sdk": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "579c3ae5a3054b6b19b7f6d18739badab5b3a79533cfb19e3fceaaef71c50153"
+    },
+    "sentry-pr-code-review": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "2df9d5798ce8b08641b4119c8ef8816bef293f87825adf09a5d67176212a4c7a"
+    },
+    "sentry-python-sdk": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "ebfed5df3827d585cb6c54f641c6a6c75c8887f8c175982cfda9c42d4e1cbb0a"
+    },
+    "sentry-react-native-sdk": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "e7e6afe5b1c456d822bc5e499da144e59ff3491722646c7cf88f61158a44280b"
+    },
+    "sentry-react-setup": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "9178fed8fc928b9d4ecc9a1168100fe3100f3bb804be6baf463efb5032f6663e"
+    },
+    "sentry-ruby-sdk": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "10042d2646518c84dacc389af53c37c21ab264e9aebbc876488242d1591eab11"
+    },
+    "sentry-sdk-skill-creator": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "79458d8fac1c3406e2872a25331b68367d387779cc3cb5b644e63f41ebe290e2"
+    },
+    "sentry-setup-ai-monitoring": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "91959d0839b0399b395c2a6200c457b99571050481a44894559cb2a5f3d8c165"
+    },
+    "sentry-svelte-sdk": {
+      "source": "getsentry/agent-skills",
+      "sourceType": "github",
+      "computedHash": "1bd898ed37df029ebf30c186cd5bcfdb7113e964930f7f850ba3c7bb8a959923"
+    },
+    "sharp-edges": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "22659ba5eac9130ce0fc15ded5699db2847c375e61880aea3e12f3b5d9867bc8"
+    },
+    "skill-improver": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "a93ea4fec1aef2840ce24cade089db48bbe8da22027171e2b4a5ef6fefa5f9e6"
+    },
+    "solana-vulnerability-scanner": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "5eacb1f80b8c30627e6cb6bbb543e7d47104ebed1da33a5cb8f8dbee336fcc86"
+    },
+    "spec-to-code-compliance": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "33d4d2203e13ffc2a51d821433d6c1029f58f5ddf8c88715403844da5adca798"
+    },
+    "substrate-vulnerability-scanner": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "91eef9710b84da7f248b3735c5d3166758268ac7a7f24cf09abf43f6cb8616fc"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills",
+      "sourceType": "github",
+      "computedHash": "9c87c315aed143ee3b34bec8117100f5035e0df09e6b23e1ecc772cff434c9ad"
+    },
+    "supply-chain-risk-auditor": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "ff6a2a77feb9c6ce2c3f8616c2e9d98450e119ef87927e6389d51949f8db01ce"
+    },
+    "testing-handbook-generator": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "179c311a7b1b0d22eccd613141f71c3331d1d64a969bafd3b6ae0e5a3a55bc13"
+    },
+    "token-integration-analyzer": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "dcdddcb5c28706b5500d38eac6421b3b20d1123e1b7cce5ced289ef1689628da"
+    },
+    "ton-vulnerability-scanner": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "7019073edd2573da4839b3e48c675d63525dc9ad40ea121556ee2d8bbac11b9c"
+    },
+    "using-gh-cli": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "726a031463ebe1f860c48cf5ae68516e8da125ee3dfcb5fcb9ed1e4095d92083"
+    },
+    "variant-analysis": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "d431f297a8c53ff2daec5ab23c32a1868d54f8661b5d3b1909ec6d983ef1a2fa"
+    },
+    "web-perf": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "8cdc8375260e5d00466e16df7c76b5a19cf434e7cb0bd905c70921bc28a2c06d"
+    },
+    "webapp-testing": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "cf8e5916d474886bd67b09691247f43f331523008b7d366064bc607ab42d6302"
+    },
+    "workers-best-practices": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "420e1ad3eaeb8ed2016e6b34fff3757de6aa39899ec2bd6e9784a29c38e70f9a"
+    },
+    "wrangler": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "computedHash": "6689701b4ec7e5c626db8f84eea5ecc59e1ea5d4328219a971ba41426361dfde"
+    },
+    "wycheproof": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "6d57a9673c7c67e6ab72d617b734bfeb789c972a68f6b561e8facbfc475d55a0"
+    },
+    "yara-rule-authoring": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "0cad351c77756f6409d403d1b313cd2294585c35f98e0b73e3afeae9d935fc17"
+    },
+    "zeroize-audit": {
+      "source": "trailofbits/skills",
+      "sourceType": "github",
+      "computedHash": "89c2c45ccfead16fef03e59b6966f866075ffb8b63d35612c748676a4763b9c8"
+    }
+  }
+}

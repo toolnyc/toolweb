@@ -14,7 +14,7 @@ const shopEnabled = await getFeatureFlag('shop_enabled');
       <img src="/brand/icon-k.svg" alt="Tool" class="h-[20px] w-auto" />
       <span class="text-body font-semibold uppercase tracking-widest">Tool</span>
     </a>
-    <div class="flex items-center gap-[1px]">
+    <div class="flex items-center gap-[2px]">
       {shopEnabled && (
         <a href="/shop" class="nav-btn bg-yellow">Shop</a>
       )}
@@ -37,7 +37,5 @@ const shopEnabled = await getFeatureFlag('shop_enabled');
     text-decoration: none;
     transition: opacity 0.15s ease;
   }
-  .nav-btn:hover {
-    opacity: 0.75;
-  }
+  /* Hover handled by GSAP in animations.ts */
 </style>

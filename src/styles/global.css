@@ -99,12 +99,25 @@
     line-height: 18px;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  .service-card:hover {
-    background: #00FFFF;
+  .service-card:hover,
+  .service-card[data-hover="cyan"]:hover { background: #00FFFF; }
+  .service-card[data-hover="magenta"]:hover { background: #FF00FF; }
+  .service-card[data-hover="yellow"]:hover { background: #FFEB00; }
+  .service-card:hover p { color: #000 !important; }
+
+  /* Process cards — same rectangular feel, magenta hover */
+  .process-card {
+    display: block;
+    background: white;
+    padding: 16px;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 18px;
+    transition: background 0.15s ease, color 0.15s ease;
   }
-  .service-card:hover p {
-    color: #000 !important;
-  }
+  .process-card:hover { background: #FFEB00; }
+  .process-card:hover p,
+  .process-card:hover span { color: #000 !important; }
 
   /* Filter pill */
   .filter-pill {
@@ -147,4 +160,17 @@
 /* DVD canvas sits behind hero content */
 #dvd-canvas {
   z-index: 0;
+}
+
+/* Typing cursor blink */
+.hero-cursor {
+  display: inline;
+  animation: blink-cursor 0.8s step-end infinite;
+  color: #737373;
+}
+@keyframes blink-cursor {
+  50% { opacity: 0; }
+}
+.hero-typing-text {
+  /* Characters hidden by default, revealed by GSAP */
 }

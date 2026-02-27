@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import CookieBanner from '../components/CookieBanner.astro';
 
 interface Props {
   title?: string;
@@ -31,7 +32,9 @@ const siteUrl = (Astro.locals.runtime?.env?.PUBLIC_SITE_URL as string) || 'https
     <title>{title}</title>
   </head>
   <body class="font-sans">
+    <a href="#main-content" class="skip-link">Skip to content</a>
     <slot />
+    <CookieBanner />
     <script>
       import '../scripts/animations';
     </script>

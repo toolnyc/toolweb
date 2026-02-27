@@ -20,7 +20,7 @@ const hasStock = product.variants.some(v => v.stock_count > 0);
 
 <BaseLayout title={`${product.name} — Tool`}>
   <Header />
-  <main class="pb-12">
+  <main class="pb-12" id="main-content">
     <div class="site-grid py-2">
       <a href="/shop" class="col-span-6 text-body text-caption-gray hover:text-neutral-900 transition-colors">&larr; Back to shop</a>
     </div>

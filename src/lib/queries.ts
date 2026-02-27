@@ -12,7 +12,34 @@ import type {
   ProjectInquiry,
   Order,
   SiteContent,
+  FeatureFlag,
 } from './types';
+
+// -- Feature flags --
+
+export async function getFeatureFlag(key: string): Promise<boolean> {
+  const { data, error } = await getSupabase()
+    .from('feature_flags')
+    .select('enabled')
+    .eq('flag_key', key)
+    .single();
+
+  if (error || !data) return false;
+  return data.enabled;
+}
+
+export async function getAllFeatureFlags(): Promise<FeatureFlag[]> {
+  const { data, error } = await getSupabase()
+    .from('feature_flags')
+    .select('*')
+    .order('flag_key');
+
+  if (error) {
+    console.error('Error fetching feature flags:', error);
+    return [];
+  }
+  return data ?? [];
+}
 
 // -- Public queries (anon client, respects RLS) --
 

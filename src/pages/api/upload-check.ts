@@ -3,12 +3,9 @@ import { getEnv } from '../../lib/env';
 
 /**
  * GET /api/upload-check — diagnostic endpoint to verify R2 binding is available.
- * Requires admin auth. Returns binding status without uploading anything.
+ * No auth required — only exposes binding status, no secrets.
  */
 export const GET: APIRoute = async ({ locals }) => {
-  if (!locals.user) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
 
   const env = getEnv();
   const bucket = locals.runtime?.env?.MEDIA_BUCKET as R2Bucket | undefined;

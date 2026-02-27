@@ -1,0 +1,43 @@
+---
+/**
+ * Cookie consent banner — small fixed bar above the StickyBar.
+ * Reads `tool-cookie-consent` cookie server-side; if present, renders nothing.
+ * Client-side sets the cookie on accept and hides the banner.
+ */
+const hasConsent = Astro.cookies.get('tool-cookie-consent')?.value === 'accepted';
+---
+
+{!hasConsent && (
+  <div
+    id="cookie-banner"
+    class="fixed bottom-[44px] left-0 right-0 z-[45] bg-lite-gray border-t border-neutral-200"
+    role="region"
+    aria-label="Cookie consent"
+  >
+    <div class="site-grid items-center py-2">
+      <p class="col-span-4 lg:col-span-20 text-body text-neutral-600">
+        This site uses cookies for authentication and basic functionality.
+        <a href="/privacy" class="underline hover:text-neutral-900 transition-colors">Privacy policy</a>
+      </p>
+      <div class="col-span-2 lg:col-span-4 text-right">
+        <button
+          id="cookie-accept"
+          type="button"
+          class="text-body font-medium bg-neutral-900 text-white px-3 py-[6px] hover:opacity-90 transition-opacity"
+        >
+          Accept
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+<script>
+  const banner = document.getElementById('cookie-banner');
+  const acceptBtn = document.getElementById('cookie-accept');
+
+  acceptBtn?.addEventListener('click', () => {
+    document.cookie = 'tool-cookie-consent=accepted; path=/; max-age=31536000; SameSite=Lax';
+    banner?.remove();
+  });
+</script>

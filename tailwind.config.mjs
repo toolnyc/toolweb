@@ -8,7 +8,7 @@ export default {
         magenta: '#FF00FF',
         yellow: '#FFEB00',
         'lite-gray': '#f4f4f4',
-        'caption-gray': '#8a8a8a',
+        'caption-gray': '#737373',
         'dark-gray': '#414141',
       },
       fontFamily: {

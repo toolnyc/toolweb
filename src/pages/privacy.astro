@@ -1,0 +1,59 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import StickyBar from '../components/StickyBar.astro';
+---
+
+<BaseLayout title="Privacy — Tool">
+  <Header />
+  <main class="pb-12" id="main-content">
+    <div class="site-grid py-6">
+      <div class="col-span-6 lg:col-span-16">
+        <h1 class="text-body font-medium mb-6">Privacy and cookies</h1>
+
+        <div class="space-y-6 text-body text-caption-gray">
+          <section>
+            <h2 class="text-body font-medium text-neutral-900 mb-2">What this site collects</h2>
+            <p>This site collects minimal data. No analytics trackers, no third-party advertising pixels, no fingerprinting.</p>
+          </section>
+
+          <section>
+            <h2 class="text-body font-medium text-neutral-900 mb-2">Cookies</h2>
+            <p class="mb-2">This site uses a small number of cookies, all functional:</p>
+            <ul class="list-disc list-inside space-y-1">
+              <li><strong class="text-neutral-900">tool-cookie-consent</strong> — Remembers that you accepted this cookie notice. Expires after 1 year.</li>
+              <li><strong class="text-neutral-900">sb-access-token</strong> — Authentication session for the client portal. Expires on logout.</li>
+              <li><strong class="text-neutral-900">sb-refresh-token</strong> — Refreshes the authentication session. Expires on logout.</li>
+            </ul>
+            <p class="mt-2">No cookies are used for tracking or advertising.</p>
+          </section>
+
+          <section>
+            <h2 class="text-body font-medium text-neutral-900 mb-2">Inquiry form</h2>
+            <p>If you submit a project inquiry, your name, email, and message are stored in our database to respond to your request. This information is not shared with third parties.</p>
+          </section>
+
+          <section>
+            <h2 class="text-body font-medium text-neutral-900 mb-2">Shop and payments</h2>
+            <p>Purchases are processed through Stripe. Payment information is handled entirely by Stripe and never touches our servers. Order records (items, shipping address, email) are stored to fulfill orders.</p>
+          </section>
+
+          <section>
+            <h2 class="text-body font-medium text-neutral-900 mb-2">Hosting</h2>
+            <p>This site is hosted on Cloudflare Pages. Cloudflare may log IP addresses and basic request metadata as part of standard web infrastructure. See <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer" class="underline hover:text-neutral-900 transition-colors">Cloudflare's privacy policy</a>.</p>
+          </section>
+
+          <section>
+            <h2 class="text-body font-medium text-neutral-900 mb-2">Contact</h2>
+            <p>Questions about this policy: <a href="mailto:hello@tool.nyc" class="underline hover:text-neutral-900 transition-colors">hello@tool.nyc</a></p>
+          </section>
+
+          <p class="text-caption-gray">Last updated: February 2026</p>
+        </div>
+      </div>
+    </div>
+  </main>
+  <Footer />
+  <StickyBar />
+</BaseLayout>

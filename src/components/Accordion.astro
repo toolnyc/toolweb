@@ -5,14 +5,28 @@ interface Props {
 }
 
 const { title, open = false } = Astro.props;
+const id = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+const triggerId = `accordion-trigger-${id}`;
+const panelId = `accordion-panel-${id}`;
 ---
 
 <div class="accordion" data-accordion>
-  <button class="accordion-trigger" type="button" aria-expanded={open ? 'true' : 'false'}>
+  <button
+    class="accordion-trigger"
+    type="button"
+    id={triggerId}
+    aria-expanded={open ? 'true' : 'false'}
+    aria-controls={panelId}
+  >
     <span>{title}</span>
-    <span class="accordion-icon">{open ? '×' : '+'}</span>
+    <span class="accordion-icon" aria-hidden="true">{open ? '\u00d7' : '+'}</span>
   </button>
-  <div class:list={['accordion-content', { 'is-open': open }]}>
+  <div
+    id={panelId}
+    role="region"
+    aria-labelledby={triggerId}
+    class:list={['accordion-content', { 'is-open': open }]}
+  >
     <div class="px-2 py-3">
       <slot />
     </div>
@@ -27,7 +41,7 @@ const { title, open = false } = Astro.props;
 
     trigger?.addEventListener('click', () => {
       const isOpen = content.classList.toggle('is-open');
-      icon.textContent = isOpen ? '×' : '+';
+      icon.textContent = isOpen ? '\u00d7' : '+';
       trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
   });

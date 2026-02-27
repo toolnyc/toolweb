@@ -106,6 +106,18 @@
   .col-span-24 { grid-column: span 24; }
 }
 
+/* CMYK highlight — cycles through C/M/Y on hover */
+.cmyk-highlight {
+  background: #FFEB00;
+  color: #000;
+  font-weight: 500;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+.cmyk-highlight:hover {
+  background: #00FFFF;
+  color: #000;
+}
+
 /* Animation initial states — hidden until GSAP reveals */
 .anim-fade-up {
   opacity: 0;
@@ -113,4 +125,9 @@
 }
 .anim-fade {
   opacity: 0;
+}
+
+/* DVD canvas sits behind hero content */
+#dvd-canvas {
+  z-index: 0;
 }

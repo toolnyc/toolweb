@@ -15,15 +15,7 @@ import StickyBar from '../components/StickyBar.astro';
       </div>
     </div>
     <div class="site-grid">
-      <div class="col-span-6 lg:col-span-24">
-        <!-- Cal.com embed — replace src with actual Cal.com username -->
-        <iframe
-          src="https://cal.com"
-          style="width: 100%; height: 80vh; border: none;"
-          title="Book a call"
-          loading="lazy"
-        ></iframe>
-      </div>
+      <div class="col-span-6 lg:col-span-24" id="cal-inline" style="min-height: 80vh;"></div>
     </div>
     <div class="site-grid py-4">
       <p class="col-span-6 md:col-span-8 text-body text-caption-gray">
@@ -34,3 +26,11 @@ import StickyBar from '../components/StickyBar.astro';
   <Footer />
   <StickyBar />
 </BaseLayout>
+
+<script is:inline>
+  Cal("inline", {
+    calLink: "toolnyc/30min",
+    elementOrSelector: "#cal-inline",
+    config: { layout: "month_view" },
+  });
+</script>

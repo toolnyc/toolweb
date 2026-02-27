@@ -3,10 +3,9 @@ compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./dist"
 
-# R2: MEDIA_BUCKET -> tool-media
-# Set via Cloudflare Dashboard > Pages > toolweb > Settings > Bindings.
-# wrangler.toml [[r2_buckets]] locks the dashboard but GitHub Pages deploys
-# don't actually apply it — so the binding is claimed but never injected.
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tool-media"
 
 # Production vars (tool.nyc)
 [vars]
@@ -16,7 +15,12 @@ PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_live_51SZzHLRsGSph5NYiynyibsSmOW2oLWcLxvaQT6
 R2_PUBLIC_URL = "https://media.tool.nyc"
 PUBLIC_SITE_URL = "https://tool.nyc"
 
-# Preview vars (pre.tool.nyc) — test Stripe keys
+# Preview environment — non-inheritable keys are all-or-nothing in Pages,
+# so r2_buckets must be repeated here alongside vars.
+[[env.preview.r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tool-media"
+
 [env.preview.vars]
 PUBLIC_SUPABASE_URL = "https://eknmuaffpvkiwylrybql.supabase.co"
 PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = "sb_publishable_qm6XxPJLZ3w2Mn5xFkMDUA_Rkpoy7iU"

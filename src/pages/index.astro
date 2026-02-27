@@ -44,13 +44,13 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
 
   <main class="pb-12">
     {/* ── 1. Hero ─────────────────────────────────────────── */}
-    <section class="min-h-[100svh] flex items-end site-grid pb-8">
-      <div class="col-span-6 lg:col-span-24">
-        <h1 class="text-hero font-bold uppercase tracking-tight anim-fade-up" data-anim="hero-title">TOOL</h1>
+    <section class="min-h-[100svh] relative overflow-hidden flex items-end site-grid pb-20">
+      <canvas id="dvd-canvas" class="absolute inset-0 w-full h-full pointer-events-none" data-anim="dvd-canvas"></canvas>
+      <div class="col-span-6 lg:col-span-24 relative z-10">
         <p class="text-body text-caption-gray mt-2 max-w-md anim-fade-up" data-anim="hero-subtitle">
-          {heroTagline?.content ?? 'Brand, design, and web development.'}
+          {heroTagline?.content ?? 'Brand, design, and web development. New York.'}
         </p>
-        <a href="/book" class="inline-block mt-4 text-body border border-neutral-900 px-4 py-2 hover:bg-neutral-900 hover:text-white transition-colors anim-fade-up" data-anim="hero-cta">
+        <a href="/book" class="inline-block mt-4 text-body cmyk-highlight px-4 py-2 transition-colors anim-fade-up" data-anim="hero-cta">
           Let's talk
         </a>
       </div>
@@ -166,99 +166,120 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
       <div class="col-span-6 lg:col-span-24 space-y-[1px]">
         <Accordion title="Services">
           <div class="space-y-6 py-2">
+            <p class="text-body text-caption-gray max-w-xl">
+              Open-source stack. Your hosting, your data. No vendor lock-in.
+            </p>
+
             <div>
               <h3 class="text-body font-medium mb-3">Brand</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-body text-caption-gray">
-                <div>
-                  <p class="text-neutral-900 font-medium">Brand Sprint</p>
-                  <p>Logo, color system, type system, brand guidelines. 2 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $6,000</p>
-                </div>
-                <div>
-                  <p class="text-neutral-900 font-medium">Full Identity</p>
-                  <p>Everything in Sprint + strategy, voice/tone, social templates, collateral. 4 weeks.</p>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Full Identity</p>
+                  <p>Logo, color system, type system, strategy, voice/tone, brand guidelines. 4 weeks.</p>
+                  <p class="text-neutral-900 mt-1">From $10,000</p>
+                </a>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">+ Collateral</p>
+                  <p>Everything in Full Identity + social templates, packaging, menus, environmental graphics, merch. 6 weeks.</p>
                   <p class="text-neutral-900 mt-1">From $12,000</p>
-                </div>
-                <div>
-                  <p class="text-neutral-900 font-medium">Brand + Collateral</p>
-                  <p>Everything in Full Identity + packaging, menus, environmental graphics, merch. 6 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $18,000</p>
-                </div>
+                </a>
               </div>
             </div>
 
             <div>
               <h3 class="text-body font-medium mb-3">Web</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-body text-caption-gray">
-                <div>
-                  <p class="text-neutral-900 font-medium">Starter Site</p>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Starter Site</p>
                   <p>3&ndash;5 pages, mobile-first, contact form, basic SEO. 3 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $8,000</p>
-                </div>
-                <div>
-                  <p class="text-neutral-900 font-medium">Business Site</p>
+                  <p class="text-neutral-900 mt-1">From $3,000</p>
+                </a>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Business Site</p>
                   <p>5&ndash;10 pages, CMS, blog, analytics, 1 month post-launch support. 5 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $14,000</p>
-                </div>
-                <div>
-                  <p class="text-neutral-900 font-medium">Full Platform</p>
+                  <p class="text-neutral-900 mt-1">From $10,000</p>
+                </a>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Full Platform</p>
                   <p>Custom functionality &mdash; e-commerce, booking, portals, integrations. 6&ndash;10 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $20,000</p>
-                </div>
+                  <p class="text-neutral-900 mt-1">From $15,000</p>
+                </a>
               </div>
             </div>
 
             <div>
               <h3 class="text-body font-medium mb-3">Brand + Web</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-body text-caption-gray">
-                <div>
-                  <p class="text-neutral-900 font-medium">Launch Kit</p>
-                  <p>Brand Sprint + Starter Site.</p>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Launch Kit</p>
+                  <p>Full Identity + Starter Site.</p>
                   <p class="text-neutral-900 mt-1">From $12,000</p>
-                </div>
-                <div>
-                  <p class="text-neutral-900 font-medium">Growth Package</p>
-                  <p>Full Identity + Business Site.</p>
-                  <p class="text-neutral-900 mt-1">From $22,000</p>
-                </div>
-                <div>
-                  <p class="text-neutral-900 font-medium">The Full Build</p>
-                  <p>Brand + Collateral + Full Platform.</p>
-                  <p class="text-neutral-900 mt-1">From $38,000</p>
-                </div>
+                </a>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Growth Package</p>
+                  <p>+ Collateral + Business Site.</p>
+                  <p class="text-neutral-900 mt-1">From $20,000</p>
+                </a>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">The Full Build</p>
+                  <p>+ Collateral + Full Platform.</p>
+                  <p class="text-neutral-900 mt-1">From $25,000</p>
+                </a>
               </div>
             </div>
 
             <div>
               <h3 class="text-body font-medium mb-3">Retainers</h3>
               <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-body text-caption-gray">
-                <div>
-                  <p class="text-neutral-900 font-medium">Maintenance</p>
-                  <p>Hosting, updates, security, 2 hrs/month content changes.</p>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Maintenance</p>
+                  <p>Hosting, updates, security, small fixes. 2 hrs/month.</p>
                   <p class="text-neutral-900 mt-1">$500/mo</p>
-                </div>
-                <div>
-                  <p class="text-neutral-900 font-medium">Growth</p>
-                  <p>Everything in Maintenance + 8 hrs/month design/dev, monthly analytics review.</p>
-                  <p class="text-neutral-900 mt-1">$3,000/mo</p>
-                </div>
-                <div>
-                  <p class="text-neutral-900 font-medium">Embedded</p>
-                  <p>2 days/week dedicated, strategic partner, priority access.</p>
+                </a>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">On-Call</p>
+                  <p>Everything in Maintenance + priority design/dev hours. 10 hrs/month.</p>
+                  <p class="text-neutral-900 mt-1">$2,500/mo</p>
+                </a>
+                <a href="/book" class="block group">
+                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Embedded</p>
+                  <p>Dedicated days, strategic partner, priority access. 2 days/week.</p>
                   <p class="text-neutral-900 mt-1">$5,000/mo</p>
-                </div>
+                </a>
               </div>
             </div>
-
-            <p class="text-body text-caption-gray max-w-xl">
-              Open-source stack. Your hosting, your data. No vendor lock-in.
-            </p>
           </div>
         </Accordion>
         <Accordion title="Process">
-          <p class="text-body text-caption-gray max-w-2xl">
-            {processBlurb?.content ?? 'Discovery call. Scoped proposal. Design, build, launch. No handoffs between designers and developers; it\u2019s the same person. You own the code and the assets.'}
-          </p>
+          <div class="space-y-4 py-2 text-body text-caption-gray max-w-2xl">
+            <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-4">
+              <span class="text-neutral-900 font-medium">01</span>
+              <div>
+                <p class="text-neutral-900 font-medium">Discovery</p>
+                <p>30-minute call. You talk about your business, goals, timeline. I ask questions and take notes. No pitch deck, no dog and pony show. By the end we both know if it's a fit.</p>
+              </div>
+              <span class="text-neutral-900 font-medium">02</span>
+              <div>
+                <p class="text-neutral-900 font-medium">Proposal</p>
+                <p>A scoped document: what's included, what's not, timeline, cost. Fixed price unless we agree on hourly. No surprises. You sign off or we adjust until it's right.</p>
+              </div>
+              <span class="text-neutral-900 font-medium">03</span>
+              <div>
+                <p class="text-neutral-900 font-medium">Design</p>
+                <p>Moodboards and direction first, then high-fidelity mockups. You see real designs in context, not abstract wireframes. Revisions are built into the timeline &mdash; not an afterthought.</p>
+              </div>
+              <span class="text-neutral-900 font-medium">04</span>
+              <div>
+                <p class="text-neutral-900 font-medium">Build</p>
+                <p>Design and development happen together because it's the same person. No handoffs, no telephone game between a designer and a developer. You get a staging link and can watch it come together.</p>
+              </div>
+              <span class="text-neutral-900 font-medium">05</span>
+              <div>
+                <p class="text-neutral-900 font-medium">Launch</p>
+                <p>Final review, DNS cutover, go live. I stick around for the first few weeks to catch anything that comes up. You own the code, the assets, the hosting &mdash; all of it.</p>
+              </div>
+            </div>
+          </div>
         </Accordion>
         <Accordion title="About">
           <p class="text-body text-caption-gray max-w-2xl">

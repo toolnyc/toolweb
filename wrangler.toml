@@ -3,9 +3,9 @@ compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "./dist"
 
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "tool-media"
+# R2 binding: MEDIA_BUCKET -> tool-media
+# Must be configured via Cloudflare Dashboard (Pages > Settings > Bindings)
+# because GitHub-triggered Pages deploys don't apply wrangler.toml [[r2_buckets]].
 
 # Production vars (tool.nyc)
 [vars]

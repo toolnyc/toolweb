@@ -55,6 +55,8 @@ if (prefersReducedMotion) {
     const CMYK = ['#00FFFF', '#FF00FF', '#FFEB00', '#000000'];
     let colorIndex = 0;
     let cornerHits = 0;
+    let bounceCount = 0;
+    let frameCount = 0;
 
     function resizeCanvas() {
       canvas!.width = canvas!.offsetWidth * dpr;
@@ -73,21 +75,24 @@ if (prefersReducedMotion) {
 
     // Starting position and velocity
     let x = 40;
-    let y = canvas.offsetHeight * 0.4;
+    let y = canvas.offsetHeight * 0.3;
     const speed = 1.2;
     let vx = speed;
     let vy = speed * 0.7;
 
-    const CORNER_THRESHOLD = 30; // pixels from corner to count as "hit"
+    const CORNER_THRESHOLD = 30;
+
+    // Header height for top boundary
+    const headerH = document.querySelector('header')?.offsetHeight ?? 48;
 
     function isNearCorner(px: number, py: number, w: number, h: number): boolean {
       const cw = canvas!.offsetWidth;
       const ch = canvas!.offsetHeight;
       const corners = [
-        [0, 0],
-        [cw - w, 0],
-        [0, ch - h],
-        [cw - w, ch - h],
+        [0, headerH],
+        [cw - w, headerH],
+        [0, ch - 180 - h],
+        [cw - w, ch - 180 - h],
       ];
       return corners.some(
         ([cx, cy]) => Math.abs(px - cx) < CORNER_THRESHOLD && Math.abs(py - cy) < CORNER_THRESHOLD,
@@ -97,11 +102,13 @@ if (prefersReducedMotion) {
     function drawFrame() {
       const cw = canvas!.offsetWidth;
       const ch = canvas!.offsetHeight;
-      // Reserve space at bottom so TOOL doesn't bounce behind sticky bar + hero CTA
-      const bottomPad = 120;
+      // Reserve generous space at bottom for hero tagline + sticky bar
+      const bottomPad = 180;
       const bounceBottom = ch - bottomPad;
+      const bounceTop = headerH;
 
       ctx.clearRect(0, 0, cw, ch);
+      frameCount++;
 
       // Update position
       x += vx;
@@ -111,10 +118,11 @@ if (prefersReducedMotion) {
       let bounced = false;
       if (x <= 0) { x = 0; vx = Math.abs(vx); bounced = true; }
       if (x + textW >= cw) { x = cw - textW; vx = -Math.abs(vx); bounced = true; }
-      if (y <= 0) { y = 0; vy = Math.abs(vy); bounced = true; }
+      if (y <= bounceTop) { y = bounceTop; vy = Math.abs(vy); bounced = true; }
       if (y + textH >= bounceBottom) { y = bounceBottom - textH; vy = -Math.abs(vy); bounced = true; }
 
       if (bounced) {
+        bounceCount++;
         colorIndex = (colorIndex + 1) % CMYK.length;
         if (isNearCorner(x, y, textW, textH)) {
           cornerHits++;
@@ -128,15 +136,19 @@ if (prefersReducedMotion) {
       ctx.textBaseline = 'top';
       ctx.fillText('TOOL', x, y);
 
-      // Corner hit counter — small, bottom-right
-      if (cornerHits > 0) {
-        ctx.font = '11px "Space Grotesk", sans-serif';
-        ctx.fillStyle = 'rgba(138, 138, 138, 0.5)';
-        ctx.textBaseline = 'bottom';
-        ctx.textAlign = 'right';
-        ctx.fillText(`corners: ${cornerHits}`, cw - 8, ch - 8);
-        ctx.textAlign = 'left';
-      }
+      // Technical readout — bottom-right, monospaced feel
+      ctx.font = '10px "Space Grotesk", sans-serif';
+      ctx.fillStyle = 'rgba(180, 180, 180, 0.45)';
+      ctx.textBaseline = 'bottom';
+      ctx.textAlign = 'right';
+      const readoutX = cw - 8;
+      const readoutBase = ch - 8;
+      const lineH = 14;
+      ctx.fillText(`${cw}×${ch} @ ${dpr}x`, readoutX, readoutBase - lineH * 3);
+      ctx.fillText(`pos(${Math.round(x)}, ${Math.round(y)})  v(${vx > 0 ? '+' : ''}${vx.toFixed(1)}, ${vy > 0 ? '+' : ''}${vy.toFixed(1)})`, readoutX, readoutBase - lineH * 2);
+      ctx.fillText(`bounces: ${bounceCount}  corners: ${cornerHits}`, readoutX, readoutBase - lineH);
+      ctx.fillText(`frame: ${frameCount}`, readoutX, readoutBase);
+      ctx.textAlign = 'left';
 
       requestAnimationFrame(drawFrame);
     }
@@ -146,7 +158,6 @@ if (prefersReducedMotion) {
 
   // ── Hero entrance (on page load, not scroll) ─────────────────
   const heroSubtitle = document.querySelector('[data-anim="hero-subtitle"]');
-  const heroCta = document.querySelector('[data-anim="hero-cta"]');
 
   if (heroSubtitle) {
     gsap.to(heroSubtitle, {
@@ -155,16 +166,6 @@ if (prefersReducedMotion) {
       duration: 1,
       ease: 'power3.out',
       delay: 0.3,
-    });
-  }
-
-  if (heroCta) {
-    gsap.to(heroCta, {
-      opacity: 1,
-      y: 0,
-      duration: 1,
-      ease: 'power3.out',
-      delay: 0.5,
     });
   }
 

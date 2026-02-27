@@ -9,16 +9,35 @@ const shopEnabled = await getFeatureFlag('shop_enabled');
 ---
 
 <header class="sticky top-0 z-40 bg-white border-b border-neutral-100">
-  <nav class="site-grid items-center py-2" aria-label="Main">
-    <a href="/" class="col-span-2 lg:col-span-4 flex items-center gap-2">
+  <nav class="flex items-center justify-between px-2 py-2" aria-label="Main">
+    <a href="/" class="flex items-center gap-2">
       <img src="/brand/icon-k.svg" alt="Tool" class="h-[20px] w-auto" />
       <span class="text-body font-semibold uppercase tracking-widest">Tool</span>
     </a>
-    <div class={`hidden lg:block ${shopEnabled ? 'lg:col-span-14' : 'lg:col-span-16'}`}></div>
-    {shopEnabled && (
-      <a href="/shop" class="col-span-2 text-body font-medium text-right lg:text-center hover:bg-neutral-100 px-3 py-1.5 transition-colors">Shop</a>
-    )}
-    <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="col-span-2 text-body font-medium text-right lg:text-center hover:bg-neutral-100 px-3 py-1.5 transition-colors cursor-pointer bg-transparent border-none p-0">Book</button>
-    <a href="/admin/login" class="hidden lg:block col-span-2 text-body text-center text-caption-gray hover:text-neutral-900 hover:bg-neutral-100 px-3 py-1.5 transition-colors">Login</a>
+    <div class="flex items-center gap-[1px]">
+      {shopEnabled && (
+        <a href="/shop" class="nav-btn bg-yellow">Shop</a>
+      )}
+      <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="nav-btn bg-cyan cursor-pointer border-none">Book</button>
+      <a href="/admin/login" class="nav-btn bg-lite-gray text-caption-gray hover:text-neutral-900">Login</a>
+    </div>
   </nav>
 </header>
+
+<style>
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    color: #000;
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+  }
+  .nav-btn:hover {
+    opacity: 0.75;
+  }
+</style>

@@ -89,6 +89,23 @@
   }
   .accordion-content.is-open { max-height: 2000px; }
 
+  /* Service cards — rectangular, button-like blocks */
+  .service-card {
+    display: block;
+    background: white;
+    padding: 16px;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 18px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .service-card:hover {
+    background: #00FFFF;
+  }
+  .service-card:hover p {
+    color: #000 !important;
+  }
+
   /* Filter pill */
   .filter-pill {
     @apply bg-lite-gray px-2 py-[6.5px] text-body cursor-pointer;

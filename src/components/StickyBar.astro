@@ -1,17 +1,17 @@
 ---
 /**
- * Sticky bottom CTA bar — 24-col grid with clock and booking CTA.
+ * Sticky bottom CTA bar — 24-col grid with centered clock and booking CTA.
  * z-50 to stay above all other content including the header.
  */
 ---
 
 <div class="fixed bottom-0 left-0 right-0 z-50 bg-black text-white" data-anim="sticky-bar">
   <div class="site-grid items-center py-[10px]">
-    <a href="/" class="col-span-2 md:col-span-4 flex items-center gap-2">
+    <a href="/" class="col-span-1 md:col-span-4 flex items-center gap-2">
       <img src="/brand/icon-k.svg" alt="Tool" class="h-[18px] w-auto invert" />
     </a>
-    <span class="hidden md:block md:col-span-4 lg:col-span-16 text-body text-neutral-400" style="font-variant-numeric: tabular-nums;" id="sticky-clock"></span>
-    <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="col-span-4 md:col-span-4 text-body text-right hover:text-cyan transition-colors cursor-pointer bg-transparent border-none text-white p-0">Let's talk</button>
+    <span class="col-span-3 md:col-span-16 text-body text-white text-center" style="font-variant-numeric: tabular-nums;" id="sticky-clock"></span>
+    <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="col-span-2 md:col-span-4 text-body text-right cmyk-highlight px-3 py-1.5 cursor-pointer border-none">Let's talk</button>
   </div>
 </div>
 

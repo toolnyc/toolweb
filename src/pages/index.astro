@@ -50,9 +50,6 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
         <p class="text-body text-caption-gray mt-2 max-w-md anim-fade-up" data-anim="hero-subtitle">
           {heroTagline?.content ?? 'Brand, design, and web development. New York.'}
         </p>
-        <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="inline-block mt-4 text-body cmyk-highlight px-4 py-2 transition-colors cursor-pointer bg-transparent border-none anim-fade-up" data-anim="hero-cta">
-          Let's talk
-        </button>
       </div>
     </section>
 
@@ -165,86 +162,86 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
     <section class="site-grid anim-fade" data-anim="accordion">
       <div class="col-span-6 lg:col-span-24 space-y-[1px]">
         <Accordion title="Services">
-          <div class="space-y-6 py-2">
+          <div class="space-y-8 py-2">
             <p class="text-body text-caption-gray max-w-xl">
               Open-source stack. Your hosting, your data. No vendor lock-in.
             </p>
 
             <div>
-              <h3 class="text-body font-medium mb-3">Brand</h3>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-body text-caption-gray">
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Full Identity</p>
-                  <p>Logo, color system, type system, strategy, voice/tone, brand guidelines. 4 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $10,000</p>
+              <h3 class="text-snippet font-bold mb-4 tracking-tight">Brand</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-neutral-200">
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">Full Identity</p>
+                  <p class="text-caption-gray mt-1">Logo, color system, type system, strategy, voice/tone, brand guidelines. 4 weeks.</p>
+                  <p class="text-neutral-900 font-medium mt-2">From $10,000</p>
                 </a>
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">+ Collateral</p>
-                  <p>Everything in Full Identity + social templates, packaging, menus, environmental graphics, merch. 6 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $12,000</p>
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <h3 class="text-body font-medium mb-3">Web</h3>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-body text-caption-gray">
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Starter Site</p>
-                  <p>3&ndash;5 pages, mobile-first, contact form, basic SEO. 3 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $3,000</p>
-                </a>
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Business Site</p>
-                  <p>5&ndash;10 pages, CMS, blog, analytics, 1 month post-launch support. 5 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $10,000</p>
-                </a>
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Full Platform</p>
-                  <p>Custom functionality &mdash; e-commerce, booking, portals, integrations. 6&ndash;10 weeks.</p>
-                  <p class="text-neutral-900 mt-1">From $15,000</p>
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">+ Collateral</p>
+                  <p class="text-caption-gray mt-1">Everything in Full Identity + social templates, packaging, menus, environmental graphics, merch. 6 weeks.</p>
+                  <p class="text-neutral-900 font-medium mt-2">From $12,000</p>
                 </a>
               </div>
             </div>
 
             <div>
-              <h3 class="text-body font-medium mb-3">Brand + Web</h3>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-body text-caption-gray">
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Launch Kit</p>
-                  <p>Full Identity + Starter Site.</p>
-                  <p class="text-neutral-900 mt-1">From $12,000</p>
+              <h3 class="text-snippet font-bold mb-4 tracking-tight">Web</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-neutral-200">
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">Starter Site</p>
+                  <p class="text-caption-gray mt-1">3&ndash;5 pages, mobile-first, contact form, basic SEO. 3 weeks.</p>
+                  <p class="text-neutral-900 font-medium mt-2">From $3,000</p>
                 </a>
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Growth Package</p>
-                  <p>+ Collateral + Business Site.</p>
-                  <p class="text-neutral-900 mt-1">From $20,000</p>
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">Business Site</p>
+                  <p class="text-caption-gray mt-1">5&ndash;10 pages, CMS, blog, analytics, 1 month post-launch support. 5 weeks.</p>
+                  <p class="text-neutral-900 font-medium mt-2">From $10,000</p>
                 </a>
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">The Full Build</p>
-                  <p>+ Collateral + Full Platform.</p>
-                  <p class="text-neutral-900 mt-1">From $25,000</p>
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">Full Platform</p>
+                  <p class="text-caption-gray mt-1">Custom functionality &mdash; e-commerce, booking, portals, integrations. 6&ndash;10 weeks.</p>
+                  <p class="text-neutral-900 font-medium mt-2">From $15,000</p>
                 </a>
               </div>
             </div>
 
             <div>
-              <h3 class="text-body font-medium mb-3">Retainers</h3>
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-body text-caption-gray">
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Maintenance</p>
-                  <p>Hosting, updates, security, small fixes. 2 hrs/month.</p>
-                  <p class="text-neutral-900 mt-1">$500/mo</p>
+              <h3 class="text-snippet font-bold mb-4 tracking-tight">Brand + Web</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-neutral-200">
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">Launch Kit</p>
+                  <p class="text-caption-gray mt-1">Full Identity + Starter Site.</p>
+                  <p class="text-neutral-900 font-medium mt-2">From $12,000</p>
                 </a>
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">On-Call</p>
-                  <p>Everything in Maintenance + priority design/dev hours. 10 hrs/month.</p>
-                  <p class="text-neutral-900 mt-1">$2,500/mo</p>
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">Growth Package</p>
+                  <p class="text-caption-gray mt-1">+ Collateral + Business Site.</p>
+                  <p class="text-neutral-900 font-medium mt-2">From $20,000</p>
                 </a>
-                <a href="/book" class="block group">
-                  <p class="text-neutral-900 font-medium group-hover:text-cyan transition-colors">Embedded</p>
-                  <p>Dedicated days, strategic partner, priority access. 2 days/week.</p>
-                  <p class="text-neutral-900 mt-1">$5,000/mo</p>
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">The Full Build</p>
+                  <p class="text-caption-gray mt-1">+ Collateral + Full Platform.</p>
+                  <p class="text-neutral-900 font-medium mt-2">From $25,000</p>
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h3 class="text-snippet font-bold mb-4 tracking-tight">Retainers</h3>
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-neutral-200">
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">Maintenance</p>
+                  <p class="text-caption-gray mt-1">Hosting, updates, security, small fixes. 2 hrs/month.</p>
+                  <p class="text-neutral-900 font-medium mt-2">$500/mo</p>
+                </a>
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">On-Call</p>
+                  <p class="text-caption-gray mt-1">Everything in Maintenance + priority design/dev hours. 10 hrs/month.</p>
+                  <p class="text-neutral-900 font-medium mt-2">$2,500/mo</p>
+                </a>
+                <a href="/book" class="service-card">
+                  <p class="text-neutral-900 font-semibold">Embedded</p>
+                  <p class="text-caption-gray mt-1">Dedicated days, strategic partner, priority access. 2 days/week.</p>
+                  <p class="text-neutral-900 font-medium mt-2">$5,000/mo</p>
                 </a>
               </div>
             </div>

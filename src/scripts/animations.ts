@@ -60,18 +60,14 @@ if (prefersReducedMotion) {
     let frameCount = 0;
     const startTime = Date.now();
 
-    // Gather visitor telemetry (privacy exposure)
-    const screenRes = `${screen.width}×${screen.height}`;
-    const colorDepth = `${screen.colorDepth}bit`;
+    // Gather visitor telemetry
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     const lang = navigator.language;
     const platform = (navigator as any).userAgentData?.platform || navigator.platform || 'unknown';
     const cores = navigator.hardwareConcurrency || 0;
-    const memory = (navigator as any).deviceMemory || '?';
     const connection = (navigator as any).connection;
     const connType = connection?.effectiveType || '?';
     const downlink = connection?.downlink ? `${connection.downlink}Mbps` : '?';
-    const touchPoints = navigator.maxTouchPoints || 0;
 
     // GPU detection
     let gpuRenderer = 'unknown';
@@ -82,30 +78,36 @@ if (prefersReducedMotion) {
         if (ext) gpuRenderer = gl.getParameter(ext.UNMASKED_RENDERER_WEBGL);
       }
     } catch { /* noop */ }
-    // Truncate long GPU strings
-    if (gpuRenderer.length > 40) gpuRenderer = gpuRenderer.slice(0, 38) + '..';
+    if (gpuRenderer.length > 32) gpuRenderer = gpuRenderer.slice(0, 30) + '..';
 
     // Dynamic telemetry — tracked per frame
     let mouseX = 0;
     let mouseY = 0;
-    let scrollY = 0;
-    let isVisible = true;
-    let batteryLevel = '?';
-    let batteryCharging = false;
 
     document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
-    window.addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
-    document.addEventListener('visibilitychange', () => { isVisible = !document.hidden; });
 
-    // Battery API (async, updates when available)
-    if ('getBattery' in navigator) {
-      (navigator as any).getBattery().then((bat: any) => {
-        batteryLevel = `${Math.round(bat.level * 100)}%`;
-        batteryCharging = bat.charging;
-        bat.addEventListener('levelchange', () => { batteryLevel = `${Math.round(bat.level * 100)}%`; });
-        bat.addEventListener('chargingchange', () => { batteryCharging = bat.charging; });
-      });
-    }
+    // Location telemetry via Cloudflare /cdn-cgi/trace (no API key, works on any CF site)
+    let cfLocation = '...';
+    let cfIp = '...';
+    let cfColo = '...';
+    let cfTls = '...';
+    let cfHttp = '...';
+
+    fetch('/cdn-cgi/trace')
+      .then((r) => r.text())
+      .then((text) => {
+        const data: Record<string, string> = {};
+        text.split('\n').forEach((line) => {
+          const [k, v] = line.split('=');
+          if (k && v) data[k.trim()] = v.trim();
+        });
+        cfIp = data.ip || '?';
+        cfLocation = data.loc || '?';
+        cfColo = data.colo || '?';
+        cfTls = data.tls ? `TLS ${data.tls}` : '?';
+        cfHttp = data.http || '?';
+      })
+      .catch(() => { /* noop — not on Cloudflare */ });
 
     // Design telemetry
     const fontAxes = ['wght: 300→700', 'wdth: 75→125', 'MONO: 0→1'];
@@ -198,66 +200,61 @@ if (prefersReducedMotion) {
       const lineH = cw < 600 ? 16 : 18;
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 
-      // Left column — Privacy / visitor telemetry
+      // Left column — Visitor telemetry (vertically centered)
+      const leftLines = [
+        'VISITOR TELEMETRY',
+        '',
+        `ip        ${cfIp}`,
+        `loc       ${cfLocation}`,
+        `colo      ${cfColo}`,
+        `platform  ${platform}`,
+        `cores     ${cores}`,
+        `network   ${connType} / ${downlink}`,
+        `gpu       ${gpuRenderer}`,
+        '',
+        `mouse     ${mouseX}, ${mouseY}`,
+        `session   ${elapsed}s`,
+        `frames    ${frameCount}`,
+      ];
+      const leftBlockH = leftLines.length * lineH;
+      const availH = bounceBottom - bounceTop;
+      let ly = bounceTop + (availH - leftBlockH) / 2;
+      const lx = 12;
       ctx.fillStyle = `rgba(0, 0, 0, ${hudAlpha})`;
       ctx.textAlign = 'left';
-      const lx = 12;
-      let ly = headerH + 16;
-
-      ctx.fillText('VISITOR TELEMETRY', lx, ly);
-      ly += lineH * 1.4;
-      ctx.fillText(`screen    ${screenRes} @ ${dpr}x`, lx, ly); ly += lineH;
-      ctx.fillText(`color     ${colorDepth}`, lx, ly); ly += lineH;
-      ctx.fillText(`timezone  ${timezone}`, lx, ly); ly += lineH;
-      ctx.fillText(`locale    ${lang}`, lx, ly); ly += lineH;
-      ctx.fillText(`platform  ${platform}`, lx, ly); ly += lineH;
-      ctx.fillText(`cores     ${cores}`, lx, ly); ly += lineH;
-      ctx.fillText(`memory    ${memory}GB`, lx, ly); ly += lineH;
-      ctx.fillText(`network   ${connType} / ${downlink}`, lx, ly); ly += lineH;
-      ctx.fillText(`touch     ${touchPoints} points`, lx, ly); ly += lineH;
-      ctx.fillText(`gpu       ${gpuRenderer}`, lx, ly); ly += lineH;
-      ctx.fillText(`viewport  ${window.innerWidth}×${window.innerHeight}`, lx, ly); ly += lineH;
-      ctx.fillText(`battery   ${batteryLevel}${batteryCharging ? ' ⚡' : ''}`, lx, ly); ly += lineH;
-      ctx.fillText(`online    ${navigator.onLine ? 'yes' : 'no'}`, lx, ly); ly += lineH;
-      ly += lineH * 0.5;
-      ctx.fillText(`mouse     ${mouseX}, ${mouseY}`, lx, ly); ly += lineH;
-      ctx.fillText(`scroll    ${Math.round(scrollY)}px`, lx, ly); ly += lineH;
-      ctx.fillText(`visible   ${isVisible ? 'yes' : 'no'}`, lx, ly); ly += lineH;
-      ctx.fillText(`session   ${elapsed}s`, lx, ly); ly += lineH;
-      ctx.fillText(`frames    ${frameCount}`, lx, ly);
-
-      // Right column — Design telemetry
-      ctx.textAlign = 'right';
-      const rx = cw - 12;
-      let ry = headerH + 16;
-
-      ctx.fillStyle = `rgba(0, 0, 0, ${hudAlpha})`;
-      ctx.fillText('TYPE TELEMETRY', rx, ry);
-      ry += lineH * 1.4;
-      ctx.fillText('Space Grotesk Variable', rx, ry); ry += lineH;
-      fontAxes.forEach((axis) => {
-        ctx.fillText(axis, rx, ry);
-        ry += lineH;
-      });
-      ry += lineH * 0.5;
-      ctx.fillText('KERNING PAIRS', rx, ry); ry += lineH * 1.2;
-      kerningPairs.forEach((pair) => {
-        ctx.fillText(pair, rx, ry);
-        ry += lineH;
-      });
-      ry += lineH * 0.5;
-      ctx.fillText('GLYPH METRICS', rx, ry); ry += lineH * 1.2;
-      for (const [glyph, m] of Object.entries(glyphMetrics)) {
-        ctx.fillText(`${glyph}  adv:${m.advance}  lsb:${m.lsb}  rsb:${m.rsb}`, rx, ry);
-        ry += lineH;
+      for (const line of leftLines) {
+        if (line === '') { ly += lineH * 0.4; continue; }
+        ctx.fillText(line, lx, ly);
+        ly += lineH;
       }
-      ry += lineH * 0.5;
 
-      // Dynamic type data — changes with bounce
+      // Right column — Type + connection telemetry (vertically centered)
       const currentWght = 300 + (bounceCount % 5) * 100;
       const currentWdth = 75 + (bounceCount % 6) * 10;
-      ctx.fillText(`wght: ${currentWght}  wdth: ${currentWdth}`, rx, ry); ry += lineH;
-      ctx.fillText(`optical-size: ${fontSize.toFixed(0)}px`, rx, ry); ry += lineH;
+      const rightLines = [
+        'TYPE TELEMETRY',
+        '',
+        'Space Grotesk Variable',
+        ...fontAxes,
+        '',
+        `wght: ${currentWght}  wdth: ${currentWdth}`,
+        `optical-size: ${fontSize.toFixed(0)}px`,
+        '',
+        `tls       ${cfTls}`,
+        `http      ${cfHttp}`,
+        `timezone  ${timezone}`,
+        `locale    ${lang}`,
+      ];
+      const rightBlockH = rightLines.length * lineH;
+      let ry = bounceTop + (availH - rightBlockH) / 2;
+      const rx = cw - 12;
+      ctx.fillStyle = `rgba(0, 0, 0, ${hudAlpha})`;
+      ctx.textAlign = 'right';
+      for (const line of rightLines) {
+        if (line === '') { ry += lineH * 0.4; continue; }
+        ctx.fillText(line, rx, ry);
+        ry += lineH;
+      }
 
       // Bottom center — tracking data
       ctx.textAlign = 'center';
@@ -449,7 +446,8 @@ if (prefersReducedMotion) {
     yellow: '#FFEB00',
   };
 
-  document.querySelectorAll<HTMLElement>('.service-card, .process-card').forEach((card) => {
+  // Service cards — CMYK fill hover
+  document.querySelectorAll<HTMLElement>('.service-card').forEach((card) => {
     const hoverAttr = card.dataset.hover;
     const hoverColor = (hoverAttr && cmykColors[hoverAttr]) || '#FFEB00';
     const isMagenta = hoverAttr === 'magenta';
@@ -473,7 +471,6 @@ if (prefersReducedMotion) {
         duration: 0.15,
         ease: 'power2.out',
       });
-      // Set text color — white on magenta, black on everything else
       card.querySelectorAll<HTMLElement>('p, span').forEach((el) => {
         gsap.to(el, {
           color: isMagenta ? '#fff' : '#000',
@@ -491,7 +488,60 @@ if (prefersReducedMotion) {
         ease: 'power2.out',
         overwrite: true,
       });
-      // Restore text colors
+      card.querySelectorAll<HTMLElement>('p, span').forEach((el) => {
+        const isCaption = el.classList.contains('text-caption-gray');
+        gsap.to(el, {
+          color: isCaption ? '' : '#171717',
+          duration: 0.2,
+          ease: 'power2.out',
+          clearProps: isCaption ? 'color' : undefined,
+        });
+      });
+    });
+  });
+
+  // Process cards — progressive cyan opacity (step 1=20%, 2=40%, 3=60%, 4=80%, 5=100%)
+  document.querySelectorAll<HTMLElement>('.process-card').forEach((card) => {
+    const step = parseInt(card.dataset.step || '5', 10);
+    const opacity = step * 0.2;
+    // Blend cyan with white at the given opacity
+    const r = Math.round(255 * (1 - opacity));
+    const g = 255;
+    const b = 255;
+    const hoverColor = `rgb(${r}, ${g}, ${b})`;
+
+    card.addEventListener('mouseenter', () => {
+      gsap.to(card, {
+        scale: 0.97,
+        duration: 0.12,
+        ease: 'power2.out',
+        overwrite: true,
+      });
+      gsap.to(card, {
+        scale: 1,
+        duration: 0.2,
+        delay: 0.12,
+        ease: 'elastic.out(1, 0.6)',
+        overwrite: false,
+      });
+      gsap.to(card, {
+        backgroundColor: hoverColor,
+        duration: 0.15,
+        ease: 'power2.out',
+      });
+      card.querySelectorAll<HTMLElement>('p, span').forEach((el) => {
+        gsap.to(el, { color: '#000', duration: 0.15, ease: 'power2.out' });
+      });
+    });
+
+    card.addEventListener('mouseleave', () => {
+      gsap.to(card, {
+        scale: 1,
+        backgroundColor: '#fff',
+        duration: 0.2,
+        ease: 'power2.out',
+        overwrite: true,
+      });
       card.querySelectorAll<HTMLElement>('p, span').forEach((el) => {
         const isCaption = el.classList.contains('text-caption-gray');
         gsap.to(el, {

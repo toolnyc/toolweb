@@ -116,9 +116,7 @@
     line-height: 18px;
     transition: background 0.15s ease, color 0.15s ease;
   }
-  .process-card:hover { background: #FFEB00; }
-  .process-card:hover p,
-  .process-card:hover span { color: #000 !important; }
+  /* Process card hover handled by GSAP — progressive cyan opacity */
 
   /* Filter pill */
   .filter-pill {

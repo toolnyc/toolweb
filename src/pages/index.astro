@@ -118,27 +118,30 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
 
     {/* ── 3. Client list ──────────────────────────────────── */}
     {clients.length > 0 && (
-      <section class="site-grid py-8 anim-fade" data-anim="clients">
-        <div class="col-span-6 lg:col-span-24">
-          <p class="text-body text-caption-gray">
-            {clients.map((client, i) => (
-              <>
-                {i > 0 && <span> &middot; </span>}
-                {client.website_url ? (
-                  <a
-                    href={client.website_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="hover:text-neutral-900 transition-colors"
-                  >
-                    {client.name}
-                  </a>
-                ) : (
-                  <span>{client.name}</span>
-                )}
-              </>
-            ))}
-          </p>
+      <section class="bg-neutral-900 py-6 anim-fade" data-anim="clients">
+        <div class="site-grid">
+          <div class="col-span-6 lg:col-span-24">
+            <p class="text-[11px] tracking-wider uppercase text-neutral-500 mb-3">Selected clients</p>
+            <p class="text-body text-neutral-400">
+              {clients.map((client, i) => (
+                <>
+                  {i > 0 && <span class="text-neutral-600"> &middot; </span>}
+                  {client.website_url ? (
+                    <a
+                      href={client.website_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="hover:text-white transition-colors"
+                    >
+                      {client.name}
+                    </a>
+                  ) : (
+                    <span>{client.name}</span>
+                  )}
+                </>
+              ))}
+            </p>
+          </div>
         </div>
       </section>
     )}
@@ -255,31 +258,31 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
             </p>
 
             <div class="grid grid-cols-1 md:grid-cols-5 gap-[1px] bg-neutral-200">
-              <a href="/book" class="process-card">
+              <a href="/book" class="process-card" data-step="1">
                 <span class="text-caption-gray font-medium text-[11px] tracking-wider uppercase">01</span>
                 <p class="text-neutral-900 font-semibold mt-2">Discovery</p>
                 <p class="text-caption-gray mt-1">30-minute call. You talk about your business, goals, timeline. I ask questions. By the end we both know if it's a fit.</p>
                 <p class="text-caption-gray mt-2 text-[11px] tracking-wider uppercase">30 min</p>
               </a>
-              <a href="/book" class="process-card">
+              <a href="/book" class="process-card" data-step="2">
                 <span class="text-caption-gray font-medium text-[11px] tracking-wider uppercase">02</span>
                 <p class="text-neutral-900 font-semibold mt-2">Proposal</p>
                 <p class="text-caption-gray mt-1">Scoped document: what's included, timeline, cost. Fixed price. No surprises. You sign off or we adjust.</p>
                 <p class="text-caption-gray mt-2 text-[11px] tracking-wider uppercase">2&ndash;3 days</p>
               </a>
-              <a href="/book" class="process-card">
+              <a href="/book" class="process-card" data-step="3">
                 <span class="text-caption-gray font-medium text-[11px] tracking-wider uppercase">03</span>
                 <p class="text-neutral-900 font-semibold mt-2">Design</p>
                 <p class="text-caption-gray mt-1">Moodboards first, then high-fidelity mockups. Real designs in context, not wireframes. Revisions built in.</p>
                 <p class="text-caption-gray mt-2 text-[11px] tracking-wider uppercase">1&ndash;2 weeks</p>
               </a>
-              <a href="/book" class="process-card">
+              <a href="/book" class="process-card" data-step="4">
                 <span class="text-caption-gray font-medium text-[11px] tracking-wider uppercase">04</span>
                 <p class="text-neutral-900 font-semibold mt-2">Build</p>
                 <p class="text-caption-gray mt-1">Design and dev happen together &mdash; same person. No handoffs. You get a staging link and watch it come together.</p>
                 <p class="text-caption-gray mt-2 text-[11px] tracking-wider uppercase">2&ndash;6 weeks</p>
               </a>
-              <a href="/book" class="process-card">
+              <a href="/book" class="process-card" data-step="5">
                 <span class="text-caption-gray font-medium text-[11px] tracking-wider uppercase">05</span>
                 <p class="text-neutral-900 font-semibold mt-2">Launch</p>
                 <p class="text-caption-gray mt-1">Final review, DNS cutover, go live. I stick around for the first few weeks. You own the code, assets, hosting.</p>

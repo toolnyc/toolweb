@@ -54,28 +54,25 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Check for Cloudflare R2 binding (available in Cloudflare Pages runtime)
-    const bucket = locals.runtime?.env?.MEDIA_BUCKET;
+    const bucket = locals.runtime?.env?.MEDIA_BUCKET as R2Bucket | undefined;
 
-    if (bucket) {
-      // Production path: upload via R2 binding
-      await bucket.put(filename, file.stream() as ReadableStream, {
-        httpMetadata: { contentType: file.type },
-      });
-
-      const url = `${publicUrl}/${filename}`;
-
+    if (!bucket) {
+      console.warn('[upload] MEDIA_BUCKET binding not available — cannot store file.');
       return new Response(
         JSON.stringify({
-          url,
-          filename,
-          size: file.size,
-          type: file.type,
+          error: 'File storage not available. Uploads require the Cloudflare Pages runtime.',
         }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+        { status: 503, headers: { 'Content-Type': 'application/json' } },
       );
     }
 
-    // Dev fallback: R2 binding not available (local dev without wrangler)
+    // Upload via R2 binding — use arrayBuffer for cross-runtime compatibility
+    const arrayBuffer = await file.arrayBuffer();
+
+    await bucket.put(filename, arrayBuffer, {
+      httpMetadata: { contentType: file.type },
+    });
+
     const url = `${publicUrl}/${filename}`;
 
     return new Response(
@@ -84,13 +81,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
         filename,
         size: file.size,
         type: file.type,
-        dev: true,
-        note: 'Local dev mode — file not uploaded to R2. Run with wrangler for real uploads.',
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   } catch (err) {
-    console.error('Upload error:', err);
-    return new Response(JSON.stringify({ error: 'Upload failed' }), { status: 500 });
+    console.error('[upload] Failed:', err instanceof Error ? err.message : err, {
+      user: locals.user?.email ?? 'unknown',
+      url: request.url,
+    });
+    return new Response(
+      JSON.stringify({ error: 'Upload failed. Check server logs for details.' }),
+      { status: 500 },
+    );
   }
 };

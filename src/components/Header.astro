@@ -3,13 +3,18 @@
  * Site header — sticky 24-col grid nav.
  * z-40 so it sits above content but below StickyBar (z-50).
  */
+import { getFeatureFlag } from '../lib/queries';
+
+const shopEnabled = await getFeatureFlag('shop_enabled');
 ---
 
 <header class="sticky top-0 z-40 bg-white">
   <nav class="site-grid items-center py-[6.5px]" aria-label="Main">
     <a href="/" class="col-span-2 text-body font-medium uppercase tracking-widest">Tool</a>
-    <div class="hidden lg:block lg:col-span-18"></div>
-    <a href="/shop" class="col-span-2 text-body text-right lg:text-center hover:text-caption-gray transition-colors">Shop</a>
+    <div class={`hidden lg:block ${shopEnabled ? 'lg:col-span-18' : 'lg:col-span-20'}`}></div>
+    {shopEnabled && (
+      <a href="/shop" class="col-span-2 text-body text-right lg:text-center hover:text-caption-gray transition-colors">Shop</a>
+    )}
     <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="col-span-2 text-body text-right lg:text-center hover:text-caption-gray transition-colors cursor-pointer bg-transparent border-none p-0">Book</button>
   </nav>
 </header>

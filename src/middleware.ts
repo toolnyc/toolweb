@@ -1,11 +1,18 @@
 import { defineMiddleware } from 'astro:middleware';
 import { initClients, getSupabaseAdminOrNull } from './lib/env';
 import { getAuthTokens, setAuthCookies, clearAuthCookies } from './lib/cookies';
+import { getFeatureFlag } from './lib/queries';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   initClients(context.locals.runtime.env);
 
   const { pathname } = context.url;
+
+  // Feature flag: block /shop routes when shop is disabled
+  if (pathname === '/shop' || pathname.startsWith('/shop/')) {
+    const shopEnabled = await getFeatureFlag('shop_enabled');
+    if (!shopEnabled) return context.redirect('/');
+  }
 
   const isAdminRoute = pathname.startsWith('/admin') && pathname !== '/admin/login';
   const isPortalRoute =

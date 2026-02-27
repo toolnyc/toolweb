@@ -153,6 +153,14 @@ export interface Order {
   created_at: string;
 }
 
+export interface FeatureFlag {
+  id: string;
+  flag_key: string;
+  enabled: boolean;
+  description: string | null;
+  updated_at: string;
+}
+
 export interface SiteContent {
   id: string;
   content_key: string;

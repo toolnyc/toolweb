@@ -10,16 +10,14 @@ const shopEnabled = await getFeatureFlag('shop_enabled');
 
 <header class="sticky top-0 z-40 bg-white border-b border-neutral-100">
   <nav class="flex items-center justify-between px-2 py-2" aria-label="Main">
-    <a href="/" class="flex items-center gap-2">
-      <img src="/brand/icon-k.svg" alt="Tool" class="h-[20px] w-auto" />
-      <span class="text-body font-semibold uppercase tracking-widest">Tool</span>
-    </a>
+    <div class="flex items-center gap-[2px]">
+      <a href="/admin/login" class="nav-btn bg-lite-gray text-caption-gray hover:text-neutral-900">Login</a>
+    </div>
     <div class="flex items-center gap-[2px]">
       {shopEnabled && (
         <a href="/shop" class="nav-btn bg-yellow">Shop</a>
       )}
       <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="nav-btn bg-cyan cursor-pointer border-none">Book</button>
-      <a href="/admin/login" class="nav-btn bg-lite-gray text-caption-gray hover:text-neutral-900">Login</a>
     </div>
   </nav>
 </header>

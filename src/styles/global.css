@@ -156,18 +156,9 @@
   opacity: 0;
 }
 
-/* DVD canvas sits behind hero content */
-#dvd-canvas {
+/* Eyes canvas sits behind hero content */
+#eyes-canvas {
   z-index: 0;
-}
-
-/* Tagline interacts with bouncing TOOL behind it */
-.hero-tagline-backdrop {
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  background: rgba(255, 255, 255, 0.4);
-  padding: 8px 16px;
-  mix-blend-mode: multiply;
 }
 
 /* Typing cursor blink */

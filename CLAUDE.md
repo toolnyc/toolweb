@@ -87,6 +87,35 @@ This runs V8 isolates, NOT Node.js:
 - **No `fs`** — file ops via R2 bindings only
 - **No native Node modules** — Web API compatible libraries only
 - Supabase JS + Stripe SDK work fine (both use fetch internally)
+- **R2 uploads**: Use `file.arrayBuffer()` not `file.stream()` for `R2Bucket.put()` — more reliable across runtimes
+
+### Cloudflare Pages `wrangler.toml` — Non-Inheritable Keys
+
+**CRITICAL**: In Cloudflare Pages, certain `wrangler.toml` keys are "non-inheritable": `vars`, `r2_buckets`, `kv_namespaces`, `d1_databases`, `durable_objects`, `services`, `queues`, `vectorize`, `hyperdrive`, `analytics_engine_datasets`, `ai`.
+
+If **any one** of these is overridden in `[env.preview]` or `[env.production]`, then **all** of them must be repeated in that environment block — otherwise the ones not specified are silently dropped.
+
+```toml
+# Top-level (applies to production + local dev)
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tool-media"
+
+[vars]
+MY_VAR = "production-value"
+
+# Preview env — MUST repeat r2_buckets here because vars is overridden
+[[env.preview.r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "tool-media"
+
+[env.preview.vars]
+MY_VAR = "preview-value"
+```
+
+This caused a production bug where `MEDIA_BUCKET` was configured at the top level but missing from preview deploys because `[env.preview.vars]` existed without a matching `[[env.preview.r2_buckets]]`.
+
+Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
 
 ### Directory Structure
 - `src/lib/` — Service clients, queries, mutations, types

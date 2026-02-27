@@ -85,6 +85,28 @@ if (prefersReducedMotion) {
     // Truncate long GPU strings
     if (gpuRenderer.length > 40) gpuRenderer = gpuRenderer.slice(0, 38) + '..';
 
+    // Dynamic telemetry — tracked per frame
+    let mouseX = 0;
+    let mouseY = 0;
+    let scrollY = 0;
+    let isVisible = true;
+    let batteryLevel = '?';
+    let batteryCharging = false;
+
+    document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+    window.addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
+    document.addEventListener('visibilitychange', () => { isVisible = !document.hidden; });
+
+    // Battery API (async, updates when available)
+    if ('getBattery' in navigator) {
+      (navigator as any).getBattery().then((bat: any) => {
+        batteryLevel = `${Math.round(bat.level * 100)}%`;
+        batteryCharging = bat.charging;
+        bat.addEventListener('levelchange', () => { batteryLevel = `${Math.round(bat.level * 100)}%`; });
+        bat.addEventListener('chargingchange', () => { batteryCharging = bat.charging; });
+      });
+    }
+
     // Design telemetry
     const fontAxes = ['wght: 300→700', 'wdth: 75→125', 'MONO: 0→1'];
     const glyphMetrics = {
@@ -194,7 +216,13 @@ if (prefersReducedMotion) {
       ctx.fillText(`network   ${connType} / ${downlink}`, lx, ly); ly += lineH;
       ctx.fillText(`touch     ${touchPoints} points`, lx, ly); ly += lineH;
       ctx.fillText(`gpu       ${gpuRenderer}`, lx, ly); ly += lineH;
+      ctx.fillText(`viewport  ${window.innerWidth}×${window.innerHeight}`, lx, ly); ly += lineH;
+      ctx.fillText(`battery   ${batteryLevel}${batteryCharging ? ' ⚡' : ''}`, lx, ly); ly += lineH;
+      ctx.fillText(`online    ${navigator.onLine ? 'yes' : 'no'}`, lx, ly); ly += lineH;
       ly += lineH * 0.5;
+      ctx.fillText(`mouse     ${mouseX}, ${mouseY}`, lx, ly); ly += lineH;
+      ctx.fillText(`scroll    ${Math.round(scrollY)}px`, lx, ly); ly += lineH;
+      ctx.fillText(`visible   ${isVisible ? 'yes' : 'no'}`, lx, ly); ly += lineH;
       ctx.fillText(`session   ${elapsed}s`, lx, ly); ly += lineH;
       ctx.fillText(`frames    ${frameCount}`, lx, ly);
 
@@ -376,7 +404,7 @@ if (prefersReducedMotion) {
     });
   }
 
-  // ── Nav button GSAP hovers — blocky, mechanical ────────────────
+  // ── Hover Tier 1: "Punch" — nav buttons, squash/bounce + color invert ──
   document.querySelectorAll<HTMLElement>('.nav-btn').forEach((btn) => {
     const bg = btn.style.backgroundColor || getComputedStyle(btn).backgroundColor;
 
@@ -407,6 +435,102 @@ if (prefersReducedMotion) {
         scale: 1,
         backgroundColor: bg,
         color: '#000',
+        duration: 0.2,
+        ease: 'power2.out',
+        overwrite: true,
+      });
+    });
+  });
+
+  // ── Hover Tier 2: "Flat" — service/process cards, subtle scale + CMYK fill ──
+  const cmykColors: Record<string, string> = {
+    cyan: '#00FFFF',
+    magenta: '#FF00FF',
+    yellow: '#FFEB00',
+  };
+
+  document.querySelectorAll<HTMLElement>('.service-card, .process-card').forEach((card) => {
+    const hoverAttr = card.dataset.hover;
+    const hoverColor = (hoverAttr && cmykColors[hoverAttr]) || '#FFEB00';
+    const isMagenta = hoverAttr === 'magenta';
+
+    card.addEventListener('mouseenter', () => {
+      gsap.to(card, {
+        scale: 0.97,
+        duration: 0.12,
+        ease: 'power2.out',
+        overwrite: true,
+      });
+      gsap.to(card, {
+        scale: 1,
+        duration: 0.2,
+        delay: 0.12,
+        ease: 'elastic.out(1, 0.6)',
+        overwrite: false,
+      });
+      gsap.to(card, {
+        backgroundColor: hoverColor,
+        duration: 0.15,
+        ease: 'power2.out',
+      });
+      // Set text color — white on magenta, black on everything else
+      card.querySelectorAll<HTMLElement>('p, span').forEach((el) => {
+        gsap.to(el, {
+          color: isMagenta ? '#fff' : '#000',
+          duration: 0.15,
+          ease: 'power2.out',
+        });
+      });
+    });
+
+    card.addEventListener('mouseleave', () => {
+      gsap.to(card, {
+        scale: 1,
+        backgroundColor: '#fff',
+        duration: 0.2,
+        ease: 'power2.out',
+        overwrite: true,
+      });
+      // Restore text colors
+      card.querySelectorAll<HTMLElement>('p, span').forEach((el) => {
+        const isCaption = el.classList.contains('text-caption-gray');
+        gsap.to(el, {
+          color: isCaption ? '' : '#171717',
+          duration: 0.2,
+          ease: 'power2.out',
+          clearProps: isCaption ? 'color' : undefined,
+        });
+      });
+    });
+  });
+
+  // ── Hover: "Let's talk" CTA — same punch as nav buttons ──
+  document.querySelectorAll<HTMLElement>('.cmyk-highlight').forEach((btn) => {
+    btn.addEventListener('mouseenter', () => {
+      gsap.to(btn, {
+        scale: 0.92,
+        duration: 0.1,
+        ease: 'power4.out',
+        overwrite: true,
+      });
+      gsap.to(btn, {
+        scale: 1,
+        duration: 0.15,
+        delay: 0.1,
+        ease: 'elastic.out(1.2, 0.5)',
+        overwrite: false,
+      });
+      gsap.to(btn, {
+        backgroundColor: '#00FFFF',
+        duration: 0.12,
+        ease: 'power2.out',
+      });
+    });
+
+    btn.addEventListener('mouseleave', () => {
+      gsap.to(btn, {
+        scale: 1,
+        backgroundColor: '#FFEB00',
         duration: 0.2,
         ease: 'power2.out',
         overwrite: true,

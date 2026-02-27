@@ -76,21 +76,20 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     // Dev fallback: R2 binding not available (local dev without wrangler)
-    const url = `${publicUrl}/${filename}`;
+    console.warn('[upload] MEDIA_BUCKET binding missing — file NOT stored. Running in local dev mode.');
 
     return new Response(
       JSON.stringify({
-        url,
-        filename,
-        size: file.size,
-        type: file.type,
+        error: 'File storage not available. Uploads require Cloudflare Pages runtime (R2 binding).',
         dev: true,
-        note: 'Local dev mode — file not uploaded to R2. Run with wrangler for real uploads.',
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
     );
   } catch (err) {
-    console.error('Upload error:', err);
+    console.error('[upload] Error:', err, {
+      url: request.url,
+      user: locals.user?.email ?? 'unknown',
+    });
     return new Response(JSON.stringify({ error: 'Upload failed' }), { status: 500 });
   }
 };

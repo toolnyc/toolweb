@@ -97,6 +97,9 @@ if (prefersReducedMotion) {
     function drawFrame() {
       const cw = canvas!.offsetWidth;
       const ch = canvas!.offsetHeight;
+      // Reserve space at bottom so TOOL doesn't bounce behind sticky bar + hero CTA
+      const bottomPad = 120;
+      const bounceBottom = ch - bottomPad;
 
       ctx.clearRect(0, 0, cw, ch);
 
@@ -109,7 +112,7 @@ if (prefersReducedMotion) {
       if (x <= 0) { x = 0; vx = Math.abs(vx); bounced = true; }
       if (x + textW >= cw) { x = cw - textW; vx = -Math.abs(vx); bounced = true; }
       if (y <= 0) { y = 0; vy = Math.abs(vy); bounced = true; }
-      if (y + textH >= ch) { y = ch - textH; vy = -Math.abs(vy); bounced = true; }
+      if (y + textH >= bounceBottom) { y = bounceBottom - textH; vy = -Math.abs(vy); bounced = true; }
 
       if (bounced) {
         colorIndex = (colorIndex + 1) % CMYK.length;
@@ -121,7 +124,7 @@ if (prefersReducedMotion) {
       // Draw text
       const fSize = Math.min(cw * 0.15, 120);
       ctx.font = `bold ${fSize}px "Space Grotesk", sans-serif`;
-      ctx.fillStyle = CMYK[colorIndex] + '18'; // low opacity
+      ctx.fillStyle = CMYK[colorIndex];
       ctx.textBaseline = 'top';
       ctx.fillText('TOOL', x, y);
 

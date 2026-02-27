@@ -1,28 +1,14 @@
 ---
 /**
- * Site footer — 24-col grid layout.
+ * Site footer — 24-col grid layout. Clock moved to StickyBar.
  */
 ---
 
-<script>
-  function updateClock() {
-    const el = document.getElementById('footer-clock');
-    if (!el) return;
-    const now = new Date();
-    el.textContent = now.toLocaleTimeString('en-US', {
-      timeZone: 'America/New_York',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    }) + ' NYC';
-  }
-  updateClock();
-  setInterval(updateClock, 10_000);
-</script>
-
-<footer class="border-t border-neutral-200">
+<footer class="border-t border-neutral-200 pb-14">
   <div class="site-grid py-6">
-    <a href="/" class="col-span-2 lg:col-span-8 text-body font-medium uppercase tracking-widest">Tool</a>
+    <a href="/" class="col-span-2 lg:col-span-8 flex items-center gap-2">
+      <img src="/brand/icon-k.svg" alt="Tool" class="h-[16px] w-auto" />
+    </a>
     <div class="col-span-4 lg:col-span-8 flex gap-4 text-body text-caption-gray">
       <a href="mailto:hello@tool.nyc" class="hover:text-neutral-900 transition-colors">Email</a>
       <a href="https://instagram.com/tool.nyc" target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 transition-colors">Instagram</a>
@@ -30,8 +16,7 @@
       <a href="/privacy" class="hover:text-neutral-900 transition-colors">Privacy</a>
     </div>
     <p class="col-span-6 lg:col-span-8 text-body text-caption-gray lg:text-right mt-2 lg:mt-0">
-      <span>&copy; <span id="footer-year">{new Date().getFullYear()}</span> Tool</span>
-      <span class="ml-4" style="font-variant-numeric: tabular-nums; min-width: 5.5ch; display: inline-block; text-align: right;" id="footer-clock"></span>
+      &copy; {new Date().getFullYear()} Tool
     </p>
   </div>
 </footer>

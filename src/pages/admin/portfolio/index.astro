@@ -1,6 +1,13 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
-import { getSupabaseAdmin } from '../../../lib/env';
+import { getSupabaseAdmin, getEnv } from '../../../lib/env';
+
+const env = getEnv();
+const secretKey = env.SUPABASE_SECRET_KEY;
+const keyPreview = secretKey
+  ? `${secretKey.slice(0, 10)}...${secretKey.slice(-4)} (len=${secretKey.length})`
+  : 'MISSING';
+console.log(`[admin/portfolio] SUPABASE_SECRET_KEY: ${keyPreview}`);
 
 const supabaseAdmin = getSupabaseAdmin();
 
@@ -27,7 +34,9 @@ const statusFilter = Astro.url.searchParams.get('status') || 'all';
   } else {
     portfolioItems = data || [];
     // Detect if RLS is silently filtering: admin should see drafts
-    if (statusFilter === 'all' && portfolioItems.length > 0 && !portfolioItems.some((i: any) => i.status === 'draft')) {
+    const hasDrafts = portfolioItems.some((i: any) => i.status === 'draft');
+    console.log(`[admin/portfolio] Query returned ${portfolioItems.length} items, hasDrafts=${hasDrafts}, filter=${statusFilter}`);
+    if (statusFilter === 'all' && portfolioItems.length > 0 && !hasDrafts) {
       rlsWarning = true;
     }
   }

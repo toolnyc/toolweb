@@ -11,6 +11,7 @@ export interface RuntimeEnv {
   PUBLIC_STRIPE_PUBLISHABLE_KEY?: string;
   R2_PUBLIC_URL?: string;
   RESEND_API_KEY?: string;
+  OPENAI_API_KEY?: string;
   PUBLIC_SITE_URL?: string;
   NTFY_TOPIC?: string;
   [key: string]: unknown;
@@ -83,4 +84,9 @@ export function getStripe(): Stripe {
 
 export function getResendOrNull(): Resend | null {
   return _resend;
+}
+
+export function getOpenAIKey(): string {
+  if (!_env?.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
+  return _env.OPENAI_API_KEY;
 }

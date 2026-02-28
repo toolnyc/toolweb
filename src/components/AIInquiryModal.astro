@@ -1,0 +1,92 @@
+---
+/**
+ * AI Inquiry Modal — voice or text input, AI conversation, then contact capture.
+ * Opens via 'open-ai-inquiry' custom event. Closes on overlay click or X button.
+ */
+---
+
+<!-- Overlay -->
+<div id="ai-overlay" class="fixed inset-0 bg-black/40 z-[60] hidden opacity-0 transition-opacity duration-200"></div>
+
+<!-- Modal -->
+<div id="ai-modal" class="fixed inset-x-4 top-[10vh] bottom-[10vh] max-w-lg mx-auto bg-white z-[70] hidden opacity-0 scale-95 transition-all duration-200 flex flex-col overflow-hidden">
+  <!-- Header -->
+  <div class="flex items-center justify-between px-5 py-4 border-b border-neutral-200">
+    <span class="text-[11px] uppercase tracking-widest text-neutral-400 font-medium">Describe your problem</span>
+    <button id="ai-close" class="text-neutral-400 hover:text-neutral-900 transition-colors cursor-pointer" aria-label="Close">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5">
+        <line x1="4" y1="4" x2="16" y2="16" /><line x1="16" y1="4" x2="4" y2="16" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Conversation area (scrollable) -->
+  <div id="ai-conversation" class="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+    <!-- Initial prompt -->
+    <p id="ai-prompt" class="text-body text-caption-gray">
+      Tell me what you're working on — type below or tap the mic to talk.
+    </p>
+    <!-- Messages render here -->
+  </div>
+
+  <!-- Extracted intent card (hidden initially) -->
+  <div id="ai-extracted" class="hidden px-5 py-3 border-t border-neutral-100 bg-neutral-50">
+    <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+      <div><span class="text-[10px] uppercase tracking-widest text-neutral-400">Type</span><p id="ai-ex-type" class="text-body text-neutral-900">—</p></div>
+      <div><span class="text-[10px] uppercase tracking-widest text-neutral-400">Budget</span><p id="ai-ex-budget" class="text-body text-neutral-900">—</p></div>
+      <div><span class="text-[10px] uppercase tracking-widest text-neutral-400">Urgency</span><p id="ai-ex-urgency" class="text-body text-neutral-900">—</p></div>
+      <div><span class="text-[10px] uppercase tracking-widest text-neutral-400">Vibe</span><p id="ai-ex-sentiment" class="text-body text-neutral-900">—</p></div>
+    </div>
+  </div>
+
+  <!-- Input area -->
+  <div id="ai-input-area" class="px-5 py-4 border-t border-neutral-200">
+    <div class="flex items-center gap-3">
+      <!-- Mic button -->
+      <button id="ai-mic" class="relative w-10 h-10 rounded-full bg-black text-white flex items-center justify-center flex-shrink-0 cursor-pointer" aria-label="Record voice">
+        <svg id="ai-mic-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"/>
+          <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+        </svg>
+        <svg id="ai-mic-stop" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="6" y="6" width="12" height="12" rx="2" />
+        </svg>
+        <!-- Pulse ring while recording -->
+        <span id="ai-mic-pulse" class="absolute inset-0 rounded-full border-2 border-[#00FFFF] hidden animate-ping"></span>
+      </button>
+      <!-- Text input -->
+      <input id="ai-text-input" type="text" placeholder="Type your message..." class="flex-1 text-body border border-neutral-200 px-3 py-2 focus:outline-none focus:border-neutral-900 transition-colors" maxlength="2000" />
+      <!-- Send button -->
+      <button id="ai-send" class="text-body font-medium text-neutral-900 hover:text-[#00FFFF] transition-colors cursor-pointer" aria-label="Send">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
+        </svg>
+      </button>
+    </div>
+    <p id="ai-input-hint" class="text-[11px] text-neutral-400 mt-2 hidden"></p>
+  </div>
+
+  <!-- Contact form (hidden initially, replaces input area) -->
+  <div id="ai-contact" class="hidden px-5 py-4 border-t border-neutral-200">
+    <p class="text-body text-neutral-900 mb-3">Last step — how should I reach you?</p>
+    <div class="space-y-3">
+      <input id="ai-name" type="text" placeholder="Name" class="w-full text-body border border-neutral-200 px-3 py-2 focus:outline-none focus:border-neutral-900 transition-colors" maxlength="200" />
+      <input id="ai-email" type="email" placeholder="Email" class="w-full text-body border border-neutral-200 px-3 py-2 focus:outline-none focus:border-neutral-900 transition-colors" maxlength="254" />
+      <div class="flex gap-3">
+        <button id="ai-submit" class="flex-1 text-body font-medium cmyk-highlight px-4 py-2 cursor-pointer border-none">
+          Book a Call
+        </button>
+      </div>
+    </div>
+    <p id="ai-contact-error" class="text-[11px] text-red-500 mt-2 hidden"></p>
+  </div>
+
+  <!-- Done state (hidden initially) -->
+  <div id="ai-done" class="hidden px-5 py-6 border-t border-neutral-200 text-center">
+    <p class="text-body text-neutral-900">Saved. Opening your booking...</p>
+  </div>
+</div>
+
+<script>
+  import '../scripts/ai-inquiry';
+</script>

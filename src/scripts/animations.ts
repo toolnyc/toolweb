@@ -22,6 +22,15 @@ if (prefersReducedMotion) {
   );
   if (stickyBar) stickyBar.style.transform = 'none';
 
+  // Show AI trigger button immediately
+  const aiTriggerReduced = document.getElementById('ai-inquiry-trigger');
+  if (aiTriggerReduced) aiTriggerReduced.style.opacity = '1';
+
+  // Wire up AI trigger click for reduced-motion path
+  aiTriggerReduced?.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('open-ai-inquiry'));
+  });
+
   // Show static TOOL on canvas for reduced-motion
   const canvas = document.getElementById('eyes-canvas') as HTMLCanvasElement | null;
   if (canvas) {
@@ -286,9 +295,20 @@ if (prefersReducedMotion) {
             duration: 0.3,
           });
         }
+        // Fade in AI inquiry trigger button
+        const aiTrigger = document.getElementById('ai-inquiry-trigger');
+        if (aiTrigger) {
+          gsap.to(aiTrigger, { opacity: 1, duration: 0.5, delay: 0.5, ease: 'power2.out' });
+        }
       },
     });
   }
+
+  // ── AI Inquiry trigger ───────────────────────────────────────
+  const aiTriggerBtn = document.getElementById('ai-inquiry-trigger');
+  aiTriggerBtn?.addEventListener('click', () => {
+    document.dispatchEvent(new CustomEvent('open-ai-inquiry'));
+  });
 
   // ── Portfolio items — staggered reveal on scroll ─────────────
   ScrollTrigger.batch('.portfolio-item', {

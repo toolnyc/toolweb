@@ -3,6 +3,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import StickyBar from '../components/StickyBar.astro';
+import AIInquiryModal from '../components/AIInquiryModal.astro';
 import Accordion from '../components/Accordion.astro';
 import WritingBlock from '../components/WritingBlock.astro';
 import VideoPlayer from '../components/VideoPlayer.astro';
@@ -61,6 +62,9 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
           <span class="hero-typing-text">{heroTagline?.content ?? 'Brand, design, and web development. New York.'}</span>
           <span class="hero-cursor" style="opacity: 0;" aria-hidden="true">|</span>
         </p>
+        <button id="ai-inquiry-trigger" class="mt-6 text-body text-caption-gray border border-neutral-300 px-4 py-2 hover:border-neutral-900 transition-colors opacity-0 cursor-pointer" data-anim="ai-trigger">
+          Describe your problem
+        </button>
       </div>
 
       {/* Client list — bottom-centered, just above sticky bar */}
@@ -310,6 +314,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
 
   <Footer />
   <StickyBar />
+  <AIInquiryModal />
 </BaseLayout>
 
 <style is:global>

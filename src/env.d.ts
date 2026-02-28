@@ -17,6 +17,7 @@ declare namespace App {
         R2_PUBLIC_URL?: string;
         RESEND_API_KEY?: string;
         PUBLIC_SITE_URL?: string;
+        NTFY_TOPIC?: string;
         [key: string]: unknown;
       };
       cf: IncomingRequestCfProperties;

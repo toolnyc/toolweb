@@ -12,6 +12,7 @@ export interface RuntimeEnv {
   R2_PUBLIC_URL?: string;
   RESEND_API_KEY?: string;
   PUBLIC_SITE_URL?: string;
+  NTFY_TOPIC?: string;
   [key: string]: unknown;
 }
 
@@ -28,7 +29,7 @@ export function initClients(env: Record<string, unknown>): void {
   const anonKey = _env.PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
 
   if (!url || !anonKey) {
-    console.error('Missing PUBLIC_SUPABASE_URL or PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY');
+    console.warn('Missing PUBLIC_SUPABASE_URL or PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY');
   }
 
   if (url && anonKey && !_supabase) {

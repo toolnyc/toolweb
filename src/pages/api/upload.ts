@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getEnv } from '../../lib/env';
+import { logError } from '../../lib/logger';
 
 const ALLOWED_TYPES = new Set([
   'image/jpeg',
@@ -74,7 +75,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const bucket = locals.runtime?.env?.MEDIA_BUCKET as R2Bucket | undefined;
 
     if (!bucket) {
-      console.warn('[upload] MEDIA_BUCKET binding not available — cannot store file.');
+      logError('warn', 'MEDIA_BUCKET binding not available', { path: '/api/upload' });
       return new Response(
         JSON.stringify({
           error: 'File storage not available. Uploads require the Cloudflare Pages runtime.',
@@ -102,10 +103,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   } catch (err) {
-    console.error('[upload] Failed:', err instanceof Error ? err.message : err, {
-      user: locals.user?.email ?? 'unknown',
-      url: request.url,
-    });
+    logError('error', 'Upload failed', { path: '/api/upload', error: err, user: locals.user?.email });
     return new Response(
       JSON.stringify({ error: 'Upload failed. Check server logs for details.' }),
       { status: 500 },

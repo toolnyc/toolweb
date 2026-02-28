@@ -33,6 +33,8 @@ if (!caseStudy) {
             src={caseStudy.media_url}
             alt={caseStudy.title}
             class="w-full h-auto block"
+            loading="eager"
+            decoding="async"
           />
         )}
         <h1 class="text-hero font-bold uppercase tracking-tight mt-6 anim-fade-up" data-anim="cs-title">
@@ -73,6 +75,8 @@ if (!caseStudy) {
               src={img.media_url}
               alt={img.caption ?? caseStudy.title}
               class="w-full h-auto block"
+              loading="lazy"
+              decoding="async"
             />
             {img.caption && (
               <p class="text-body text-caption-gray mt-1">{img.caption}</p>

@@ -119,6 +119,8 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                     src={item.media_url}
                     alt={item.title}
                     class="w-full h-full object-cover block"
+                    loading="lazy"
+                    decoding="async"
                   />
                 )}
 

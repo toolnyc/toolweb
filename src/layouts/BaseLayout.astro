@@ -9,6 +9,7 @@ interface Props {
 
 const { title = 'Tool — Brand, Design, and Web Development', description = 'Brand, design, and web development. New York.' } = Astro.props;
 const siteUrl = (Astro.locals.runtime?.env?.PUBLIC_SITE_URL as string) || 'https://tool.nyc';
+const calBookingUrl = (Astro.locals.runtime?.env?.CAL_BOOKING_URL as string) || 'toolnyc/30min';
 ---
 
 <!doctype html>
@@ -29,6 +30,7 @@ const siteUrl = (Astro.locals.runtime?.env?.PUBLIC_SITE_URL as string) || 'https
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="preload" href="/fonts/SpaceGrotesk-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <meta name="cal-booking-url" content={calBookingUrl} />
     <title>{title}</title>
   </head>
   <body class="font-sans">

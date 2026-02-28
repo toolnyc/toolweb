@@ -3,7 +3,8 @@ import { getSupabaseAdmin, getStripe, getResendOrNull, getEnv } from '../../lib/
 import { sendOrderConfirmationEmail } from '../../lib/emails';
 import { logError } from '../../lib/logger';
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  const ctx = locals.runtime.ctx;
   try {
     const env = getEnv();
     const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
@@ -25,7 +26,7 @@ export const POST: APIRoute = async ({ request }) => {
     try {
       event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
     } catch (sigErr) {
-      logError('critical', 'Stripe signature verification failed', { path: '/api/stripe-webhook', error: sigErr });
+      logError('critical', 'Stripe signature verification failed', { path: '/api/stripe-webhook', error: sigErr }, ctx);
       return new Response('Invalid signature', { status: 400 });
     }
 
@@ -36,7 +37,7 @@ export const POST: APIRoute = async ({ request }) => {
       const quantity = parseInt(metadata?.quantity || '1', 10);
 
       if (variantId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(variantId)) {
-        logError('critical', 'Invalid variant_id in metadata', { path: '/api/stripe-webhook', variantId, sessionId: session.id });
+        logError('critical', 'Invalid variant_id in metadata', { path: '/api/stripe-webhook', variantId, sessionId: session.id }, ctx);
         return new Response('Invalid metadata', { status: 400 });
       }
       const sessionId = session.id as string;
@@ -76,7 +77,7 @@ export const POST: APIRoute = async ({ request }) => {
         );
 
       if (orderError) {
-        logError('critical', 'Error inserting order', { path: '/api/stripe-webhook', error: orderError, sessionId });
+        logError('critical', 'Error inserting order', { path: '/api/stripe-webhook', error: orderError, sessionId }, ctx);
       }
 
       // Decrement stock and fetch variant/product info for the confirmation email
@@ -139,7 +140,7 @@ export const POST: APIRoute = async ({ request }) => {
           ],
           total: amountTotal,
           orderId,
-        }).catch((err) => logError('warn', 'Order confirmation email failed', { path: '/api/stripe-webhook', error: err }));
+        }).catch((err) => logError('warn', 'Order confirmation email failed', { path: '/api/stripe-webhook', error: err }, ctx));
       }
 
       return new Response('OK', { status: 200 });
@@ -168,7 +169,7 @@ export const POST: APIRoute = async ({ request }) => {
           to: ['hello@tool.nyc'],
           subject: 'Invoice payment failed',
           text: `Payment failed for invoice ${invoice.id}. Customer: ${invoice.customer_email || 'unknown'}`,
-        }).catch((err) => logError('warn', 'Failed to send invoice failure notification', { path: '/api/stripe-webhook', error: err }));
+        }).catch((err) => logError('warn', 'Failed to send invoice failure notification', { path: '/api/stripe-webhook', error: err }, ctx));
       }
       return new Response('OK', { status: 200 });
     }
@@ -176,7 +177,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Unhandled event type
     return new Response('OK', { status: 200 });
   } catch (err) {
-    logError('critical', 'Webhook handler error', { path: '/api/stripe-webhook', error: err });
+    logError('critical', 'Webhook handler error', { path: '/api/stripe-webhook', error: err }, ctx);
     return new Response('Webhook error', { status: 500 });
   }
 };

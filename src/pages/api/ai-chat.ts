@@ -4,6 +4,7 @@ import { transcribeAudio, analyzeIntent, buildInquiryRecord } from '../../lib/ai
 import type { ChatMessage } from '../../lib/ai';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
 import { logError } from '../../lib/logger';
+import { checkRateLimit } from '../../lib/rate-limit';
 
 const MAX_MESSAGES = 5;
 const MAX_CHAR_PER_MESSAGE = 2000;
@@ -11,7 +12,8 @@ const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // 5MB
 const RATE_LIMIT_WINDOW_HOURS = 1;
 const RATE_LIMIT_MAX_INQUIRIES = 3;
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  const ctx = locals.runtime.ctx;
   try {
     const body = await request.json() as {
       action: 'chat' | 'submit';
@@ -26,23 +28,40 @@ export const POST: APIRoute = async ({ request }) => {
     const { action } = body;
 
     if (action === 'chat') {
-      return handleChat(body);
+      return handleChat(request, body);
     } else if (action === 'submit') {
       return handleSubmit(body);
     }
 
     return json({ error: 'Invalid action' }, 400);
   } catch (err) {
-    logError('error', 'ai-chat error', { path: '/api/ai-chat', error: err });
+    logError('error', 'ai-chat error', { path: '/api/ai-chat', error: err }, ctx);
     return json({ error: 'Unexpected error' }, 500);
   }
 };
 
-async function handleChat(body: {
-  messages?: ChatMessage[];
-  audio?: string;
-}) {
+async function handleChat(
+  request: Request,
+  body: {
+    messages?: ChatMessage[];
+    audio?: string;
+  },
+) {
+  const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
   const messages = body.messages ?? [];
+
+  // Rate limit on first message only (new conversation)
+  if (messages.length <= 1) {
+    const { allowed } = await checkRateLimit(ip, {
+      maxRequests: 3,
+      windowSeconds: 3600,
+      endpoint: 'ai-chat',
+    });
+
+    if (!allowed) {
+      return json({ error: 'Too many requests. Try again later.' }, 429);
+    }
+  }
 
   // Validate message count
   if (messages.length > MAX_MESSAGES) {

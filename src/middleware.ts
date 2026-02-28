@@ -2,11 +2,11 @@ import { defineMiddleware } from 'astro:middleware';
 import { initClients, getSupabaseAdminOrNull } from './lib/env';
 import { getAuthTokens, setAuthCookies, clearAuthCookies } from './lib/cookies';
 import { getFeatureFlag } from './lib/queries';
-import { setExecutionContext, logError, logEvent } from './lib/logger';
+import { logError, logEvent } from './lib/logger';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   initClients(context.locals.runtime.env);
-  setExecutionContext(context.locals.runtime.ctx);
+  const ctx = context.locals.runtime.ctx;
 
   const startTime = Date.now();
   const { pathname } = context.url;
@@ -31,13 +31,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
     // Auth/login pages and API routes: no CDN caching
     if (isApiRoute || isAuthPage) {
       const response = await next();
-      recordAnalytics(context, response, startTime);
+      recordAnalytics(context, response, startTime, ctx);
       return response;
     }
     // Public pages: allow Cloudflare to cache for 60s, serve stale up to 5min while revalidating
     const response = await next();
     response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    recordAnalytics(context, response, startTime);
+    recordAnalytics(context, response, startTime, ctx);
     return response;
   }
 
@@ -101,13 +101,13 @@ export const onRequest = defineMiddleware(async (context, next) => {
       context.locals.client = client;
     }
   } catch (err) {
-    logError('error', 'Auth middleware error', { path: pathname, error: err });
+    logError('error', 'Auth middleware error', { path: pathname, error: err }, ctx);
     if (isAdminRoute) return context.redirect('/admin/login');
     return context.redirect('/portal');
   }
 
   const response = await next();
-  recordAnalytics(context, response, startTime);
+  recordAnalytics(context, response, startTime, ctx);
   return response;
 });
 
@@ -115,6 +115,7 @@ function recordAnalytics(
   context: Parameters<Parameters<typeof defineMiddleware>[0]>[0],
   response: Response,
   startTime: number,
+  execCtx: ExecutionContext,
 ): void {
   const { pathname } = context.url;
 
@@ -131,5 +132,5 @@ function recordAnalytics(
     durationMs: Date.now() - startTime,
     country: (cf?.country as string) || undefined,
     userAgent: context.request.headers.get('user-agent') || undefined,
-  });
+  }, execCtx);
 }

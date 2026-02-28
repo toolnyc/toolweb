@@ -29,7 +29,7 @@ import StickyBar from '../components/StickyBar.astro';
 
 <script is:inline>
   Cal("inline", {
-    calLink: "toolnyc/30min",
+    calLink: document.querySelector('meta[name="cal-booking-url"]')?.content || "toolnyc/30min",
     elementOrSelector: "#cal-inline",
     config: { layout: "month_view" },
   });

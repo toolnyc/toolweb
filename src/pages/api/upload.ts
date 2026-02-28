@@ -21,6 +21,7 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  const ctx = locals.runtime.ctx;
   try {
     // Require admin auth
     if (!locals.user) {
@@ -75,7 +76,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const bucket = locals.runtime?.env?.MEDIA_BUCKET as R2Bucket | undefined;
 
     if (!bucket) {
-      logError('warn', 'MEDIA_BUCKET binding not available', { path: '/api/upload' });
+      logError('warn', 'MEDIA_BUCKET binding not available', { path: '/api/upload' }, ctx);
       return new Response(
         JSON.stringify({
           error: 'File storage not available. Uploads require the Cloudflare Pages runtime.',
@@ -103,7 +104,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   } catch (err) {
-    logError('error', 'Upload failed', { path: '/api/upload', error: err, user: locals.user?.email });
+    logError('error', 'Upload failed', { path: '/api/upload', error: err, user: locals.user?.email }, ctx);
     return new Response(
       JSON.stringify({ error: 'Upload failed. Check server logs for details.' }),
       { status: 500 },

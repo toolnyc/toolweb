@@ -7,6 +7,9 @@ pages_build_output_dir = "./dist"
 binding = "MEDIA_BUCKET"
 bucket_name = "tool-media"
 
+[ai]
+binding = "AI"
+
 # Production vars (tool.nyc)
 [vars]
 PUBLIC_SUPABASE_URL = "https://eknmuaffpvkiwylrybql.supabase.co"
@@ -14,6 +17,7 @@ PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = "sb_publishable_qm6XxPJLZ3w2Mn5xFkMDUA
 PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_live_51SZzHLRsGSph5NYiynyibsSmOW2oLWcLxvaQT6PsbtGliQBEaw4bB9zElTr2gsKydZ9UWkMFSmuuK5996lU17zo100eAvq6rbQ"
 R2_PUBLIC_URL = "https://media.tool.nyc"
 PUBLIC_SITE_URL = "https://tool.nyc"
+CAL_BOOKING_URL = "toolnyc/30min"
 
 # Preview environment — non-inheritable keys are all-or-nothing in Pages,
 # so r2_buckets must be repeated here alongside vars.
@@ -21,9 +25,13 @@ PUBLIC_SITE_URL = "https://tool.nyc"
 binding = "MEDIA_BUCKET"
 bucket_name = "tool-media"
 
+[env.preview.ai]
+binding = "AI"
+
 [env.preview.vars]
 PUBLIC_SUPABASE_URL = "https://eknmuaffpvkiwylrybql.supabase.co"
 PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY = "sb_publishable_qm6XxPJLZ3w2Mn5xFkMDUA_Rkpoy7iU"
 PUBLIC_STRIPE_PUBLISHABLE_KEY = "pk_test_51SZzHLRsGSph5NYi3EdzzaAlB3scpY0jgYAIv6O3Q34D71FuOzO4G8p6577SsiqHja0xw8mMasQETwMH1DLU91d000l1PqUxyX"
 R2_PUBLIC_URL = "https://media.tool.nyc"
 PUBLIC_SITE_URL = "https://pre.tool.nyc"
+CAL_BOOKING_URL = "toolnyc/30min"

@@ -2,27 +2,23 @@ import type { APIRoute } from 'astro';
 import { getSupabaseAdmin } from '../../lib/env';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
 import { logError } from '../../lib/logger';
+import { checkRateLimit } from '../../lib/rate-limit';
 
-// Simple in-memory rate limiting (per IP, 5 per hour)
-const rateLimit = new Map<string, { count: number; resetAt: number }>();
-
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
   try {
+    const ctx = locals.runtime.ctx;
     const supabaseAdmin = getSupabaseAdmin();
 
-    // Rate limiting
+    // Rate limiting (5 per hour per IP, persisted in Supabase)
     const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
-    const now = Date.now();
-    const entry = rateLimit.get(ip);
+    const { allowed } = await checkRateLimit(ip, {
+      maxRequests: 5,
+      windowSeconds: 3600,
+      endpoint: 'inquiry',
+    });
 
-    if (entry && entry.resetAt > now && entry.count >= 5) {
+    if (!allowed) {
       return new Response(JSON.stringify({ error: 'Too many requests' }), { status: 429 });
-    }
-
-    if (!entry || entry.resetAt <= now) {
-      rateLimit.set(ip, { count: 1, resetAt: now + 3600000 });
-    } else {
-      entry.count++;
     }
 
     const formData = await request.formData();
@@ -55,7 +51,7 @@ export const POST: APIRoute = async ({ request }) => {
       .insert({ name, email, company, project_type, description, budget_range, timeline });
 
     if (insertError) {
-      logError('error', 'Error inserting inquiry', { path: '/api/inquiry', error: insertError });
+      logError('error', 'Error inserting inquiry', { path: '/api/inquiry', error: insertError }, ctx);
       return new Response(JSON.stringify({ error: 'Failed to submit' }), { status: 500 });
     }
 

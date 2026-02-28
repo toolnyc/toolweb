@@ -14,6 +14,7 @@ export interface RuntimeEnv {
   OPENAI_API_KEY?: string;
   PUBLIC_SITE_URL?: string;
   NTFY_TOPIC?: string;
+  CAL_BOOKING_URL?: string;
   [key: string]: unknown;
 }
 
@@ -89,4 +90,8 @@ export function getResendOrNull(): Resend | null {
 export function getOpenAIKey(): string {
   if (!_env?.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
   return _env.OPENAI_API_KEY;
+}
+
+export function getCalBookingUrl(): string {
+  return (_env?.CAL_BOOKING_URL as string) || 'toolnyc/30min';
 }

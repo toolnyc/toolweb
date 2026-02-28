@@ -398,7 +398,7 @@ submitBtn?.addEventListener('click', async () => {
     if (data.calPrefill && typeof window.Cal === 'function') {
       setTimeout(() => {
         window.Cal!('openModal', {
-          calLink: 'toolnyc/30min',
+          calLink: document.querySelector<HTMLMetaElement>('meta[name="cal-booking-url"]')?.content || 'toolnyc/30min',
           config: {
             layout: 'month_view',
             name: data.calPrefill!.name,

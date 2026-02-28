@@ -3,6 +3,9 @@
  * Sticky bottom CTA bar — 24-col grid with centered clock and booking CTA.
  * z-50 to stay above all other content including the header.
  */
+import { getCalBookingUrl } from '../lib/env';
+
+const calBookingUrl = getCalBookingUrl();
 ---
 
 <div class="fixed bottom-0 left-0 right-0 z-50 bg-black text-white" data-anim="sticky-bar">
@@ -12,7 +15,7 @@
     </a>
     <span class="col-span-2 md:col-span-16 text-body text-white text-center" style="font-variant-numeric: tabular-nums;" id="sticky-clock"></span>
     <div class="col-span-2 md:col-span-4 flex justify-end">
-      <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="text-body cmyk-highlight px-2 py-1 cursor-pointer border-none whitespace-nowrap">Let's talk</button>
+      <button data-cal-link={calBookingUrl} data-cal-config='{"layout":"month_view"}' class="text-body cmyk-highlight px-2 py-1 cursor-pointer border-none whitespace-nowrap">Let's talk</button>
     </div>
   </div>
 </div>

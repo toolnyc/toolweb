@@ -10,31 +10,21 @@ interface LogContext {
 
 /**
  * Fire-and-forget: enqueue via waitUntil so it never blocks the response.
- * Falls back to unawaited promise if no ExecutionContext is available.
+ * ctx is passed per-call to avoid module-level singleton race conditions
+ * on Cloudflare Workers where concurrent requests share the module scope.
  */
-function enqueue(ctx: ExecutionContext | null, fn: () => Promise<void>): void {
+function enqueue(ctx: ExecutionContext | undefined, fn: () => Promise<void>): void {
   const promise = fn().catch(() => {});
   if (ctx) {
     ctx.waitUntil(promise);
   }
 }
 
-// Per-request context stored via AsyncLocalStorage-style approach.
-// Middleware sets this at the start of each request.
-let _ctx: ExecutionContext | null = null;
-
-export function setExecutionContext(ctx: ExecutionContext): void {
-  _ctx = ctx;
-}
-
-function getCtx(): ExecutionContext | null {
-  return _ctx;
-}
-
 export function logError(
   level: LogLevel,
   message: string,
   context: LogContext = {},
+  ctx?: ExecutionContext,
 ): void {
   // Always log to console as baseline
   const tag = `[${level}]`;
@@ -43,8 +33,6 @@ export function logError(
   } else {
     console.error(tag, message, context);
   }
-
-  const ctx = getCtx();
 
   enqueue(ctx, async () => {
     const supabase = getSupabaseAdminOrNull();
@@ -86,9 +74,8 @@ export function logEvent(
     country?: string;
     userAgent?: string;
   },
+  ctx?: ExecutionContext,
 ): void {
-  const ctx = getCtx();
-
   enqueue(ctx, async () => {
     const supabase = getSupabaseAdminOrNull();
     if (!supabase) return;

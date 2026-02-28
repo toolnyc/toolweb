@@ -4,8 +4,10 @@
  * z-40 so it sits above content but below StickyBar (z-50).
  */
 import { getFeatureFlag } from '../lib/queries';
+import { getCalBookingUrl } from '../lib/env';
 
 const shopEnabled = await getFeatureFlag('shop_enabled');
+const calBookingUrl = getCalBookingUrl();
 ---
 
 <header class="sticky top-0 z-40 bg-white border-b border-neutral-100">
@@ -17,7 +19,7 @@ const shopEnabled = await getFeatureFlag('shop_enabled');
       {shopEnabled && (
         <a href="/shop" class="nav-btn bg-yellow">Shop</a>
       )}
-      <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="nav-btn bg-cyan cursor-pointer border-none">Book</button>
+      <button data-cal-link={calBookingUrl} data-cal-config='{"layout":"month_view"}' class="nav-btn bg-cyan cursor-pointer border-none">Book</button>
     </div>
   </nav>
 </header>

@@ -103,6 +103,10 @@ export interface ProjectInquiry {
   budget_range: string | null;
   timeline: string | null;
   status: InquiryStatus;
+  source: string;
+  ai_transcript: string | null;
+  ai_extracted: Record<string, unknown> | null;
+  ai_summary: string | null;
   created_at: string;
 }
 

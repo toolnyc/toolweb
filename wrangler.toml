@@ -7,6 +7,9 @@ pages_build_output_dir = "./dist"
 binding = "MEDIA_BUCKET"
 bucket_name = "tool-media"
 
+[ai]
+binding = "AI"
+
 # Production vars (tool.nyc)
 [vars]
 PUBLIC_SUPABASE_URL = "https://eknmuaffpvkiwylrybql.supabase.co"
@@ -20,6 +23,9 @@ PUBLIC_SITE_URL = "https://tool.nyc"
 [[env.preview.r2_buckets]]
 binding = "MEDIA_BUCKET"
 bucket_name = "tool-media"
+
+[env.preview.ai]
+binding = "AI"
 
 [env.preview.vars]
 PUBLIC_SUPABASE_URL = "https://eknmuaffpvkiwylrybql.supabase.co"

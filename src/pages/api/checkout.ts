@@ -9,11 +9,13 @@ export const POST: APIRoute = async ({ request }) => {
     const body: { variantId?: string; quantity?: number; shippingCountry?: string } = await request.json();
     const { variantId, quantity = 1, shippingCountry = 'US' } = body;
 
-    if (!variantId) {
-      return new Response(JSON.stringify({ error: 'Missing variantId' }), { status: 400 });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (!variantId || !UUID_RE.test(variantId)) {
+      return new Response(JSON.stringify({ error: 'Invalid variantId' }), { status: 400 });
     }
 
-    if (quantity < 1 || quantity > 10) {
+    if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) {
       return new Response(JSON.stringify({ error: 'Quantity must be 1-10' }), { status: 400 });
     }
 

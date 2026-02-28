@@ -40,6 +40,14 @@ export const POST: APIRoute = async ({ request }) => {
       );
     }
 
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return new Response(JSON.stringify({ error: 'Invalid email address' }), { status: 400 });
+    }
+
+    if (name.length > 200 || description.length > 5000) {
+      return new Response(JSON.stringify({ error: 'Input too long' }), { status: 400 });
+    }
+
     // Insert inquiry
     const { error: insertError } = await supabaseAdmin
       .from('project_inquiries')

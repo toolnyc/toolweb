@@ -23,7 +23,8 @@ export const POST: APIRoute = async ({ request }) => {
     let event;
     try {
       event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
-    } catch {
+    } catch (sigErr) {
+      console.error('[stripe-webhook] Signature verification failed:', sigErr instanceof Error ? sigErr.message : sigErr);
       return new Response('Invalid signature', { status: 400 });
     }
 
@@ -32,6 +33,11 @@ export const POST: APIRoute = async ({ request }) => {
       const metadata = session.metadata as Record<string, string> | undefined;
       const variantId = metadata?.variant_id;
       const quantity = parseInt(metadata?.quantity || '1', 10);
+
+      if (variantId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(variantId)) {
+        console.error('[stripe-webhook] Invalid variant_id in metadata:', { variantId, sessionId: session.id });
+        return new Response('Invalid metadata', { status: 400 });
+      }
       const sessionId = session.id as string;
       const paymentIntentId = (session.payment_intent as string) ?? null;
       const customerDetails = session.customer_details as Record<string, unknown> | undefined;

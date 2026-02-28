@@ -8,6 +8,14 @@ const ALLOWED_TYPES = new Set([
   'image/gif',
   'video/mp4',
 ]);
+const ALLOWED_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4']);
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'video/mp4': 'mp4',
+};
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 
@@ -42,8 +50,17 @@ export const POST: APIRoute = async ({ request, locals }) => {
       );
     }
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop() || 'bin';
+    // Validate extension matches an allowlist (MIME alone is spoofable)
+    const rawExt = file.name.split('.').pop()?.toLowerCase();
+    if (!rawExt || !ALLOWED_EXTENSIONS.has(rawExt)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid file extension. Allowed: jpg, jpeg, png, webp, gif, mp4' }),
+        { status: 400 },
+      );
+    }
+
+    // Use MIME-derived extension for the stored filename (not user-supplied)
+    const ext = MIME_TO_EXT[file.type] || rawExt;
     const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const publicUrl = getEnv().R2_PUBLIC_URL;

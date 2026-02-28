@@ -3,18 +3,14 @@ interface Props {
   src: string;
   poster?: string;
   title: string;
-  /** Preview duration in seconds (0 = no preview, plays full). Default: 4 */
-  previewDuration?: number;
 }
 
-const { src, poster, title, previewDuration = 4 } = Astro.props;
+const { src, poster, title } = Astro.props;
 
 const isCloudflareStream = src.includes('cloudflarestream.com');
 
-// Build Cloudflare Stream iframe URL with autoplay params
 function buildStreamUrl(url: string, posterUrl?: string): string {
   const base = url.replace(/\/manifest\/video\.m3u8$/, '');
-  // If it's already an iframe URL, use as-is; otherwise convert to iframe embed
   const iframeSrc = base.includes('/iframe') ? base : `${base}/iframe`;
   const params = new URLSearchParams({
     autoplay: 'true',
@@ -30,7 +26,6 @@ function buildStreamUrl(url: string, posterUrl?: string): string {
 
 const iframeSrc = isCloudflareStream ? buildStreamUrl(src, poster) : null;
 
-// Unique ID for this player instance
 const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
 ---
 
@@ -38,8 +33,7 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
   class="video-player relative w-full h-full"
   id={playerId}
   data-playing="false"
-  data-mode="preview"
-  data-preview-duration={previewDuration}
+  data-mode="loop"
 >
   {isCloudflareStream ? (
     <iframe
@@ -47,13 +41,11 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
       title={title}
       allow="autoplay; fullscreen"
       allowfullscreen
-      class="w-full border-0"
-      style="aspect-ratio: 16/9;"
+      class="w-full h-full border-0"
       loading="lazy"
     />
   ) : (
     <div class="video-wrap relative w-full h-full">
-      {/* Poster image — shown by default, hidden when video is playing */}
       {poster && (
         <img
           src={poster}
@@ -62,39 +54,31 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
           data-poster-img
         />
       )}
-      {/* Dark placeholder when no poster */}
-      {!poster && (
-        <div class="video-placeholder absolute inset-0 bg-neutral-900 z-[1]" data-placeholder />
-      )}
       <video
         data-src={src}
         poster={poster ?? undefined}
-        preload="none"
+        preload="metadata"
         muted
         playsinline
+        loop
         class="w-full h-full object-cover block"
         data-video
       />
-      {/* Loading pulse overlay */}
       <div class="video-loading absolute inset-0 pointer-events-none opacity-0 z-[2]" data-loading />
     </div>
   )}
 
-  {/* Play icon overlay — visible when paused / in preview mode */}
+  {/* Play/pause overlay — play icon when paused, pause icon on hover when playing */}
   <div class="play-overlay absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-200 z-[3]">
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 40 40"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
+    <svg class="play-icon" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <polygon points="12,8 34,20 12,32" fill="white" fill-opacity="0.5" />
+    </svg>
+    <svg class="pause-icon" width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="10" y="8" width="7" height="24" fill="white" fill-opacity="0.5" />
+      <rect x="23" y="8" width="7" height="24" fill="white" fill-opacity="0.5" />
     </svg>
   </div>
 
-  {/* Transparent click target */}
   <button
     class="absolute inset-0 w-full h-full cursor-pointer bg-transparent border-0 p-0 m-0 z-[4]"
     aria-label={`Play or pause ${title}`}
@@ -103,12 +87,6 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
 </div>
 
 <style>
-  /* Show play icon when paused and NOT in preview mode */
-  .video-player[data-playing="false"]:not([data-mode="preview"]) .play-overlay {
-    opacity: 1;
-  }
-
-  /* Fade poster out when video is actively playing */
   .video-poster {
     transition: opacity 0.5s ease;
   }
@@ -117,26 +95,30 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
     pointer-events: none;
   }
 
-  /* Fade placeholder similarly */
-  .video-placeholder {
-    transition: opacity 0.5s ease;
-  }
-  .video-player[data-playing="true"] .video-placeholder {
-    opacity: 0;
-    pointer-events: none;
+  /* Default: hide both icons */
+  .play-icon { display: block; }
+  .pause-icon { display: none; }
+
+  /* Show play icon when manually paused */
+  .video-player[data-mode="paused"] .play-overlay {
+    opacity: 1;
   }
 
-  /* Loading pulse animation */
+  /* Show pause icon on hover while playing */
+  .video-player[data-playing="true"]:hover .play-overlay {
+    opacity: 1;
+  }
+  .video-player[data-playing="true"] .play-icon { display: none; }
+  .video-player[data-playing="true"] .pause-icon { display: block; }
+
   .video-loading {
     background: rgba(0, 0, 0, 0.3);
     transition: opacity 0.3s ease;
   }
-
   .video-loading.is-loading {
     opacity: 1;
     animation: pulse-load 1.5s ease-in-out infinite;
   }
-
   @keyframes pulse-load {
     0%, 100% { opacity: 0.3; }
     50% { opacity: 0.6; }
@@ -144,189 +126,121 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
 </style>
 
 <script>
+  const MAX_CONCURRENT = 3;
+  const activePlayers = new Set<HTMLDivElement>();
+
   function initVideoPlayers() {
     const players = document.querySelectorAll<HTMLDivElement>('.video-player');
-    const observed = new WeakSet<HTMLDivElement>();
+    const bound = new WeakSet<HTMLDivElement>();
 
     players.forEach((player) => {
-      const toggle = player.querySelector<HTMLButtonElement>('[data-toggle]');
-      if (!toggle) return;
+      if (bound.has(player)) return;
+      bound.add(player);
 
+      const toggle = player.querySelector<HTMLButtonElement>('[data-toggle]');
       const video = player.querySelector<HTMLVideoElement>('[data-video]');
       const iframe = player.querySelector<HTMLIFrameElement>('iframe');
-      const previewDuration = parseFloat(player.dataset.previewDuration ?? '4');
 
-      // --- Toggle binding (once per player) ---
-      if (!toggle.dataset.bound) {
-        toggle.dataset.bound = 'true';
+      if (!toggle) return;
 
-        if (video) {
-          toggle.addEventListener('click', () => {
-            const mode = player.dataset.mode;
+      // --- Click: toggle play/pause ---
+      if (video) {
+        toggle.addEventListener('click', () => {
+          if (player.dataset.mode === 'paused') {
+            player.dataset.mode = 'loop';
+            loadVideo(player, video);
+            video.play().catch(() => {});
+            activePlayers.add(player);
+            enforceLimit(player);
+          } else {
+            video.pause();
+            player.dataset.mode = 'paused';
+            activePlayers.delete(player);
+          }
+        });
 
-            if (mode === 'preview' || mode === 'idle') {
-              // Switch to full playback mode
-              player.dataset.mode = 'full';
-              const dataSrc = video.dataset.src;
-
-              if (!video.src || video.getAttribute('src') === '') {
-                if (dataSrc) {
-                  video.preload = 'auto';
-                  video.src = dataSrc;
-                }
-              }
-
-              // Remove the preview time limit — let it loop freely
-              video.loop = true;
-              video.play().catch(() => {
-                player.dataset.playing = 'false';
-              });
-              player.dataset.playing = 'true';
-            } else if (mode === 'full') {
-              // In full mode, toggle play/pause normally
-              if (video.paused) {
-                video.play();
-                player.dataset.playing = 'true';
-              } else {
-                video.pause();
-                player.dataset.playing = 'false';
-                player.dataset.mode = 'idle';
-              }
-            }
-          });
-
-          video.addEventListener('pause', () => {
-            if (player.dataset.mode !== 'preview') {
-              player.dataset.playing = 'false';
-            }
-          });
-          video.addEventListener('play', () => {
+        video.addEventListener('pause', () => { player.dataset.playing = 'false'; });
+        video.addEventListener('play', () => { player.dataset.playing = 'true'; });
+      } else if (iframe) {
+        let playing = true;
+        toggle.addEventListener('click', () => {
+          if (playing) {
+            iframe.contentWindow?.postMessage({ type: 'pause' }, '*');
+            playing = false;
+            player.dataset.playing = 'false';
+          } else {
+            iframe.contentWindow?.postMessage({ type: 'play' }, '*');
+            playing = true;
             player.dataset.playing = 'true';
-          });
-        } else if (iframe) {
-          let isPlaying = true;
-
-          toggle.addEventListener('click', () => {
-            if (isPlaying) {
-              iframe.contentWindow?.postMessage({ type: 'pause' }, '*');
-              isPlaying = false;
-              player.dataset.playing = 'false';
-            } else {
-              iframe.contentWindow?.postMessage({ type: 'play' }, '*');
-              isPlaying = true;
-              player.dataset.playing = 'true';
-            }
-          });
-        }
+          }
+        });
       }
 
-      // --- IntersectionObserver for native video: preview loop ---
-      if (video && !observed.has(player)) {
-        observed.add(player);
-
+      // --- IntersectionObserver: autoplay loop while in viewport ---
+      if (video) {
         const dataSrc = video.dataset.src;
         if (!dataSrc) return;
 
-        const loadingEl = player.querySelector<HTMLDivElement>('[data-loading]');
-        let previewTimer: ReturnType<typeof setTimeout> | null = null;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        // Hover preview on desktop
-        player.addEventListener('mouseenter', () => {
-          if (player.dataset.mode !== 'preview') return;
-          startPreview();
-        });
-
-        player.addEventListener('mouseleave', () => {
-          if (player.dataset.mode !== 'preview') return;
-          stopPreview();
-        });
-
-        function startPreview() {
-          if (!video) return;
-          if (previewDuration <= 0) return;
-
-          // Load video if not loaded
-          if (!video.src || video.getAttribute('src') === '') {
-            loadingEl?.classList.add('is-loading');
-            video.preload = 'auto';
-            video.src = dataSrc!;
-
-            const onCanPlay = () => {
-              loadingEl?.classList.remove('is-loading');
-              video!.removeEventListener('canplay', onCanPlay);
-              beginPreviewPlayback();
-            };
-            video.addEventListener('canplay', onCanPlay);
-          } else {
-            beginPreviewPlayback();
-          }
-        }
-
-        function beginPreviewPlayback() {
-          if (!video) return;
-          video.currentTime = 0;
-          video.loop = false; // Don't loop in preview — play once and stop
-          video.play().catch(() => {
-            player.dataset.playing = 'false';
-          });
-          player.dataset.playing = 'true';
-
-          // Stop after preview duration
-          if (previewTimer) clearTimeout(previewTimer);
-          previewTimer = setTimeout(() => {
-            stopPreview();
-          }, previewDuration * 1000);
-        }
-
-        function stopPreview() {
-          if (!video) return;
-          if (previewTimer) {
-            clearTimeout(previewTimer);
-            previewTimer = null;
-          }
-          video.pause();
-          video.currentTime = 0;
-          player.dataset.playing = 'false';
-        }
-
-        // Auto-preview when scrolling into view on all devices
-        // Hover also re-triggers preview on desktop for interactivity
         const observer = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry) => {
-              // Don't interfere if user clicked into full mode
-              if (player.dataset.mode === 'full') return;
+              if (player.dataset.mode === 'paused') return;
 
               if (entry.isIntersecting) {
-                player.dataset.mode = 'preview';
-                startPreview();
+                if (prefersReducedMotion) return;
+                player.dataset.mode = 'loop';
+                loadVideo(player, video);
+                activePlayers.add(player);
+                enforceLimit(player);
+                video.play().catch(() => { player.dataset.playing = 'false'; });
               } else {
-                // Leaving viewport: clean up
-                if (player.dataset.mode === 'preview') {
-                  stopPreview();
-                }
-                if (player.dataset.mode === 'full') {
-                  video.pause();
-                  player.dataset.playing = 'false';
-                  player.dataset.mode = 'idle';
-                }
+                video.pause();
+                activePlayers.delete(player);
               }
             });
           },
-          {
-            rootMargin: '100px 0px',
-            threshold: 0.2,
-          }
+          { rootMargin: '200px 0px', threshold: 0.15 }
         );
-
         observer.observe(player);
       }
     });
   }
 
-  // Run on initial load
-  initVideoPlayers();
+  function loadVideo(player: HTMLDivElement, video: HTMLVideoElement) {
+    const dataSrc = video.dataset.src;
+    if (!dataSrc) return;
+    if (video.src && video.getAttribute('src') !== '') return;
 
-  // Re-run after Astro page transitions (View Transitions)
-  document.addEventListener('astro:after-swap', initVideoPlayers);
+    const loadingEl = player.querySelector<HTMLDivElement>('[data-loading]');
+    loadingEl?.classList.add('is-loading');
+    video.preload = 'auto';
+    video.src = dataSrc;
+    const onCanPlay = () => {
+      loadingEl?.classList.remove('is-loading');
+      video.removeEventListener('canplay', onCanPlay);
+    };
+    video.addEventListener('canplay', onCanPlay);
+  }
+
+  function enforceLimit(current: HTMLDivElement) {
+    if (activePlayers.size <= MAX_CONCURRENT) return;
+    for (const p of activePlayers) {
+      if (p === current) continue;
+      if (activePlayers.size <= MAX_CONCURRENT) break;
+      const v = p.querySelector<HTMLVideoElement>('[data-video]');
+      if (v) {
+        v.pause();
+        p.dataset.playing = 'false';
+        activePlayers.delete(p);
+      }
+    }
+  }
+
+  initVideoPlayers();
+  document.addEventListener('astro:after-swap', () => {
+    activePlayers.clear();
+    initVideoPlayers();
+  });
 </script>

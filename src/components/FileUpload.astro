@@ -165,6 +165,7 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
 
     function showUploadedState(url: string) {
       urlInput.value = url;
+      urlInput.dispatchEvent(new Event('change', { bubbles: true }));
       urlDisplay.textContent = url;
 
       const isVideoUrl = url && /\.(mp4|mov|avi|webm)$/i.test(url);

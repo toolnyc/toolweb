@@ -270,4 +270,20 @@ if (Astro.request.method === 'POST') {
     mediaTypeSelect.addEventListener('change', updateHint);
     updateHint();
   }
+
+  // Auto-detect media_type from uploaded file URL
+  const mediaUrlInput = document.querySelector<HTMLInputElement>('input[name="media_url"]');
+  if (mediaUrlInput && mediaTypeEl) {
+    const mediaTypeSelect = mediaTypeEl as unknown as HTMLSelectElement;
+    mediaUrlInput.addEventListener('change', () => {
+      const url = mediaUrlInput.value;
+      if (url && /\.mp4$/i.test(url)) {
+        mediaTypeSelect.value = 'video';
+        mediaTypeSelect.dispatchEvent(new Event('change'));
+      } else if (url && /\.(webp|jpg|jpeg|png|gif)$/i.test(url)) {
+        mediaTypeSelect.value = 'image';
+        mediaTypeSelect.dispatchEvent(new Event('change'));
+      }
+    });
+  }
 </script>

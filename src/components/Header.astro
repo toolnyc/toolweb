@@ -8,14 +8,32 @@ import { getFeatureFlag } from '../lib/queries';
 const shopEnabled = await getFeatureFlag('shop_enabled');
 ---
 
-<header class="sticky top-0 z-40 bg-white">
-  <nav class="site-grid items-center py-[6.5px]" aria-label="Main">
-    <a href="/" class="col-span-2 text-body font-medium uppercase tracking-widest">Tool</a>
-    <div class={`hidden lg:block ${shopEnabled ? 'lg:col-span-16' : 'lg:col-span-18'}`}></div>
-    {shopEnabled && (
-      <a href="/shop" class="col-span-2 text-body text-right lg:text-center hover:text-caption-gray transition-colors">Shop</a>
-    )}
-    <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="col-span-2 text-body text-right lg:text-center hover:text-caption-gray transition-colors cursor-pointer bg-transparent border-none p-0">Book</button>
-    <a href="/admin/login" class="hidden lg:block col-span-2 text-body text-center text-caption-gray hover:text-neutral-900 transition-colors">Login</a>
+<header class="sticky top-0 z-40 bg-white border-b border-neutral-100">
+  <nav class="flex items-center justify-between px-2 py-2" aria-label="Main">
+    <div class="flex items-center gap-[2px]">
+      <a href="/admin/login" class="nav-btn bg-lite-gray text-caption-gray hover:text-neutral-900">Login</a>
+    </div>
+    <div class="flex items-center gap-[2px]">
+      {shopEnabled && (
+        <a href="/shop" class="nav-btn bg-yellow">Shop</a>
+      )}
+      <button data-cal-link="toolnyc/30min" data-cal-config='{"layout":"month_view"}' class="nav-btn bg-cyan cursor-pointer border-none">Book</button>
+    </div>
   </nav>
 </header>
+
+<style>
+  .nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 14px;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 500;
+    color: #000;
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+  }
+  /* Hover handled by GSAP in animations.ts */
+</style>

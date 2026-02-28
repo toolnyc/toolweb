@@ -89,6 +89,50 @@
   }
   .accordion-content.is-open { max-height: 2000px; }
 
+  /* Service cards — rectangular, button-like blocks */
+  .service-card {
+    display: block;
+    background: white;
+    padding: 16px;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 18px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .service-card:hover,
+  .service-card[data-hover="cyan"]:hover { background: #00FFFF; }
+  .service-card[data-hover="magenta"]:hover { background: #FF00FF; }
+  .service-card[data-hover="yellow"]:hover { background: #FFEB00; }
+  .service-card:hover p { color: #000 !important; }
+  .service-card[data-hover="magenta"]:hover p { color: #fff !important; }
+  .service-card:hover .service-tag { border-color: currentColor; color: #000; }
+  .service-card[data-hover="magenta"]:hover .service-tag { color: #fff; border-color: #fff; }
+
+  .service-tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid #d4d4d4;
+    color: #737373;
+    line-height: 18px;
+  }
+
+  /* Process cards — same rectangular feel, magenta hover */
+  .process-card {
+    display: block;
+    background: white;
+    padding: 16px;
+    text-decoration: none;
+    font-size: 13px;
+    line-height: 18px;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  /* Process card hover handled by GSAP — progressive cyan opacity */
+
   /* Filter pill */
   .filter-pill {
     @apply bg-lite-gray px-2 py-[6.5px] text-body cursor-pointer;
@@ -127,7 +171,20 @@
   opacity: 0;
 }
 
-/* DVD canvas sits behind hero content */
-#dvd-canvas {
+/* Eyes canvas sits behind hero content */
+#eyes-canvas {
   z-index: 0;
+}
+
+/* Typing cursor blink */
+.hero-cursor {
+  display: inline;
+  animation: blink-cursor 0.8s step-end infinite;
+  color: #737373;
+}
+@keyframes blink-cursor {
+  50% { opacity: 0; }
+}
+.hero-typing-text {
+  /* Characters hidden by default, revealed by GSAP */
 }

@@ -51,6 +51,14 @@ const mdSpan = mdSpanMap[item.display_size] ?? 6;
       </span>
     </a>
   )}
+
+  <div class="px-1 py-2">
+    <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
+    <p class="text-sm font-medium text-white mt-1">{item.title}</p>
+    {item.description && (
+      <p class="text-xs text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
+    )}
+  </div>
 </div>
 
 <style is:global>

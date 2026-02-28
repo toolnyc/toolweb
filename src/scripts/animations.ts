@@ -290,22 +290,20 @@ if (prefersReducedMotion) {
     });
   }
 
-  // ── Portfolio items — reveal on scroll ────────────────────────
-  document
-    .querySelectorAll<HTMLElement>('[data-md-span]')
-    .forEach((item) => {
-      gsap.to(item, {
-        scrollTrigger: {
-          trigger: item,
-          start: 'top 85%',
-          once: true,
-        },
+  // ── Portfolio items — staggered reveal on scroll ─────────────
+  ScrollTrigger.batch('.portfolio-item', {
+    start: 'top 85%',
+    once: true,
+    onEnter: (batch) => {
+      gsap.to(batch, {
         opacity: 1,
         y: 0,
         duration: 0.8,
+        stagger: 0.1,
         ease: 'power2.out',
       });
-    });
+    },
+  });
 
   // ── Writing blocks — fade in ──────────────────────────────────
   document

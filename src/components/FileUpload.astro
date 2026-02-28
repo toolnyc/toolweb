@@ -34,8 +34,15 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
         src={currentUrl}
         alt="Current file"
         class="file-upload-preview-thumb w-16 h-16 object-cover rounded border border-neutral-200"
-        style={currentUrl ? '' : 'display:none'}
+        style={currentUrl && !currentUrl.match(/\.(mp4|mov|avi|webm)$/i) ? '' : 'display:none'}
       />
+      <video
+        src={currentUrl}
+        muted
+        controls
+        class="file-upload-preview-video w-24 h-16 object-cover rounded border border-neutral-200"
+        style={currentUrl && currentUrl.match(/\.(mp4|mov|avi|webm)$/i) ? '' : 'display:none'}
+      ></video>
       <div class="flex-1 min-w-0">
         <p class="text-sm text-green-700 font-medium">File uploaded</p>
         <p class="text-xs text-neutral-500 truncate file-upload-url-display">{currentUrl}</p>
@@ -76,6 +83,13 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
         alt="Preview"
         class="file-upload-preview-img mx-auto mb-3 max-h-40 rounded border border-neutral-200"
       />
+      <video
+        src=""
+        muted
+        controls
+        class="file-upload-preview-vid mx-auto mb-3 max-h-40 rounded border border-neutral-200"
+        style="display:none"
+      ></video>
       <p class="text-sm text-neutral-600 file-upload-filename"></p>
       <p class="text-xs text-neutral-400 file-upload-filesize"></p>
     </div>
@@ -113,6 +127,8 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
     const idleState = wrapper.querySelector('.file-upload-idle') as HTMLElement;
     const previewState = wrapper.querySelector('.file-upload-preview') as HTMLElement;
     const previewImg = wrapper.querySelector('.file-upload-preview-img') as HTMLImageElement;
+    const previewVid = wrapper.querySelector('.file-upload-preview-vid') as HTMLVideoElement;
+    const previewVideo = wrapper.querySelector('.file-upload-preview-video') as HTMLVideoElement;
     const filenameEl = wrapper.querySelector('.file-upload-filename') as HTMLElement;
     const filesizeEl = wrapper.querySelector('.file-upload-filesize') as HTMLElement;
     const progressWrap = wrapper.querySelector('.file-upload-progress') as HTMLElement;
@@ -141,6 +157,8 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
       idleState.style.display = '';
       previewState.style.display = 'none';
       progressWrap.style.display = 'none';
+      previewVid.style.display = 'none';
+      previewVid.src = '';
       hideError();
       fileInput.value = '';
     }
@@ -149,12 +167,20 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
       urlInput.value = url;
       urlDisplay.textContent = url;
 
-      // Show thumbnail for images
-      if (url && !url.match(/\.(mp4|mov|avi|webm)$/i)) {
+      const isVideoUrl = url && /\.(mp4|mov|avi|webm)$/i.test(url);
+
+      // Show thumbnail for images, video element for videos
+      if (isVideoUrl) {
+        previewThumb.style.display = 'none';
+        previewVideo.src = url;
+        previewVideo.style.display = '';
+      } else if (url) {
         previewThumb.src = url;
         previewThumb.style.display = '';
+        previewVideo.style.display = 'none';
       } else {
         previewThumb.style.display = 'none';
+        previewVideo.style.display = 'none';
       }
 
       currentDisplay.style.display = '';
@@ -165,6 +191,8 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
       urlInput.value = '';
       urlDisplay.textContent = '';
       previewThumb.src = '';
+      previewVideo.src = '';
+      previewVideo.style.display = 'none';
       currentDisplay.style.display = 'none';
       dropzone.style.display = '';
       resetToIdle();
@@ -216,7 +244,7 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
         return;
       }
 
-      // Show preview for images
+      // Show preview for images or videos
       if (isImage) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -224,8 +252,14 @@ const instanceId = `file-upload-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
           previewImg.style.display = '';
         };
         reader.readAsDataURL(file);
+        previewVid.style.display = 'none';
+      } else if (isVideo) {
+        previewImg.style.display = 'none';
+        previewVid.src = URL.createObjectURL(file);
+        previewVid.style.display = '';
       } else {
         previewImg.style.display = 'none';
+        previewVid.style.display = 'none';
       }
 
       filenameEl.textContent = file.name;

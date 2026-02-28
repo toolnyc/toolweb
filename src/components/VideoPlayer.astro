@@ -3,9 +3,11 @@ interface Props {
   src: string;
   poster?: string;
   title: string;
+  /** Preview duration in seconds (0 = no preview, plays full). Default: 4 */
+  previewDuration?: number;
 }
 
-const { src, poster, title } = Astro.props;
+const { src, poster, title, previewDuration = 4 } = Astro.props;
 
 const isCloudflareStream = src.includes('cloudflarestream.com');
 
@@ -32,7 +34,13 @@ const iframeSrc = isCloudflareStream ? buildStreamUrl(src, poster) : null;
 const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
 ---
 
-<div class="video-player relative w-full" id={playerId} data-playing="true">
+<div
+  class="video-player relative w-full"
+  id={playerId}
+  data-playing="false"
+  data-mode="preview"
+  data-preview-duration={previewDuration}
+>
   {isCloudflareStream ? (
     <iframe
       src={iframeSrc}
@@ -44,20 +52,36 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
       loading="lazy"
     />
   ) : (
-    <video
-      src={src}
-      poster={poster ?? undefined}
-      autoplay
-      muted
-      loop
-      playsinline
-      class="w-full h-auto block"
-      data-video
-    />
+    <div class="video-wrap relative">
+      {/* Poster image — shown by default, hidden when video is playing */}
+      {poster && (
+        <img
+          src={poster}
+          alt=""
+          class="video-poster absolute inset-0 w-full h-full object-cover z-[1]"
+          data-poster-img
+        />
+      )}
+      {/* Dark placeholder when no poster */}
+      {!poster && (
+        <div class="video-placeholder absolute inset-0 bg-neutral-900 z-[1]" data-placeholder />
+      )}
+      <video
+        data-src={src}
+        poster={poster ?? undefined}
+        preload="none"
+        muted
+        playsinline
+        class="w-full h-auto block"
+        data-video
+      />
+      {/* Loading pulse overlay */}
+      <div class="video-loading absolute inset-0 pointer-events-none opacity-0 z-[2]" data-loading />
+    </div>
   )}
 
-  {/* Play icon overlay — visible when paused */}
-  <div class="play-overlay absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-200">
+  {/* Play icon overlay — visible when paused / in preview mode */}
+  <div class="play-overlay absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-200 z-[3]">
     <svg
       width="40"
       height="40"
@@ -72,62 +96,230 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
 
   {/* Transparent click target */}
   <button
-    class="absolute inset-0 w-full h-full cursor-pointer bg-transparent border-0 p-0 m-0"
+    class="absolute inset-0 w-full h-full cursor-pointer bg-transparent border-0 p-0 m-0 z-[4]"
     aria-label={`Play or pause ${title}`}
     data-toggle
   />
 </div>
 
 <style>
-  .video-player[data-playing="false"] .play-overlay {
+  /* Show play icon when paused and NOT in preview mode */
+  .video-player[data-playing="false"]:not([data-mode="preview"]) .play-overlay {
     opacity: 1;
   }
 
-  .video-player[data-playing="true"] .play-overlay {
+  /* Fade poster out when video is actively playing */
+  .video-poster {
+    transition: opacity 0.5s ease;
+  }
+  .video-player[data-playing="true"] .video-poster {
     opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Fade placeholder similarly */
+  .video-placeholder {
+    transition: opacity 0.5s ease;
+  }
+  .video-player[data-playing="true"] .video-placeholder {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Loading pulse animation */
+  .video-loading {
+    background: rgba(0, 0, 0, 0.3);
+    transition: opacity 0.3s ease;
+  }
+
+  .video-loading.is-loading {
+    opacity: 1;
+    animation: pulse-load 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-load {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
   }
 </style>
 
 <script>
   function initVideoPlayers() {
-    document.querySelectorAll<HTMLDivElement>('.video-player').forEach((player) => {
+    const players = document.querySelectorAll<HTMLDivElement>('.video-player');
+    const observed = new WeakSet<HTMLDivElement>();
+
+    players.forEach((player) => {
       const toggle = player.querySelector<HTMLButtonElement>('[data-toggle]');
-      if (!toggle || toggle.dataset.bound) return;
-      toggle.dataset.bound = 'true';
+      if (!toggle) return;
 
       const video = player.querySelector<HTMLVideoElement>('[data-video]');
       const iframe = player.querySelector<HTMLIFrameElement>('iframe');
+      const previewDuration = parseFloat(player.dataset.previewDuration ?? '4');
 
-      if (video) {
-        // Native video: direct play/pause
-        toggle.addEventListener('click', () => {
-          if (video.paused) {
-            video.play();
+      // --- Toggle binding (once per player) ---
+      if (!toggle.dataset.bound) {
+        toggle.dataset.bound = 'true';
+
+        if (video) {
+          toggle.addEventListener('click', () => {
+            const mode = player.dataset.mode;
+
+            if (mode === 'preview' || mode === 'idle') {
+              // Switch to full playback mode
+              player.dataset.mode = 'full';
+              const dataSrc = video.dataset.src;
+
+              if (!video.src || video.getAttribute('src') === '') {
+                if (dataSrc) {
+                  video.preload = 'auto';
+                  video.src = dataSrc;
+                }
+              }
+
+              // Remove the preview time limit — let it loop freely
+              video.loop = true;
+              video.play().catch(() => {
+                player.dataset.playing = 'false';
+              });
+              player.dataset.playing = 'true';
+            } else if (mode === 'full') {
+              // In full mode, toggle play/pause normally
+              if (video.paused) {
+                video.play();
+                player.dataset.playing = 'true';
+              } else {
+                video.pause();
+                player.dataset.playing = 'false';
+                player.dataset.mode = 'idle';
+              }
+            }
+          });
+
+          video.addEventListener('pause', () => {
+            if (player.dataset.mode !== 'preview') {
+              player.dataset.playing = 'false';
+            }
+          });
+          video.addEventListener('play', () => {
             player.dataset.playing = 'true';
-          } else {
-            video.pause();
-            player.dataset.playing = 'false';
-          }
+          });
+        } else if (iframe) {
+          let isPlaying = true;
+
+          toggle.addEventListener('click', () => {
+            if (isPlaying) {
+              iframe.contentWindow?.postMessage({ type: 'pause' }, '*');
+              isPlaying = false;
+              player.dataset.playing = 'false';
+            } else {
+              iframe.contentWindow?.postMessage({ type: 'play' }, '*');
+              isPlaying = true;
+              player.dataset.playing = 'true';
+            }
+          });
+        }
+      }
+
+      // --- IntersectionObserver for native video: preview loop ---
+      if (video && !observed.has(player)) {
+        observed.add(player);
+
+        const dataSrc = video.dataset.src;
+        if (!dataSrc) return;
+
+        const loadingEl = player.querySelector<HTMLDivElement>('[data-loading]');
+        let previewTimer: ReturnType<typeof setTimeout> | null = null;
+
+        // Hover preview on desktop
+        player.addEventListener('mouseenter', () => {
+          if (player.dataset.mode !== 'preview') return;
+          startPreview();
         });
 
-        // Sync state if video pauses/plays externally
-        video.addEventListener('pause', () => { player.dataset.playing = 'false'; });
-        video.addEventListener('play', () => { player.dataset.playing = 'true'; });
-      } else if (iframe) {
-        // Cloudflare Stream iframe: toggle via postMessage
-        let isPlaying = true;
-
-        toggle.addEventListener('click', () => {
-          if (isPlaying) {
-            iframe.contentWindow?.postMessage({ type: 'pause' }, '*');
-            isPlaying = false;
-            player.dataset.playing = 'false';
-          } else {
-            iframe.contentWindow?.postMessage({ type: 'play' }, '*');
-            isPlaying = true;
-            player.dataset.playing = 'true';
-          }
+        player.addEventListener('mouseleave', () => {
+          if (player.dataset.mode !== 'preview') return;
+          stopPreview();
         });
+
+        function startPreview() {
+          if (!video) return;
+          if (previewDuration <= 0) return;
+
+          // Load video if not loaded
+          if (!video.src || video.getAttribute('src') === '') {
+            loadingEl?.classList.add('is-loading');
+            video.preload = 'auto';
+            video.src = dataSrc!;
+
+            const onCanPlay = () => {
+              loadingEl?.classList.remove('is-loading');
+              video!.removeEventListener('canplay', onCanPlay);
+              beginPreviewPlayback();
+            };
+            video.addEventListener('canplay', onCanPlay);
+          } else {
+            beginPreviewPlayback();
+          }
+        }
+
+        function beginPreviewPlayback() {
+          if (!video) return;
+          video.currentTime = 0;
+          video.loop = false; // Don't loop in preview — play once and stop
+          video.play().catch(() => {
+            player.dataset.playing = 'false';
+          });
+          player.dataset.playing = 'true';
+
+          // Stop after preview duration
+          if (previewTimer) clearTimeout(previewTimer);
+          previewTimer = setTimeout(() => {
+            stopPreview();
+          }, previewDuration * 1000);
+        }
+
+        function stopPreview() {
+          if (!video) return;
+          if (previewTimer) {
+            clearTimeout(previewTimer);
+            previewTimer = null;
+          }
+          video.pause();
+          video.currentTime = 0;
+          player.dataset.playing = 'false';
+        }
+
+        // Auto-preview when scrolling into view on all devices
+        // Hover also re-triggers preview on desktop for interactivity
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              // Don't interfere if user clicked into full mode
+              if (player.dataset.mode === 'full') return;
+
+              if (entry.isIntersecting) {
+                player.dataset.mode = 'preview';
+                startPreview();
+              } else {
+                // Leaving viewport: clean up
+                if (player.dataset.mode === 'preview') {
+                  stopPreview();
+                }
+                if (player.dataset.mode === 'full') {
+                  video.pause();
+                  player.dataset.playing = 'false';
+                  player.dataset.mode = 'idle';
+                }
+              }
+            });
+          },
+          {
+            rootMargin: '100px 0px',
+            threshold: 0.2,
+          }
+        );
+
+        observer.observe(player);
       }
     });
   }

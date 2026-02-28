@@ -7,6 +7,7 @@ const supabaseAdmin = getSupabaseAdmin();
 const { id } = Astro.params;
 
 let portfolioItem: any = null;
+let galleryImages: any[] = [];
 let error = '';
 let success = '';
 
@@ -22,6 +23,15 @@ if (id) {
   }
 
   portfolioItem = data;
+
+  // Fetch gallery images for case studies
+  const { data: images } = await supabaseAdmin
+    .from('case_study_images')
+    .select('*')
+    .eq('portfolio_item_id', id)
+    .order('sort_order');
+
+  galleryImages = images ?? [];
 }
 
 if (Astro.request.method === 'POST' && id) {
@@ -148,12 +158,15 @@ if (Astro.request.method === 'POST' && id) {
             currentUrl={portfolioItem.media_url}
           />
 
-          <FileUpload
-            name="thumbnail_url"
-            label="Thumbnail Image"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            currentUrl={portfolioItem.thumbnail_url || ''}
-          />
+          <div>
+            <FileUpload
+              name="thumbnail_url"
+              label="Thumbnail Image"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              currentUrl={portfolioItem.thumbnail_url || ''}
+            />
+            <p id="video-thumbnail-hint" class={`text-xs text-amber-600 mt-1 ${portfolioItem.media_type === 'video' ? '' : 'hidden'}`}>Recommended: upload a poster image for video items</p>
+          </div>
 
           <div>
             <label for="external_url" class="block text-sm font-semibold mb-2">External URL</label>
@@ -228,6 +241,91 @@ if (Astro.request.method === 'POST' && id) {
                   placeholder="1-3 lines. Metrics or a client quote."
                   class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
                 >{portfolioItem.impact}</textarea>
+              </div>
+
+              <!-- Gallery Images -->
+              <div class="border-t border-neutral-200 pt-6">
+                <h3 class="text-sm font-semibold mb-4">Gallery Images</h3>
+
+                <div id="gallery-list" class="space-y-4 mb-6">
+                  {galleryImages.map((img) => (
+                    <div class="gallery-item flex items-start gap-3 p-3 bg-neutral-50 border border-neutral-200 rounded" data-id={img.id}>
+                      <img
+                        src={img.media_url}
+                        alt={img.caption || ''}
+                        class="w-20 h-20 object-cover rounded border border-neutral-200 flex-shrink-0"
+                      />
+                      <div class="flex-1 space-y-2">
+                        <input
+                          type="text"
+                          value={img.caption || ''}
+                          placeholder="Caption"
+                          class="gallery-caption w-full px-2 py-1.5 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                        />
+                        <div class="flex items-center gap-2">
+                          <label class="text-xs text-neutral-500">Order:</label>
+                          <input
+                            type="number"
+                            value={img.sort_order}
+                            class="gallery-sort-order w-16 px-2 py-1 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                          />
+                          <button
+                            type="button"
+                            class="gallery-save-btn ml-auto px-2 py-1 text-xs text-neutral-600 border border-neutral-300 rounded hover:bg-neutral-100"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            class="gallery-delete-btn px-2 py-1 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {galleryImages.length === 0 && (
+                    <p class="text-sm text-neutral-400 gallery-empty-msg">No gallery images yet.</p>
+                  )}
+                </div>
+
+                <div id="gallery-add" class="border border-dashed border-neutral-300 rounded p-4">
+                  <h4 class="text-sm font-medium mb-3">Add Image</h4>
+                  <FileUpload
+                    name="gallery_image_url"
+                    label="Image"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                  />
+                  <div class="mt-3 flex items-end gap-3">
+                    <div class="flex-1">
+                      <label class="block text-xs text-neutral-500 mb-1">Caption</label>
+                      <input
+                        type="text"
+                        id="gallery-new-caption"
+                        placeholder="Optional caption"
+                        class="w-full px-2 py-1.5 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-xs text-neutral-500 mb-1">Order</label>
+                      <input
+                        type="number"
+                        id="gallery-new-sort-order"
+                        value="0"
+                        class="w-16 px-2 py-1.5 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      id="gallery-add-btn"
+                      class="px-3 py-1.5 text-sm bg-neutral-900 text-white rounded hover:opacity-90 disabled:opacity-50"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <p id="gallery-add-error" class="text-sm text-red-600 mt-2 hidden"></p>
+                </div>
               </div>
             </div>
           </div>
@@ -314,4 +412,208 @@ if (Astro.request.method === 'POST' && id) {
       caseStudyFields.classList.toggle('hidden', !caseStudyCheckbox.checked);
     });
   }
+
+  const mediaTypeEl = document.getElementById('media_type');
+  const videoThumbnailHint = document.getElementById('video-thumbnail-hint');
+  if (mediaTypeEl && videoThumbnailHint) {
+    const mediaTypeSelect = mediaTypeEl as unknown as HTMLSelectElement;
+    mediaTypeSelect.addEventListener('change', () => {
+      videoThumbnailHint.classList.toggle('hidden', mediaTypeSelect.value !== 'video');
+    });
+  }
+
+  // -- Gallery image CRUD --
+  const galleryList = document.getElementById('gallery-list');
+  const addBtn = document.getElementById('gallery-add-btn') as HTMLButtonElement | null;
+  const addError = document.getElementById('gallery-add-error') as HTMLElement | null;
+
+  // Get portfolio item ID from the URL
+  const portfolioItemId = window.location.pathname.split('/').pop();
+
+  function createGalleryItemElement(imgData: { id: string; media_url: string; caption: string | null; sort_order: number }): HTMLElement {
+    const item = document.createElement('div');
+    item.className = 'gallery-item flex items-start gap-3 p-3 bg-neutral-50 border border-neutral-200 rounded';
+    item.dataset.id = imgData.id;
+
+    const img = document.createElement('img');
+    img.src = imgData.media_url;
+    img.alt = imgData.caption || '';
+    img.className = 'w-20 h-20 object-cover rounded border border-neutral-200 flex-shrink-0';
+    item.appendChild(img);
+
+    const content = document.createElement('div');
+    content.className = 'flex-1 space-y-2';
+
+    const captionInput = document.createElement('input');
+    captionInput.type = 'text';
+    captionInput.value = imgData.caption || '';
+    captionInput.placeholder = 'Caption';
+    captionInput.className = 'gallery-caption w-full px-2 py-1.5 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900';
+    content.appendChild(captionInput);
+
+    const controls = document.createElement('div');
+    controls.className = 'flex items-center gap-2';
+
+    const orderLabel = document.createElement('label');
+    orderLabel.className = 'text-xs text-neutral-500';
+    orderLabel.textContent = 'Order:';
+    controls.appendChild(orderLabel);
+
+    const sortInput = document.createElement('input');
+    sortInput.type = 'number';
+    sortInput.value = String(imgData.sort_order);
+    sortInput.className = 'gallery-sort-order w-16 px-2 py-1 text-sm border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900';
+    controls.appendChild(sortInput);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'gallery-save-btn ml-auto px-2 py-1 text-xs text-neutral-600 border border-neutral-300 rounded hover:bg-neutral-100';
+    saveBtn.textContent = 'Save';
+    controls.appendChild(saveBtn);
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'gallery-delete-btn px-2 py-1 text-xs text-red-600 border border-red-200 rounded hover:bg-red-50';
+    deleteBtn.textContent = 'Delete';
+    controls.appendChild(deleteBtn);
+
+    content.appendChild(controls);
+    item.appendChild(content);
+
+    return item;
+  }
+
+  function attachGalleryHandlers(item: HTMLElement) {
+    const id = item.dataset.id;
+    if (!id) return;
+
+    const captionInput = item.querySelector('.gallery-caption') as HTMLInputElement;
+    const sortInput = item.querySelector('.gallery-sort-order') as HTMLInputElement;
+    const saveBtn = item.querySelector('.gallery-save-btn') as HTMLButtonElement;
+    const deleteBtn = item.querySelector('.gallery-delete-btn') as HTMLButtonElement;
+
+    saveBtn?.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+      try {
+        const res = await fetch('/api/case-study-images', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id,
+            caption: captionInput.value,
+            sort_order: parseInt(sortInput.value) || 0,
+          }),
+        });
+        if (!res.ok) {
+          const errData = await res.json() as Record<string, string>;
+          alert(errData.error || 'Failed to save');
+        } else {
+          saveBtn.textContent = 'Saved';
+          setTimeout(() => { saveBtn.textContent = 'Save'; }, 1000);
+        }
+      } catch {
+        alert('Failed to save');
+      } finally {
+        saveBtn.disabled = false;
+        if (saveBtn.textContent === 'Saving...') saveBtn.textContent = 'Save';
+      }
+    });
+
+    deleteBtn?.addEventListener('click', async () => {
+      if (!confirm('Delete this gallery image?')) return;
+      deleteBtn.disabled = true;
+      try {
+        const res = await fetch(`/api/case-study-images?id=${id}`, { method: 'DELETE' });
+        if (!res.ok) {
+          const errData = await res.json() as Record<string, string>;
+          alert(errData.error || 'Failed to delete');
+        } else {
+          item.remove();
+          if (galleryList && galleryList.querySelectorAll('.gallery-item').length === 0) {
+            const emptyMsg = document.createElement('p');
+            emptyMsg.className = 'text-sm text-neutral-400 gallery-empty-msg';
+            emptyMsg.textContent = 'No gallery images yet.';
+            galleryList.appendChild(emptyMsg);
+          }
+        }
+      } catch {
+        alert('Failed to delete');
+        deleteBtn.disabled = false;
+      }
+    });
+  }
+
+  // Attach handlers to server-rendered gallery items
+  document.querySelectorAll<HTMLElement>('.gallery-item').forEach(attachGalleryHandlers);
+
+  // Add new gallery image
+  addBtn?.addEventListener('click', async () => {
+    const urlInput = document.querySelector('#gallery-add input[name="gallery_image_url"]') as HTMLInputElement | null;
+    const captionInput = document.getElementById('gallery-new-caption') as HTMLInputElement;
+    const sortInput = document.getElementById('gallery-new-sort-order') as HTMLInputElement;
+
+    const mediaUrl = urlInput?.value?.trim();
+    if (!mediaUrl) {
+      if (addError) {
+        addError.textContent = 'Upload an image first.';
+        addError.classList.remove('hidden');
+      }
+      return;
+    }
+
+    if (addError) addError.classList.add('hidden');
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding...';
+
+    try {
+      const res = await fetch('/api/case-study-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          portfolio_item_id: portfolioItemId,
+          media_url: mediaUrl,
+          caption: captionInput.value || null,
+          sort_order: parseInt(sortInput.value) || 0,
+        }),
+      });
+
+      const respData = await res.json() as { id: string; media_url: string; caption: string | null; sort_order: number; error?: string };
+
+      if (!res.ok) {
+        if (addError) {
+          addError.textContent = respData.error || 'Failed to add image';
+          addError.classList.remove('hidden');
+        }
+        return;
+      }
+
+      // Remove empty message if present
+      const emptyMsg = galleryList?.querySelector('.gallery-empty-msg');
+      emptyMsg?.remove();
+
+      // Build new gallery item using safe DOM construction
+      const newItem = createGalleryItemElement(respData);
+      galleryList?.appendChild(newItem);
+      attachGalleryHandlers(newItem);
+
+      // Reset the add form
+      captionInput.value = '';
+      sortInput.value = '0';
+      // Reset the FileUpload component
+      const fileUploadWrapper = document.querySelector('#gallery-add .file-upload-wrapper') as HTMLElement | null;
+      if (fileUploadWrapper) {
+        const removeBtn = fileUploadWrapper.querySelector('.file-upload-remove-btn') as HTMLButtonElement | null;
+        removeBtn?.click();
+      }
+    } catch {
+      if (addError) {
+        addError.textContent = 'Failed to add image';
+        addError.classList.remove('hidden');
+      }
+    } finally {
+      addBtn.disabled = false;
+      addBtn.textContent = 'Add';
+    }
+  });
 </script>

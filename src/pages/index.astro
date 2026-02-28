@@ -31,6 +31,16 @@ const [portfolio, writing, clients, testimonials, heroTagline, aboutBlurb, proce
 const lgSpanMap: Record<string, number> = { small: 8, medium: 12, large: 16 };
 const mdSpanMap: Record<string, number> = { small: 6, medium: 6, large: 12 };
 
+// Deterministic aspect-ratio pattern based on item index for visual rhythm
+const aspectPatterns = ['3/4', '16/9', '4/3', '1/1', '4/3', '16/9'] as const;
+function getAspectRatio(index: number, displaySize: string): string {
+  if (displaySize === 'large') {
+    // Large items alternate between cinematic and square-ish
+    return index % 2 === 0 ? '16/9' : '4/3';
+  }
+  return aspectPatterns[index % aspectPatterns.length];
+}
+
 // Chunk portfolio items for interleaving with writing snippets
 const chunkSize = 4;
 const portfolioChunks: PortfolioItem[][] = [];
@@ -82,15 +92,19 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
 
     {/* ── 3. Portfolio grid with writing snippets ─────────── */}
     <section class="site-grid">
-      {portfolioChunks.map((chunk, chunkIndex) => (
+      {portfolioChunks.map((chunk, chunkIndex) => {
+        const baseIndex = chunkIndex * chunkSize;
+        return (
         <>
-          {chunk.map((item) => {
+          {chunk.map((item, i) => {
+            const globalIndex = baseIndex + i;
             const lgSpan = lgSpanMap[item.display_size] ?? 8;
             const mdSpan = mdSpanMap[item.display_size] ?? 6;
+            const aspect = getAspectRatio(globalIndex, item.display_size);
             return (
               <div
-                class="col-span-6 relative overflow-hidden anim-fade-up"
-                style={`grid-column: span 6`}
+                class="portfolio-item col-span-6 relative overflow-hidden anim-fade-up"
+                style={`grid-column: span 6; aspect-ratio: ${aspect}`}
                 data-md-span={mdSpan}
                 data-lg-span={lgSpan}
               >
@@ -100,14 +114,14 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                   <img
                     src={item.media_url}
                     alt={item.title}
-                    class="w-full h-auto block"
+                    class="w-full h-full object-cover block"
                   />
                 )}
 
                 {item.is_case_study && item.slug ? (
                   <a
                     href={`/work/${item.slug}`}
-                    class="absolute inset-0 flex items-end p-2"
+                    class="portfolio-overlay absolute inset-0 flex items-end p-2"
                   >
                     <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
                       View case study &rarr;
@@ -118,13 +132,21 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                     href={item.external_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="absolute inset-0 flex items-end p-2"
+                    class="portfolio-overlay absolute inset-0 flex items-end p-2"
                   >
                     <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
                       View project &rarr;
                     </span>
                   </a>
                 )}
+
+                <div class="px-1 py-2">
+                  <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
+                  <p class="text-sm font-medium text-white mt-1">{item.title}</p>
+                  {item.description && (
+                    <p class="text-xs text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -134,7 +156,8 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
             <WritingBlock snippet={writing[chunkIndex]} />
           )}
         </>
-      ))}
+        );
+      })}
 
       {/* Remaining writing snippets */}
       {writing.slice(portfolioChunks.length).map((snippet) => (

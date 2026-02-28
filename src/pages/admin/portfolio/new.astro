@@ -104,11 +104,14 @@ if (Astro.request.method === 'POST') {
         accept="image/jpeg,image/png,image/webp,image/gif,video/mp4"
       />
 
-      <FileUpload
-        name="thumbnail_url"
-        label="Thumbnail Image"
-        accept="image/jpeg,image/png,image/webp,image/gif"
-      />
+      <div>
+        <FileUpload
+          name="thumbnail_url"
+          label="Thumbnail Image"
+          accept="image/jpeg,image/png,image/webp,image/gif"
+        />
+        <p id="video-thumbnail-hint" class="text-xs text-amber-600 mt-1 hidden">Recommended: upload a poster image for video items</p>
+      </div>
 
       <div>
         <label for="external_url" class="block text-sm font-semibold mb-2">External URL</label>
@@ -255,5 +258,16 @@ if (Astro.request.method === 'POST') {
     caseStudyCheckbox.addEventListener('change', () => {
       caseStudyFields.classList.toggle('hidden', !caseStudyCheckbox.checked);
     });
+  }
+
+  const mediaTypeEl = document.getElementById('media_type');
+  const videoThumbnailHint = document.getElementById('video-thumbnail-hint');
+  if (mediaTypeEl && videoThumbnailHint) {
+    const mediaTypeSelect = mediaTypeEl as unknown as HTMLSelectElement;
+    function updateHint() {
+      videoThumbnailHint!.classList.toggle('hidden', mediaTypeSelect.value !== 'video');
+    }
+    mediaTypeSelect.addEventListener('change', updateHint);
+    updateHint();
   }
 </script>

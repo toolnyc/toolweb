@@ -24,17 +24,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
     pathname !== '/portal/verify';
 
   const isApiRoute = pathname.startsWith('/api/');
+  const isAuthPage = pathname === '/admin/login' || pathname === '/portal' || pathname === '/portal/verify';
 
   // Only run auth queries for routes that actually need them
   if (!isAdminRoute && !isPortalRoute) {
-    // Public pages: allow Cloudflare to cache for 60s, serve stale up to 5min while revalidating
-    if (!isApiRoute) {
+    // Auth/login pages and API routes: no CDN caching
+    if (isApiRoute || isAuthPage) {
       const response = await next();
-      response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
       recordAnalytics(context, response, startTime);
       return response;
     }
+    // Public pages: allow Cloudflare to cache for 60s, serve stale up to 5min while revalidating
     const response = await next();
+    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
     recordAnalytics(context, response, startTime);
     return response;
   }

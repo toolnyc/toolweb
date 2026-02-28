@@ -139,7 +139,7 @@ if (prefersReducedMotion) {
       }
       // ── Draw the TOOL wordmark ─────────────────────────────────
       if (wordmarkLoaded) {
-        const targetW = Math.min(cw * 0.45, 420);
+        const targetW = Math.min(cw < 768 ? cw * 0.7 : cw * 0.45, 420);
         const scale = targetW / SVG_W;
         const targetH = SVG_H * scale;
         const wmX = (cw - targetW) / 2;

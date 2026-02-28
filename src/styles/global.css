@@ -105,6 +105,21 @@
   .service-card[data-hover="yellow"]:hover { background: #FFEB00; }
   .service-card:hover p { color: #000 !important; }
   .service-card[data-hover="magenta"]:hover p { color: #fff !important; }
+  .service-card:hover .service-tag { border-color: currentColor; color: #000; }
+  .service-card[data-hover="magenta"]:hover .service-tag { color: #fff; border-color: #fff; }
+
+  .service-tag {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid #d4d4d4;
+    color: #737373;
+    line-height: 18px;
+  }
 
   /* Process cards — same rectangular feel, magenta hover */
   .process-card {

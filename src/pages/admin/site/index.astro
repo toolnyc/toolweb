@@ -20,27 +20,35 @@ let success = '';
 
 if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
-  const contentId = formData.get('content_id');
+  const contentId = formData.get('content_id') as string;
+  const title = (formData.get('title') as string)?.trim() || null;
+  const content = (formData.get('content') as string)?.trim();
 
-  const { error: updateError } = await supabaseAdmin
-    .from('site_content')
-    .update({
-      title: formData.get('title') || null,
-      content: formData.get('content'),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', contentId);
-
-  if (updateError) {
-    error = updateError.message;
+  if (!contentId) {
+    error = 'Missing content ID';
+  } else if (!content) {
+    error = 'Content is required';
   } else {
-    success = 'Content updated';
-    const { data } = await supabaseAdmin
+    const { error: updateError } = await supabaseAdmin
       .from('site_content')
-      .select('*')
-      .order('content_group', { ascending: true })
-      .order('sort_order', { ascending: true });
-    contentItems = data || [];
+      .update({
+        title,
+        content,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', contentId);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      success = 'Content updated';
+      const { data } = await supabaseAdmin
+        .from('site_content')
+        .select('*')
+        .order('content_group', { ascending: true })
+        .order('sort_order', { ascending: true });
+      contentItems = data || [];
+    }
   }
 }
 

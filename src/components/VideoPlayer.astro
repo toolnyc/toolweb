@@ -35,7 +35,7 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
 ---
 
 <div
-  class="video-player relative w-full"
+  class="video-player relative w-full h-full"
   id={playerId}
   data-playing="false"
   data-mode="preview"
@@ -52,7 +52,7 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
       loading="lazy"
     />
   ) : (
-    <div class="video-wrap relative">
+    <div class="video-wrap relative w-full h-full">
       {/* Poster image — shown by default, hidden when video is playing */}
       {poster && (
         <img
@@ -72,7 +72,7 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
         preload="none"
         muted
         playsinline
-        class="w-full h-auto block"
+        class="w-full h-full object-cover block"
         data-video
       />
       {/* Loading pulse overlay */}

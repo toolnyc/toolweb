@@ -6,6 +6,7 @@ const supabaseAdmin = getSupabaseAdmin();
 
 let portfolioItems: any[] = [];
 let error = '';
+let rlsWarning = false;
 
 const statusFilter = Astro.url.searchParams.get('status') || 'all';
 
@@ -25,12 +26,22 @@ const statusFilter = Astro.url.searchParams.get('status') || 'all';
     error = fetchError.message;
   } else {
     portfolioItems = data || [];
+    // Detect if RLS is silently filtering: admin should see drafts
+    if (statusFilter === 'all' && portfolioItems.length > 0 && !portfolioItems.some((i: any) => i.status === 'draft')) {
+      rlsWarning = true;
+    }
   }
 }
 ---
 
 <Admin title="Portfolio">
   {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+  {rlsWarning && (
+    <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded text-sm">
+      <strong>Warning:</strong> No draft items found — the admin service key may not be configured correctly.
+      Verify that <code>SUPABASE_SECRET_KEY</code> is set to your project's <em>service_role</em> or <em>secret</em> key in Cloudflare Pages secrets, not the publishable key.
+    </div>
+  )}
 
   <div class="flex justify-between items-center mb-8">
     <div class="flex gap-4 items-center">
@@ -99,6 +110,9 @@ const statusFilter = Astro.url.searchParams.get('status') || 'all';
                 <a href={`/admin/portfolio/${item.id}`} class="font-medium hover:underline">
                   {item.title}
                 </a>
+                {item.is_case_study && (
+                  <span class="ml-2 px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded uppercase tracking-wide">Case Study</span>
+                )}
               </td>
               <td class="p-4 text-sm text-neutral-600 capitalize">{item.category}</td>
               <td class="p-4">

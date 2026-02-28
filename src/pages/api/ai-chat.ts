@@ -1,15 +1,15 @@
 import type { APIRoute } from 'astro';
-import { getSupabaseAdmin, getEnv, getOpenAIKey } from '../../lib/env';
+import { getSupabaseAdmin, getOpenAIKey } from '../../lib/env';
 import { transcribeAudio, analyzeIntent, buildInquiryRecord } from '../../lib/ai';
 import type { ChatMessage } from '../../lib/ai';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
-
-// Rate limiting: 3 new conversations per hour per IP
-const rateLimit = new Map<string, { count: number; resetAt: number }>();
+import { logError } from '../../lib/logger';
 
 const MAX_MESSAGES = 5;
 const MAX_CHAR_PER_MESSAGE = 2000;
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // 5MB
+const RATE_LIMIT_WINDOW_HOURS = 1;
+const RATE_LIMIT_MAX_INQUIRIES = 3;
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -26,43 +26,23 @@ export const POST: APIRoute = async ({ request }) => {
     const { action } = body;
 
     if (action === 'chat') {
-      return handleChat(request, body);
+      return handleChat(body);
     } else if (action === 'submit') {
       return handleSubmit(body);
     }
 
     return json({ error: 'Invalid action' }, 400);
   } catch (err) {
-    console.error('ai-chat error:', err);
+    logError('error', 'ai-chat error', { path: '/api/ai-chat', error: err });
     return json({ error: 'Unexpected error' }, 500);
   }
 };
 
-async function handleChat(
-  request: Request,
-  body: {
-    messages?: ChatMessage[];
-    audio?: string;
-  },
-) {
-  const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
+async function handleChat(body: {
+  messages?: ChatMessage[];
+  audio?: string;
+}) {
   const messages = body.messages ?? [];
-
-  // Rate limit on first message only (new conversation)
-  if (messages.length <= 1) {
-    const now = Date.now();
-    const entry = rateLimit.get(ip);
-
-    if (entry && entry.resetAt > now && entry.count >= 3) {
-      return json({ error: 'Too many requests. Try again later.' }, 429);
-    }
-
-    if (!entry || entry.resetAt <= now) {
-      rateLimit.set(ip, { count: 1, resetAt: now + 3600000 });
-    } else {
-      entry.count++;
-    }
-  }
 
   // Validate message count
   if (messages.length > MAX_MESSAGES) {
@@ -97,15 +77,9 @@ async function handleChat(
     }
   }
 
-  // Run through Workers AI
-  const env = getEnv();
-  const ai = env.AI as { run: (model: string, input: Record<string, unknown>) => Promise<{ response?: string }> };
-
-  if (!ai) {
-    return json({ error: 'AI service unavailable' }, 503);
-  }
-
-  const { reply, extracted } = await analyzeIntent(messages, ai);
+  // Run through OpenAI gpt-4o-mini
+  const apiKey = getOpenAIKey();
+  const { reply, extracted } = await analyzeIntent(messages, apiKey);
 
   return json({ reply, extracted, transcript });
 }
@@ -131,6 +105,19 @@ async function handleSubmit(body: {
     return json({ error: 'Name too long' }, 400);
   }
 
+  // Rate limit: max 3 inquiries per email per hour (persisted in DB)
+  const supabaseAdmin = getSupabaseAdmin();
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_HOURS * 3600000).toISOString();
+  const { count } = await supabaseAdmin
+    .from('project_inquiries')
+    .select('id', { count: 'exact', head: true })
+    .eq('email', email)
+    .gte('created_at', windowStart);
+
+  if (count !== null && count >= RATE_LIMIT_MAX_INQUIRIES) {
+    return json({ error: 'Too many inquiries. Please try again later.' }, 429);
+  }
+
   const record = buildInquiryRecord({
     name,
     email,
@@ -139,13 +126,12 @@ async function handleSubmit(body: {
     extracted: body.extracted as Parameters<typeof buildInquiryRecord>[0]['extracted'],
   });
 
-  const supabaseAdmin = getSupabaseAdmin();
   const { error: insertError } = await supabaseAdmin
     .from('project_inquiries')
     .insert(record);
 
   if (insertError) {
-    console.error('Error inserting AI inquiry:', insertError);
+    logError('error', 'Error inserting AI inquiry', { path: '/api/ai-chat', error: insertError });
     return json({ error: 'Failed to save inquiry' }, 500);
   }
 

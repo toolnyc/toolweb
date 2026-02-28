@@ -8,20 +8,27 @@ interface LogContext {
   [key: string]: unknown;
 }
 
+/**
+ * Fire-and-forget: enqueue via waitUntil so it never blocks the response.
+ * Falls back to unawaited promise if no ExecutionContext is available.
+ */
+function enqueue(ctx: ExecutionContext | null, fn: () => Promise<void>): void {
+  const promise = fn().catch(() => {});
+  if (ctx) {
+    ctx.waitUntil(promise);
+  }
+}
+
+// Per-request context stored via AsyncLocalStorage-style approach.
+// Middleware sets this at the start of each request.
 let _ctx: ExecutionContext | null = null;
 
 export function setExecutionContext(ctx: ExecutionContext): void {
   _ctx = ctx;
 }
 
-/**
- * Fire-and-forget: enqueue via waitUntil so it never blocks the response.
- */
-function enqueue(fn: () => Promise<void>): void {
-  const promise = fn().catch(() => {});
-  if (_ctx) {
-    _ctx.waitUntil(promise);
-  }
+function getCtx(): ExecutionContext | null {
+  return _ctx;
 }
 
 export function logError(
@@ -37,29 +44,32 @@ export function logError(
     console.error(tag, message, context);
   }
 
-  enqueue(async () => {
+  const ctx = getCtx();
+
+  enqueue(ctx, async () => {
     const supabase = getSupabaseAdminOrNull();
     if (!supabase) return;
 
     // Extract stack from context if it's an Error
     let stack: string | undefined;
+    let dbContext = context;
     if (context.error instanceof Error) {
       stack = context.error.stack;
-      context = { ...context, error: context.error.message };
+      dbContext = { ...context, error: context.error.message };
     }
 
     await supabase.from('error_logs').insert({
       level,
       message,
-      context,
+      context: dbContext,
       stack,
-      path: context.path,
+      path: dbContext.path,
     });
 
     // Push notification for critical errors
     if (level === 'critical') {
-      const body = context.path
-        ? `${message} (${context.path})`
+      const body = dbContext.path
+        ? `${message} (${dbContext.path})`
         : message;
       await sendPushNotification('Critical Error', body, 'urgent');
     }
@@ -77,7 +87,9 @@ export function logEvent(
     userAgent?: string;
   },
 ): void {
-  enqueue(async () => {
+  const ctx = getCtx();
+
+  enqueue(ctx, async () => {
     const supabase = getSupabaseAdminOrNull();
     if (!supabase) return;
 

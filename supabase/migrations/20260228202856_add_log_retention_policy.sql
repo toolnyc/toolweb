@@ -1,0 +1,5 @@
+-- Applied via Supabase MCP in a previous session.
+-- Creates cleanup_old_logs() function and pg_cron schedule.
+-- Superseded by 20260228203628_fix_search_path_and_retention.sql which
+-- adds simpler cron.schedule() calls and fixes search_path.
+-- This file exists as a stub to keep local migrations in sync with remote.

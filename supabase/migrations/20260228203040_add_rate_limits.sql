@@ -1,0 +1,5 @@
+-- Applied via Supabase MCP in a previous session.
+-- Creates rate_limits table for IP-based rate limiting.
+-- The ai-chat endpoint now uses email-based rate limiting via project_inquiries
+-- instead, but this table is kept for compatibility.
+-- This file exists as a stub to keep local migrations in sync with remote.

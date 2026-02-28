@@ -54,24 +54,41 @@ export async function transcribeAudio(audioBuffer: ArrayBuffer, apiKey: string):
 }
 
 /**
- * Run conversation through Workers AI (Llama 3.2 3B) and extract intent.
+ * Run conversation through OpenAI gpt-4o-mini and extract intent.
+ * Uses the same OPENAI_API_KEY as Whisper — no Workers AI binding needed.
  */
 export async function analyzeIntent(
   messages: ChatMessage[],
-  aiBinding: { run: (model: string, input: Record<string, unknown>) => Promise<{ response?: string }> },
+  apiKey: string,
 ): Promise<AnalyzeResult> {
   const aiMessages = [
     { role: 'system' as const, content: SYSTEM_PROMPT },
     ...messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
   ];
 
-  const result = await aiBinding.run('@cf/meta/llama-3.2-3b-instruct', {
-    messages: aiMessages,
-    max_tokens: 512,
-    temperature: 0.7,
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: aiMessages,
+      max_tokens: 512,
+      temperature: 0.7,
+    }),
   });
 
-  const raw = result.response || '';
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`OpenAI chat error ${response.status}: ${err}`);
+  }
+
+  const result = await response.json() as {
+    choices: Array<{ message: { content: string } }>;
+  };
+  const raw = result.choices[0]?.message?.content || '';
 
   // Parse extracted JSON if present
   let extracted: AIExtracted | null = null;

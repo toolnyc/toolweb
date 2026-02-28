@@ -56,6 +56,10 @@ if (prefersReducedMotion) {
   });
   gsap.ticker.lagSmoothing(0);
 
+  // Canvas animation state (used for viewport culling + cleanup)
+  let isCanvasVisible = true;
+  let canvasRafId = 0;
+
   // ── TOOL Eyes Wordmark + Cockpit HUD ──────────────────────────
   const canvas = document.getElementById('eyes-canvas') as HTMLCanvasElement | null;
   if (canvas) {
@@ -66,7 +70,13 @@ if (prefersReducedMotion) {
     let mouseX = 0;
     let mouseY = 0;
 
-    document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; });
+    const heroSection = canvas.closest('section');
+    (heroSection || document).addEventListener('mousemove', (e: Event) => {
+      if (!isCanvasVisible) return;
+      const me = e as MouseEvent;
+      mouseX = me.clientX;
+      mouseY = me.clientY;
+    }, { passive: true });
 
     // SVG coordinate reference (from wordmark-k.svg viewBox 0 0 597.93 164.33)
     const SVG_W = 597.93;
@@ -261,10 +271,29 @@ if (prefersReducedMotion) {
         }
       }
 
-      requestAnimationFrame(drawFrame);
+      if (isCanvasVisible) {
+        canvasRafId = requestAnimationFrame(drawFrame);
+      }
     }
 
-    requestAnimationFrame(drawFrame);
+    // Pause canvas animation when hero scrolls out of view
+    const canvasObserver = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          if (!isCanvasVisible) {
+            isCanvasVisible = true;
+            canvasRafId = requestAnimationFrame(drawFrame);
+          }
+        } else {
+          isCanvasVisible = false;
+          cancelAnimationFrame(canvasRafId);
+        }
+      },
+      { threshold: 0 }
+    );
+    canvasObserver.observe(canvas);
+
+    canvasRafId = requestAnimationFrame(drawFrame);
   }
 
   // ── Hero typing animation ──────────────────────────────────────
@@ -581,5 +610,16 @@ if (prefersReducedMotion) {
         overwrite: true,
       });
     });
+  });
+
+  // ── Cleanup on Astro page navigation ──────────────────────────
+  document.addEventListener('astro:before-swap', () => {
+    // Kill all ScrollTrigger instances
+    ScrollTrigger.getAll().forEach((t) => t.kill());
+    // Destroy Lenis smooth scroll
+    lenis.destroy();
+    // Stop canvas animation
+    isCanvasVisible = false;
+    cancelAnimationFrame(canvasRafId);
   });
 }

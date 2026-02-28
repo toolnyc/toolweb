@@ -4,16 +4,21 @@ import { getSupabaseAdmin, getEnv } from '../../../lib/env';
 
 const env = getEnv();
 const secretKey = env.SUPABASE_SECRET_KEY;
-const keyPreview = secretKey
-  ? `${secretKey.slice(0, 10)}...${secretKey.slice(-4)} (len=${secretKey.length})`
-  : 'MISSING';
-console.log(`[admin/portfolio] SUPABASE_SECRET_KEY: ${keyPreview}`);
+
+let keyType = 'MISSING';
+if (secretKey) {
+  if (secretKey.startsWith('sb_secret_')) keyType = 'sb_secret (new format)';
+  else if (secretKey.startsWith('sb_publishable_')) keyType = 'sb_publishable (WRONG — this is the public key, not secret)';
+  else if (secretKey.startsWith('eyJ')) keyType = 'JWT (legacy format)';
+  else keyType = `unknown prefix: ${secretKey.slice(0, 6)}...`;
+}
 
 const supabaseAdmin = getSupabaseAdmin();
 
 let portfolioItems: any[] = [];
 let error = '';
 let rlsWarning = false;
+let debugInfo = '';
 
 const statusFilter = Astro.url.searchParams.get('status') || 'all';
 
@@ -35,16 +40,22 @@ const statusFilter = Astro.url.searchParams.get('status') || 'all';
     portfolioItems = data || [];
     // Detect if RLS is silently filtering: admin should see drafts
     const hasDrafts = portfolioItems.some((i: any) => i.status === 'draft');
-    console.log(`[admin/portfolio] Query returned ${portfolioItems.length} items, hasDrafts=${hasDrafts}, filter=${statusFilter}`);
     if (statusFilter === 'all' && portfolioItems.length > 0 && !hasDrafts) {
       rlsWarning = true;
     }
+    debugInfo = `Key type: ${keyType} | Items: ${portfolioItems.length} | Has drafts: ${hasDrafts}`;
   }
 }
 ---
 
 <Admin title="Portfolio">
   {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  {/* Temporary diagnostic — remove after debugging */}
+  <div class="mb-4 bg-neutral-100 border border-neutral-300 text-neutral-700 p-3 rounded text-xs font-mono">
+    DEBUG: {debugInfo}
+  </div>
+
   {rlsWarning && (
     <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded text-sm">
       <strong>Warning:</strong> No draft items found — the admin service key may not be configured correctly.

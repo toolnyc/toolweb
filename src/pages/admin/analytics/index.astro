@@ -1,0 +1,171 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { getSupabaseAdmin } from '../../../lib/env';
+
+const supabaseAdmin = getSupabaseAdmin();
+
+// Summary metrics (7 days)
+const { data: dailySummary } = await supabaseAdmin.rpc('analytics_daily_summary', { days_back: 7 });
+const { data: topPages } = await supabaseAdmin.rpc('analytics_top_pages', { days_back: 7, page_limit: 15 });
+
+// Country breakdown (7 days)
+const { data: countryData } = await supabaseAdmin
+  .from('analytics_events')
+  .select('country')
+  .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString())
+  .not('country', 'is', null);
+
+const countryCounts: Record<string, number> = {};
+if (countryData) {
+  for (const row of countryData) {
+    const c = (row as any).country || 'Unknown';
+    countryCounts[c] = (countryCounts[c] || 0) + 1;
+  }
+}
+const sortedCountries = Object.entries(countryCounts)
+  .sort(([, a], [, b]) => b - a)
+  .slice(0, 15);
+
+// Error count (7 days)
+const { count: errorCount7d } = await supabaseAdmin
+  .from('error_logs')
+  .select('*', { count: 'exact', head: true })
+  .gte('created_at', new Date(Date.now() - 7 * 86400000).toISOString());
+
+// Compute totals from daily summary
+const days = (dailySummary as any[]) || [];
+const totalPageViews = days.reduce((sum: number, d: any) => sum + Number(d.page_views || 0), 0);
+const totalApiCalls = days.reduce((sum: number, d: any) => sum + Number(d.api_calls || 0), 0);
+const totalRequests = totalPageViews + totalApiCalls;
+const avgDuration = days.length > 0
+  ? Math.round(days.reduce((sum: number, d: any) => sum + Number(d.avg_duration_ms || 0), 0) / days.length)
+  : 0;
+
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+---
+
+<Admin title="Analytics">
+  <h1 class="text-2xl font-bold mb-8">Analytics</h1>
+
+  <!-- Metric cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded border border-neutral-200 p-4">
+      <div class="text-sm text-neutral-500">Page Views (7d)</div>
+      <div class="text-2xl font-bold mt-1">{totalPageViews.toLocaleString()}</div>
+    </div>
+    <div class="bg-white rounded border border-neutral-200 p-4">
+      <div class="text-sm text-neutral-500">API Calls (7d)</div>
+      <div class="text-2xl font-bold mt-1">{totalApiCalls.toLocaleString()}</div>
+    </div>
+    <div class="bg-white rounded border border-neutral-200 p-4">
+      <div class="text-sm text-neutral-500">Errors (7d)</div>
+      <div class="text-2xl font-bold mt-1">{(errorCount7d ?? 0).toLocaleString()}</div>
+    </div>
+    <div class="bg-white rounded border border-neutral-200 p-4">
+      <div class="text-sm text-neutral-500">Avg Response (ms)</div>
+      <div class="text-2xl font-bold mt-1">{avgDuration}</div>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-6">
+    <!-- Daily summary -->
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden">
+      <div class="p-4 border-b border-neutral-200">
+        <h2 class="text-sm font-semibold">Daily Summary</h2>
+      </div>
+      {days.length > 0 ? (
+        <table class="w-full">
+          <thead class="bg-neutral-50 border-b border-neutral-200">
+            <tr>
+              <th class="text-left p-3 text-xs font-semibold">Date</th>
+              <th class="text-right p-3 text-xs font-semibold">Views</th>
+              <th class="text-right p-3 text-xs font-semibold">API</th>
+              <th class="text-right p-3 text-xs font-semibold">Avg ms</th>
+              <th class="text-right p-3 text-xs font-semibold">Errors</th>
+            </tr>
+          </thead>
+          <tbody>
+            {days.map((d: any) => (
+              <tr class="border-b border-neutral-100 last:border-b-0">
+                <td class="p-3 text-sm">{formatDate(d.day)}</td>
+                <td class="p-3 text-sm text-right">{Number(d.page_views).toLocaleString()}</td>
+                <td class="p-3 text-sm text-right">{Number(d.api_calls).toLocaleString()}</td>
+                <td class="p-3 text-sm text-right">{d.avg_duration_ms ?? '—'}</td>
+                <td class="p-3 text-sm text-right">
+                  <span class:list={[Number(d.error_count) > 0 ? 'text-red-600 font-medium' : 'text-neutral-500']}>
+                    {Number(d.error_count)}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div class="p-8 text-center text-neutral-500 text-sm">No data yet</div>
+      )}
+    </div>
+
+    <!-- Top pages -->
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden">
+      <div class="p-4 border-b border-neutral-200">
+        <h2 class="text-sm font-semibold">Top Pages (7d)</h2>
+      </div>
+      {(topPages as any[] || []).length > 0 ? (
+        <table class="w-full">
+          <thead class="bg-neutral-50 border-b border-neutral-200">
+            <tr>
+              <th class="text-left p-3 text-xs font-semibold">Path</th>
+              <th class="text-right p-3 text-xs font-semibold">Views</th>
+              <th class="text-right p-3 text-xs font-semibold">Avg ms</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(topPages as any[]).map((p: any) => (
+              <tr class="border-b border-neutral-100 last:border-b-0">
+                <td class="p-3 text-sm font-mono text-neutral-700">{p.path}</td>
+                <td class="p-3 text-sm text-right">{Number(p.views).toLocaleString()}</td>
+                <td class="p-3 text-sm text-right">{p.avg_duration_ms ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div class="p-8 text-center text-neutral-500 text-sm">No data yet</div>
+      )}
+    </div>
+
+    <!-- Country breakdown -->
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden md:col-span-2">
+      <div class="p-4 border-b border-neutral-200">
+        <h2 class="text-sm font-semibold">Countries (7d)</h2>
+      </div>
+      {sortedCountries.length > 0 ? (
+        <table class="w-full">
+          <thead class="bg-neutral-50 border-b border-neutral-200">
+            <tr>
+              <th class="text-left p-3 text-xs font-semibold">Country</th>
+              <th class="text-right p-3 text-xs font-semibold">Requests</th>
+              <th class="text-right p-3 text-xs font-semibold">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedCountries.map(([country, count]) => (
+              <tr class="border-b border-neutral-100 last:border-b-0">
+                <td class="p-3 text-sm">{country}</td>
+                <td class="p-3 text-sm text-right">{count.toLocaleString()}</td>
+                <td class="p-3 text-sm text-right text-neutral-500">
+                  {totalRequests > 0 ? Math.round((count / totalRequests) * 100) : 0}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div class="p-8 text-center text-neutral-500 text-sm">No data yet</div>
+      )}
+    </div>
+  </div>
+</Admin>

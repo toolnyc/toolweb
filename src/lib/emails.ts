@@ -1,4 +1,5 @@
 import { getResendOrNull } from './env';
+import { logError } from './logger';
 
 const FROM_ADDRESS = 'Tool <hello@tool.nyc>';
 
@@ -96,7 +97,7 @@ export async function sendMagicLinkEmail(to: string, magicLinkUrl: string): Prom
 
   const resend = getResendOrNull();
   if (!resend) {
-    console.warn('Resend not configured — skipping magic link email');
+    logError('warn', 'Resend not configured — skipping magic link email', {});
     return;
   }
 
@@ -108,7 +109,7 @@ export async function sendMagicLinkEmail(to: string, magicLinkUrl: string): Prom
       html,
     });
   } catch (err) {
-    console.error('Failed to send magic link email:', err);
+    logError('error', 'Failed to send magic link email', { error: err, to });
   }
 }
 
@@ -197,7 +198,7 @@ export async function sendOrderConfirmationEmail(
 
   const resend = getResendOrNull();
   if (!resend) {
-    console.warn('Resend not configured — skipping order confirmation email');
+    logError('warn', 'Resend not configured — skipping order confirmation email', {});
     return;
   }
 
@@ -209,7 +210,7 @@ export async function sendOrderConfirmationEmail(
       html,
     });
   } catch (err) {
-    console.error('Failed to send order confirmation email:', err);
+    logError('error', 'Failed to send order confirmation email', { error: err, to });
   }
 }
 
@@ -271,7 +272,7 @@ export async function sendInquiryNotificationEmail(inquiry: InquiryDetails): Pro
 
   const resend = getResendOrNull();
   if (!resend) {
-    console.warn('Resend not configured — skipping inquiry notification email');
+    logError('warn', 'Resend not configured — skipping inquiry notification email', {});
     return;
   }
 
@@ -283,7 +284,7 @@ export async function sendInquiryNotificationEmail(inquiry: InquiryDetails): Pro
       html,
     });
   } catch (err) {
-    console.error('Failed to send inquiry notification email:', err);
+    logError('error', 'Failed to send inquiry notification email', { error: err });
   }
 }
 
@@ -309,7 +310,7 @@ export async function sendInquiryAutoReplyEmail(to: string, name: string): Promi
 
   const resend = getResendOrNull();
   if (!resend) {
-    console.warn('Resend not configured — skipping inquiry auto-reply email');
+    logError('warn', 'Resend not configured — skipping inquiry auto-reply email', {});
     return;
   }
 
@@ -321,6 +322,6 @@ export async function sendInquiryAutoReplyEmail(to: string, name: string): Promi
       html,
     });
   } catch (err) {
-    console.error('Failed to send inquiry auto-reply email:', err);
+    logError('error', 'Failed to send inquiry auto-reply email', { error: err, to });
   }
 }

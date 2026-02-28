@@ -2,10 +2,13 @@ import { defineMiddleware } from 'astro:middleware';
 import { initClients, getSupabaseAdminOrNull } from './lib/env';
 import { getAuthTokens, setAuthCookies, clearAuthCookies } from './lib/cookies';
 import { getFeatureFlag } from './lib/queries';
+import { setExecutionContext, logError, logEvent } from './lib/logger';
 
 export const onRequest = defineMiddleware(async (context, next) => {
   initClients(context.locals.runtime.env);
+  setExecutionContext(context.locals.runtime.ctx);
 
+  const startTime = Date.now();
   const { pathname } = context.url;
 
   // Feature flag: block /shop routes when shop is disabled
@@ -28,9 +31,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (!isApiRoute) {
       const response = await next();
       response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      recordAnalytics(context, response, startTime);
       return response;
     }
-    return next();
+    const response = await next();
+    recordAnalytics(context, response, startTime);
+    return response;
   }
 
   const { accessToken, refreshToken } = getAuthTokens(context.cookies);
@@ -93,10 +99,35 @@ export const onRequest = defineMiddleware(async (context, next) => {
       context.locals.client = client;
     }
   } catch (err) {
-    console.error('Auth middleware error:', err);
+    logError('error', 'Auth middleware error', { path: pathname, error: err });
     if (isAdminRoute) return context.redirect('/admin/login');
     return context.redirect('/portal');
   }
 
-  return next();
+  const response = await next();
+  recordAnalytics(context, response, startTime);
+  return response;
 });
+
+function recordAnalytics(
+  context: Parameters<Parameters<typeof defineMiddleware>[0]>[0],
+  response: Response,
+  startTime: number,
+): void {
+  const { pathname } = context.url;
+
+  // Skip static assets and internal routes
+  if (pathname.includes('.') || pathname.startsWith('/_')) return;
+
+  const isApi = pathname.startsWith('/api/');
+  const cf = context.locals.runtime.cf;
+
+  logEvent(isApi ? 'api_call' : 'page_view', {
+    path: pathname,
+    method: context.request.method,
+    statusCode: response.status,
+    durationMs: Date.now() - startTime,
+    country: (cf?.country as string) || undefined,
+    userAgent: context.request.headers.get('user-agent') || undefined,
+  });
+}

@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getSupabaseAdmin, getStripe, getResendOrNull, getEnv } from '../../lib/env';
 import { sendOrderConfirmationEmail } from '../../lib/emails';
+import { logError } from '../../lib/logger';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -24,7 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
     try {
       event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
     } catch (sigErr) {
-      console.error('[stripe-webhook] Signature verification failed:', sigErr instanceof Error ? sigErr.message : sigErr);
+      logError('critical', 'Stripe signature verification failed', { path: '/api/stripe-webhook', error: sigErr });
       return new Response('Invalid signature', { status: 400 });
     }
 
@@ -35,7 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
       const quantity = parseInt(metadata?.quantity || '1', 10);
 
       if (variantId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(variantId)) {
-        console.error('[stripe-webhook] Invalid variant_id in metadata:', { variantId, sessionId: session.id });
+        logError('critical', 'Invalid variant_id in metadata', { path: '/api/stripe-webhook', variantId, sessionId: session.id });
         return new Response('Invalid metadata', { status: 400 });
       }
       const sessionId = session.id as string;
@@ -75,7 +76,7 @@ export const POST: APIRoute = async ({ request }) => {
         );
 
       if (orderError) {
-        console.error('Error inserting order:', orderError);
+        logError('critical', 'Error inserting order', { path: '/api/stripe-webhook', error: orderError, sessionId });
       }
 
       // Decrement stock and fetch variant/product info for the confirmation email
@@ -138,7 +139,7 @@ export const POST: APIRoute = async ({ request }) => {
           ],
           total: amountTotal,
           orderId,
-        }).catch((err) => console.error('[stripe-webhook] Email send failed:', err));
+        }).catch((err) => logError('warn', 'Order confirmation email failed', { path: '/api/stripe-webhook', error: err }));
       }
 
       return new Response('OK', { status: 200 });
@@ -167,7 +168,7 @@ export const POST: APIRoute = async ({ request }) => {
           to: ['hello@tool.nyc'],
           subject: 'Invoice payment failed',
           text: `Payment failed for invoice ${invoice.id}. Customer: ${invoice.customer_email || 'unknown'}`,
-        }).catch((err) => console.error('[stripe-webhook] Failed to send failure notification:', err));
+        }).catch((err) => logError('warn', 'Failed to send invoice failure notification', { path: '/api/stripe-webhook', error: err }));
       }
       return new Response('OK', { status: 200 });
     }
@@ -175,7 +176,7 @@ export const POST: APIRoute = async ({ request }) => {
     // Unhandled event type
     return new Response('OK', { status: 200 });
   } catch (err) {
-    console.error('Webhook error:', err);
+    logError('critical', 'Webhook handler error', { path: '/api/stripe-webhook', error: err });
     return new Response('Webhook error', { status: 500 });
   }
 };

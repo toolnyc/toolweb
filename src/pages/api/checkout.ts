@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { getSupabaseAdmin, getStripe, getEnv } from '../../lib/env';
+import { logError } from '../../lib/logger';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -92,7 +93,7 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err) {
-    console.error('Checkout error:', err);
+    logError('critical', 'Checkout session creation failed', { path: '/api/checkout', error: err });
     return new Response(JSON.stringify({ error: 'Failed to create checkout' }), { status: 500 });
   }
 };

@@ -1,4 +1,5 @@
 import { getSupabase } from './env';
+import { logError } from './logger';
 import type {
   PortfolioItem,
   CaseStudyImage,
@@ -35,7 +36,7 @@ export async function getAllFeatureFlags(): Promise<FeatureFlag[]> {
     .order('flag_key');
 
   if (error) {
-    console.error('Error fetching feature flags:', error);
+    logError('warn', 'Error fetching feature flags', { error });
     return [];
   }
   return data ?? [];
@@ -51,7 +52,7 @@ export async function getPublishedPortfolio(): Promise<PortfolioItem[]> {
     .order('sort_order');
 
   if (error) {
-    console.error('Error fetching portfolio:', error);
+    logError('warn', 'Error fetching portfolio', { error });
     return [];
   }
   return data ?? [];
@@ -65,7 +66,7 @@ export async function getPublishedWriting(): Promise<WritingSnippet[]> {
     .order('sort_order');
 
   if (error) {
-    console.error('Error fetching writing:', error);
+    logError('warn', 'Error fetching writing', { error });
     return [];
   }
   return data ?? [];
@@ -79,7 +80,7 @@ export async function getVisibleClientLogos(): Promise<ClientLogo[]> {
     .order('sort_order');
 
   if (error) {
-    console.error('Error fetching client logos:', error);
+    logError('warn', 'Error fetching client logos', { error });
     return [];
   }
   return data ?? [];
@@ -93,7 +94,7 @@ export async function getActiveProducts(): Promise<(Product & { variants: Produc
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching products:', error);
+    logError('warn', 'Error fetching products', { error });
     return [];
   }
   return (data ?? []) as (Product & { variants: ProductVariant[] })[];
@@ -107,7 +108,7 @@ export async function getProductById(id: string): Promise<(Product & { variants:
     .single();
 
   if (error) {
-    console.error('Error fetching product:', error);
+    logError('warn', 'Error fetching product', { error });
     return null;
   }
   return data as Product & { variants: ProductVariant[] };
@@ -119,7 +120,7 @@ export async function getSiteContent(group?: string): Promise<SiteContent[]> {
 
   const { data, error } = await query;
   if (error) {
-    console.error('Error fetching site content:', error);
+    logError('warn', 'Error fetching site content', { error });
     return [];
   }
   return data ?? [];
@@ -148,11 +149,11 @@ export async function getCaseStudyBySlug(slug: string): Promise<(PortfolioItem &
     .single();
 
   if (error) {
-    console.error(`[getCaseStudyBySlug] Failed for slug="${slug}":`, error.message, error.code, error.details);
+    logError('warn', 'Error fetching case study by slug', { slug, error: error.message, code: error.code, details: error.details });
     return null;
   }
   if (!data) {
-    console.warn(`[getCaseStudyBySlug] No data returned for slug="${slug}"`);
+    logError('warn', 'No case study found for slug', { slug });
     return null;
   }
 
@@ -170,7 +171,7 @@ export async function getPublishedCaseStudies(): Promise<PortfolioItem[]> {
     .order('sort_order');
 
   if (error) {
-    console.error('[getPublishedCaseStudies] Failed:', error.message, error.code, error.details);
+    logError('warn', 'Error fetching case studies', { error });
     return [];
   }
   return data ?? [];
@@ -184,7 +185,7 @@ export async function getVisibleTestimonials(): Promise<Testimonial[]> {
     .order('sort_order');
 
   if (error) {
-    console.error('Error fetching testimonials:', error);
+    logError('warn', 'Error fetching testimonials', { error });
     return [];
   }
   return data ?? [];
@@ -211,7 +212,7 @@ export async function getProjectsByClientId(clientId: string): Promise<Project[]
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching projects:', error);
+    logError('warn', 'Error fetching projects', { error });
     return [];
   }
   return data ?? [];
@@ -228,7 +229,7 @@ export async function getNewInquiries(): Promise<ProjectInquiry[]> {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Error fetching inquiries:', error);
+    logError('warn', 'Error fetching inquiries', { error });
     return [];
   }
   return data ?? [];
@@ -242,7 +243,7 @@ export async function getRecentOrders(limit = 20): Promise<Order[]> {
     .limit(limit);
 
   if (error) {
-    console.error('Error fetching orders:', error);
+    logError('warn', 'Error fetching orders', { error });
     return [];
   }
   return data ?? [];

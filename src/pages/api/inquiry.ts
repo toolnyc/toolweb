@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getSupabaseAdmin } from '../../lib/env';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
+import { logError } from '../../lib/logger';
 
 // Simple in-memory rate limiting (per IP, 5 per hour)
 const rateLimit = new Map<string, { count: number; resetAt: number }>();
@@ -54,7 +55,7 @@ export const POST: APIRoute = async ({ request }) => {
       .insert({ name, email, company, project_type, description, budget_range, timeline });
 
     if (insertError) {
-      console.error('Error inserting inquiry:', insertError);
+      logError('error', 'Error inserting inquiry', { path: '/api/inquiry', error: insertError });
       return new Response(JSON.stringify({ error: 'Failed to submit' }), { status: 500 });
     }
 

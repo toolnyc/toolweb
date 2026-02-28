@@ -19,7 +19,7 @@ if (!caseStudy) {
 }
 ---
 
-<BaseLayout title={`${caseStudy.title} — Tool`} description={caseStudy.problem ?? caseStudy.description ?? ''}>
+<BaseLayout title={`${caseStudy.title} — Tool`} description={(caseStudy.problem ?? caseStudy.description ?? '').replace(/<[^>]*>/g, '')}>
   <Header />
 
   <main class="pb-12" id="main-content">
@@ -52,13 +52,13 @@ if (!caseStudy) {
         {caseStudy.problem && (
           <div class="col-span-6 md:col-span-6 lg:col-span-12 anim-fade-up">
             <h2 class="text-body font-medium mb-2">Problem</h2>
-            <p class="text-body text-caption-gray max-w-lg">{caseStudy.problem}</p>
+            <div class="text-body text-caption-gray max-w-lg space-y-4 [&>p]:leading-relaxed" set:html={caseStudy.problem} />
           </div>
         )}
         {caseStudy.solution && (
           <div class="col-span-6 md:col-span-6 lg:col-span-12 anim-fade-up">
             <h2 class="text-body font-medium mb-2">Solution</h2>
-            <p class="text-body text-caption-gray max-w-lg">{caseStudy.solution}</p>
+            <div class="text-body text-caption-gray max-w-lg space-y-4 [&>p]:leading-relaxed" set:html={caseStudy.solution} />
           </div>
         )}
       </section>
@@ -86,7 +86,7 @@ if (!caseStudy) {
     {caseStudy.impact && (
       <section class="site-grid py-8">
         <div class="col-span-6 lg:col-span-24 anim-fade-up">
-          <p class="text-snippet max-w-2xl">{caseStudy.impact}</p>
+          <div class="text-snippet max-w-2xl space-y-4 [&>p]:leading-relaxed" set:html={caseStudy.impact} />
         </div>
       </section>
     )}

@@ -8,3 +8,6 @@
 /admin/*
   X-Frame-Options: DENY
   Cache-Control: no-store
+
+/portal/*
+  Cache-Control: no-store

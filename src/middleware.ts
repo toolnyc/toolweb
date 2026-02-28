@@ -20,13 +20,25 @@ export const onRequest = defineMiddleware(async (context, next) => {
     pathname !== '/portal' &&
     pathname !== '/portal/verify';
 
+  const isApiRoute = pathname.startsWith('/api/');
+
+  // Only run auth queries for routes that actually need them
+  if (!isAdminRoute && !isPortalRoute) {
+    // Public pages: allow Cloudflare to cache for 60s, serve stale up to 5min while revalidating
+    if (!isApiRoute) {
+      const response = await next();
+      response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+      return response;
+    }
+    return next();
+  }
+
   const { accessToken, refreshToken } = getAuthTokens(context.cookies);
   const supabaseAdmin = getSupabaseAdminOrNull();
 
   if (!accessToken || !supabaseAdmin) {
     if (isAdminRoute) return context.redirect('/admin/login');
-    if (isPortalRoute) return context.redirect('/portal');
-    return next();
+    return context.redirect('/portal');
   }
 
   try {
@@ -44,8 +56,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         if (refreshError || !refreshData.session) {
           clearAuthCookies(context.cookies);
           if (isAdminRoute) return context.redirect('/admin/login');
-          if (isPortalRoute) return context.redirect('/portal');
-          return next();
+          return context.redirect('/portal');
         }
 
         setAuthCookies(
@@ -56,8 +67,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         context.locals.user = refreshData.user ?? undefined;
       } else {
         if (isAdminRoute) return context.redirect('/admin/login');
-        if (isPortalRoute) return context.redirect('/portal');
-        return next();
+        return context.redirect('/portal');
       }
     } else {
       context.locals.user = user;
@@ -77,7 +87,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
 
       if (client.status === 'inactive') {
-        // Could render an "inactive" page instead
         return new Response('Account inactive', { status: 403 });
       }
 
@@ -86,7 +95,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   } catch (err) {
     console.error('Auth middleware error:', err);
     if (isAdminRoute) return context.redirect('/admin/login');
-    if (isPortalRoute) return context.redirect('/portal');
+    return context.redirect('/portal');
   }
 
   return next();

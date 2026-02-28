@@ -147,7 +147,14 @@ export async function getCaseStudyBySlug(slug: string): Promise<(PortfolioItem &
     .eq('status', 'published')
     .single();
 
-  if (error) return null;
+  if (error) {
+    console.error(`[getCaseStudyBySlug] Failed for slug="${slug}":`, error.message, error.code, error.details);
+    return null;
+  }
+  if (!data) {
+    console.warn(`[getCaseStudyBySlug] No data returned for slug="${slug}"`);
+    return null;
+  }
 
   const item = data as PortfolioItem & { images: CaseStudyImage[] };
   item.images = (item.images ?? []).sort((a, b) => a.sort_order - b.sort_order);
@@ -163,7 +170,7 @@ export async function getPublishedCaseStudies(): Promise<PortfolioItem[]> {
     .order('sort_order');
 
   if (error) {
-    console.error('Error fetching case studies:', error);
+    console.error('[getPublishedCaseStudies] Failed:', error.message, error.code, error.details);
     return [];
   }
   return data ?? [];

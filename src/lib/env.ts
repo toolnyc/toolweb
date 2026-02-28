@@ -32,13 +32,16 @@ export function initClients(env: Record<string, unknown>): void {
   }
 
   if (url && anonKey && !_supabase) {
-    _supabase = createClient(url, anonKey);
+    _supabase = createClient(url, anonKey, {
+      db: { timeout: 10000 },
+    });
   }
 
   const serviceKey = _env.SUPABASE_SECRET_KEY;
   if (url && serviceKey && !_supabaseAdmin) {
     _supabaseAdmin = createClient(url, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
+      db: { timeout: 10000 },
     });
   }
 

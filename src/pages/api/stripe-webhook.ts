@@ -124,9 +124,9 @@ export const POST: APIRoute = async ({ request }) => {
         orderId = `#${insertedOrder.order_number}`;
       }
 
-      // Send branded confirmation email
+      // Fire-and-forget: don't await email — prevents Resend latency from timing out the Worker
       if (customerEmail) {
-        await sendOrderConfirmationEmail(customerEmail, {
+        sendOrderConfirmationEmail(customerEmail, {
           customerName: customerName || 'there',
           items: [
             {
@@ -138,7 +138,7 @@ export const POST: APIRoute = async ({ request }) => {
           ],
           total: amountTotal,
           orderId,
-        });
+        }).catch((err) => console.error('[stripe-webhook] Email send failed:', err));
       }
 
       return new Response('OK', { status: 200 });
@@ -158,20 +158,16 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (event.type === 'invoice.payment_failed') {
-      // Notify admin
+      // Notify admin — fire-and-forget
       const resend = getResendOrNull();
       if (resend) {
         const invoice = event.data.object as unknown as Record<string, unknown>;
-        try {
-          await resend.emails.send({
-            from: 'Tool <noreply@tool.nyc>',
-            to: ['hello@tool.nyc'],
-            subject: 'Invoice payment failed',
-            text: `Payment failed for invoice ${invoice.id}. Customer: ${invoice.customer_email || 'unknown'}`,
-          });
-        } catch (emailErr) {
-          console.error('Failed to send failure notification:', emailErr);
-        }
+        resend.emails.send({
+          from: 'Tool <noreply@tool.nyc>',
+          to: ['hello@tool.nyc'],
+          subject: 'Invoice payment failed',
+          text: `Payment failed for invoice ${invoice.id}. Customer: ${invoice.customer_email || 'unknown'}`,
+        }).catch((err) => console.error('[stripe-webhook] Failed to send failure notification:', err));
       }
       return new Response('OK', { status: 200 });
     }

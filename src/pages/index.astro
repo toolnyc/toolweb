@@ -56,13 +56,13 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
     {/* ── 1. Hero ─────────────────────────────────────────── */}
     <section class="min-h-[100svh] relative overflow-hidden flex flex-col items-center justify-center">
       <canvas id="eyes-canvas" class="absolute inset-0 w-full h-full pointer-events-none" data-anim="eyes-canvas"></canvas>
-      <div class="relative z-10 text-center px-4 -mt-10 md:-mt-14">
+      <div class="relative z-10 text-center px-4 -mt-10 md:mt-0">
         <p class="text-body text-caption-gray max-w-md mx-auto opacity-0" data-anim="hero-typing">
           <span class="hero-typing-text">{heroTagline?.content ?? 'Brand, design, and web development. New York.'}</span>
           <span class="hero-cursor" style="opacity: 0;" aria-hidden="true">|</span>
         </p>
         <button id="ai-inquiry-trigger" class="mt-6 text-body text-caption-gray border border-neutral-300 px-4 py-2 hover:border-neutral-900 transition-colors opacity-0 cursor-pointer" data-anim="ai-trigger">
-          Describe your problem
+          How can we help?
         </button>
       </div>
 

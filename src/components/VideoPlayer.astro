@@ -3,9 +3,11 @@ interface Props {
   src: string;
   poster?: string;
   title: string;
+  /** When false, video displays at natural aspect ratio instead of filling parent. Default: true */
+  cover?: boolean;
 }
 
-const { src, poster, title } = Astro.props;
+const { src, poster, title, cover = true } = Astro.props;
 
 const isCloudflareStream = src.includes('cloudflarestream.com');
 
@@ -30,7 +32,7 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
 ---
 
 <div
-  class="video-player relative w-full h-full"
+  class={`video-player relative w-full ${cover ? 'h-full' : ''}`}
   id={playerId}
   data-playing="false"
   data-mode="loop"
@@ -41,16 +43,16 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
       title={title}
       allow="autoplay; fullscreen"
       allowfullscreen
-      class="w-full h-full border-0"
+      class={`w-full border-0 ${cover ? 'h-full' : 'h-auto'}`}
       loading="lazy"
     />
   ) : (
-    <div class="video-wrap relative w-full h-full">
+    <div class={`video-wrap relative w-full ${cover ? 'h-full' : ''}`}>
       {poster && (
         <img
           src={poster}
           alt=""
-          class="video-poster absolute inset-0 w-full h-full object-cover z-[1]"
+          class={`video-poster z-[1] ${cover ? 'absolute inset-0 w-full h-full object-cover' : 'w-full h-auto'}`}
           data-poster-img
         />
       )}
@@ -61,7 +63,7 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
         muted
         playsinline
         loop
-        class="w-full h-full object-cover block"
+        class={`w-full block ${cover ? 'h-full object-cover' : 'h-auto'}`}
         data-video
       />
       <div class="video-loading absolute inset-0 pointer-events-none opacity-0 z-[2]" data-loading />

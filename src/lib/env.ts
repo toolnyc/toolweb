@@ -12,6 +12,7 @@ export interface RuntimeEnv {
   R2_PUBLIC_URL?: string;
   RESEND_API_KEY?: string;
   OPENAI_API_KEY?: string;
+  AI?: Ai;
   PUBLIC_SITE_URL?: string;
   NTFY_TOPIC?: string;
   CAL_BOOKING_URL?: string;
@@ -90,6 +91,11 @@ export function getResendOrNull(): Resend | null {
 export function getOpenAIKey(): string {
   if (!_env?.OPENAI_API_KEY) throw new Error('OPENAI_API_KEY not configured');
   return _env.OPENAI_API_KEY;
+}
+
+export function getAI(): Ai {
+  if (!_env?.AI) throw new Error('AI binding not configured');
+  return _env.AI;
 }
 
 export function getCalBookingUrl(): string {

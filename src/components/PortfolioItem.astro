@@ -21,7 +21,7 @@ const mdSpan = mdSpanMap[item.display_size] ?? 6;
   data-lg-span={lgSpan}
 >
   {item.media_type === 'video' ? (
-    <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} />
+    <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} cover={false} />
   ) : (
     <img
       src={item.media_url}
@@ -33,9 +33,9 @@ const mdSpan = mdSpanMap[item.display_size] ?? 6;
   {item.is_case_study && item.slug ? (
     <a
       href={`/work/${item.slug}`}
-      class="absolute inset-0 flex items-end p-2"
+      class="absolute inset-0 flex items-end p-4"
     >
-      <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
+      <span class="text-body text-caption-gray bg-white/90 px-2 py-1">
         View case study &rarr;
       </span>
     </a>
@@ -44,15 +44,15 @@ const mdSpan = mdSpanMap[item.display_size] ?? 6;
       href={item.external_url}
       target="_blank"
       rel="noopener noreferrer"
-      class="absolute inset-0 flex items-end p-2"
+      class="absolute inset-0 flex items-end p-4"
     >
-      <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
+      <span class="text-body text-caption-gray bg-white/90 px-2 py-1">
         View project &rarr;
       </span>
     </a>
   )}
 
-  <div class="px-1 py-2">
+  <div class="px-3 py-3">
     <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
     <p class="text-sm font-medium text-white mt-1">{item.title}</p>
     {item.description && (

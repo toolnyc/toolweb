@@ -32,11 +32,10 @@ const [portfolio, writing, clients, testimonials, heroTagline, aboutBlurb, proce
 const lgSpanMap: Record<string, number> = { small: 8, medium: 12, large: 16 };
 const mdSpanMap: Record<string, number> = { small: 6, medium: 6, large: 12 };
 
-// Deterministic aspect-ratio pattern based on item index for visual rhythm
+// Deterministic aspect-ratio pattern based on item index for visual rhythm (images only)
 const aspectPatterns = ['3/4', '16/9', '4/3', '1/1', '4/3', '16/9'] as const;
 function getAspectRatio(index: number, displaySize: string): string {
   if (displaySize === 'large') {
-    // Large items alternate between cinematic and square-ish
     return index % 2 === 0 ? '16/9' : '4/3';
   }
   return aspectPatterns[index % aspectPatterns.length];
@@ -104,18 +103,17 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
             const globalIndex = baseIndex + i;
             const lgSpan = lgSpanMap[item.display_size] ?? 8;
             const mdSpan = mdSpanMap[item.display_size] ?? 6;
-            const aspect = getAspectRatio(globalIndex, item.display_size);
+            const isVideo = item.media_type === 'video';
+            const aspect = isVideo ? undefined : getAspectRatio(globalIndex, item.display_size);
             return (
               <div
                 class="portfolio-item col-span-6 relative overflow-hidden anim-fade-up"
-                style={`grid-column: span 6; aspect-ratio: ${aspect}`}
+                style={`grid-column: span 6;${aspect ? ` aspect-ratio: ${aspect}` : ''}`}
                 data-md-span={mdSpan}
                 data-lg-span={lgSpan}
               >
-                {item.media_type === 'video' ? (
-                  <div class="absolute inset-0">
-                    <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} />
-                  </div>
+                {isVideo ? (
+                  <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} cover={false} />
                 ) : (
                   <img
                     src={item.media_url}
@@ -129,9 +127,9 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                 {item.is_case_study && item.slug ? (
                   <a
                     href={`/work/${item.slug}`}
-                    class="portfolio-overlay absolute inset-0 flex items-end p-2"
+                    class="portfolio-overlay absolute inset-0 flex items-end p-4"
                   >
-                    <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
+                    <span class="text-body text-caption-gray bg-white/90 px-2 py-1">
                       View case study &rarr;
                     </span>
                   </a>
@@ -140,15 +138,15 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                     href={item.external_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="portfolio-overlay absolute inset-0 flex items-end p-2"
+                    class="portfolio-overlay absolute inset-0 flex items-end p-4"
                   >
-                    <span class="text-body text-caption-gray bg-white/90 px-1 py-[2px]">
+                    <span class="text-body text-caption-gray bg-white/90 px-2 py-1">
                       View project &rarr;
                     </span>
                   </a>
                 )}
 
-                <div class="absolute bottom-0 left-0 right-0 px-1 py-2 z-[1]">
+                <div class="absolute bottom-0 left-0 right-0 px-3 py-3 z-[1]">
                   <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
                   <p class="text-sm font-medium text-white mt-1">{item.title}</p>
                   {item.description && (

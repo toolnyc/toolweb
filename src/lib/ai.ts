@@ -29,66 +29,37 @@ After the user's FIRST message, include a JSON block with your best extraction o
 If you can't determine a field, use your best guess based on context. Always include the JSON block after every response.`;
 
 /**
- * Transcribe audio via OpenAI Whisper API (gpt-4o-mini-transcribe).
+ * Transcribe audio via Cloudflare Workers AI (Whisper).
  * Max 5MB enforced by caller.
  */
-export async function transcribeAudio(audioBuffer: ArrayBuffer, apiKey: string): Promise<string> {
-  const blob = new Blob([audioBuffer], { type: 'audio/webm' });
-  const formData = new FormData();
-  formData.append('file', blob, 'recording.webm');
-  formData.append('model', 'gpt-4o-mini-transcribe');
+export async function transcribeAudio(audioBuffer: ArrayBuffer, ai: Ai): Promise<string> {
+  const result = await ai.run('@cf/openai/whisper', {
+    audio: [...new Uint8Array(audioBuffer)],
+  }) as { text: string };
 
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Whisper API error ${response.status}: ${err}`);
-  }
-
-  const result = await response.json() as { text: string };
   return result.text;
 }
 
 /**
- * Run conversation through OpenAI gpt-4o-mini and extract intent.
- * Uses the same OPENAI_API_KEY as Whisper — no Workers AI binding needed.
+ * Run conversation through Cloudflare Workers AI and extract intent.
+ * Uses the AI binding — no external API key needed.
  */
 export async function analyzeIntent(
   messages: ChatMessage[],
-  apiKey: string,
+  ai: Ai,
 ): Promise<AnalyzeResult> {
   const aiMessages = [
     { role: 'system' as const, content: SYSTEM_PROMPT },
     ...messages.map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content })),
   ];
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: aiMessages,
-      max_tokens: 512,
-      temperature: 0.7,
-    }),
-  });
+  const result = await ai.run('@cf/meta/llama-3.3-70b-instruct-fp8-fast', {
+    messages: aiMessages,
+    max_tokens: 512,
+    temperature: 0.7,
+  }) as { response: string };
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`OpenAI chat error ${response.status}: ${err}`);
-  }
-
-  const result = await response.json() as {
-    choices: Array<{ message: { content: string } }>;
-  };
-  const raw = result.choices[0]?.message?.content || '';
+  const raw = result.response || '';
 
   // Parse extracted JSON if present
   let extracted: AIExtracted | null = null;

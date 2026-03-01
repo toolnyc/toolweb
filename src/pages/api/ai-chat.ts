@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { getSupabaseAdmin, getOpenAIKey } from '../../lib/env';
+import { getSupabaseAdmin, getAI } from '../../lib/env';
 import { transcribeAudio, analyzeIntent, buildInquiryRecord } from '../../lib/ai';
 import type { ChatMessage } from '../../lib/ai';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
@@ -77,6 +77,8 @@ async function handleChat(
 
   let transcript: string | undefined;
 
+  const ai = getAI();
+
   // Handle audio transcription
   if (body.audio) {
     const audioBuffer = base64ToArrayBuffer(body.audio);
@@ -85,8 +87,7 @@ async function handleChat(
       return json({ error: 'Audio too large (max 5MB)' }, 400);
     }
 
-    const apiKey = getOpenAIKey();
-    transcript = await transcribeAudio(audioBuffer, apiKey);
+    transcript = await transcribeAudio(audioBuffer, ai);
 
     // Replace or append the last user message with the transcript
     if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
@@ -96,9 +97,8 @@ async function handleChat(
     }
   }
 
-  // Run through OpenAI gpt-4o-mini
-  const apiKey = getOpenAIKey();
-  const { reply, extracted } = await analyzeIntent(messages, apiKey);
+  // Run through Workers AI
+  const { reply, extracted } = await analyzeIntent(messages, ai);
 
   return json({ reply, extracted, transcript });
 }

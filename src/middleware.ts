@@ -26,10 +26,21 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const isApiRoute = pathname.startsWith('/api/');
   const isAuthPage = pathname === '/admin/login' || pathname === '/portal' || pathname === '/portal/verify';
 
-  // Only run auth queries for routes that actually need them
-  if (!isAdminRoute && !isPortalRoute) {
-    // Auth/login pages and API routes: no CDN caching
-    if (isApiRoute || isAuthPage) {
+  // Public API routes that never need auth
+  const isPublicApi = isApiRoute && (
+    pathname === '/api/stripe-webhook' ||
+    pathname === '/api/inquiry' ||
+    pathname === '/api/checkout' ||
+    pathname === '/api/ai-chat' ||
+    pathname === '/api/upload-check' ||
+    pathname.startsWith('/api/auth/')
+  );
+
+  // Routes that need auth: admin pages, portal pages, and non-public API routes
+  const needsAuth = isAdminRoute || isPortalRoute || (isApiRoute && !isPublicApi);
+
+  if (!needsAuth) {
+    if (isPublicApi || isAuthPage) {
       const response = await next();
       recordAnalytics(context, response, startTime, ctx);
       return response;
@@ -45,6 +56,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const supabaseAdmin = getSupabaseAdminOrNull();
 
   if (!accessToken || !supabaseAdmin) {
+    if (isApiRoute) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     if (isAdminRoute) return context.redirect('/admin/login');
     return context.redirect('/portal');
   }
@@ -63,6 +75,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
         if (refreshError || !refreshData.session) {
           clearAuthCookies(context.cookies);
+          if (isApiRoute) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
           if (isAdminRoute) return context.redirect('/admin/login');
           return context.redirect('/portal');
         }
@@ -74,6 +87,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         );
         context.locals.user = refreshData.user ?? undefined;
       } else {
+        if (isApiRoute) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
         if (isAdminRoute) return context.redirect('/admin/login');
         return context.redirect('/portal');
       }
@@ -102,11 +116,16 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
   } catch (err) {
     logError('error', 'Auth middleware error', { path: pathname, error: err }, ctx);
+    if (isApiRoute) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     if (isAdminRoute) return context.redirect('/admin/login');
     return context.redirect('/portal');
   }
 
   const response = await next();
+  // Prevent browser caching on admin/portal SSR pages (static _headers only covers assets)
+  if (isAdminRoute || isPortalRoute) {
+    response.headers.set('Cache-Control', 'no-store');
+  }
   recordAnalytics(context, response, startTime, ctx);
   return response;
 });

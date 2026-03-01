@@ -1,0 +1,4 @@
+-- Applied via Supabase MCP in a previous session.
+-- Fixes mutable search_path on RPC functions (security advisory)
+-- and adds cron-based data retention for error_logs (90d) and analytics_events (180d).
+-- This file exists as a stub to keep local migrations in sync with remote.

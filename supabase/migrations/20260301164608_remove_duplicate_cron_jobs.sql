@@ -1,0 +1,4 @@
+-- Remove duplicate raw-DELETE cron jobs that overlap with the batched cleanup_old_logs() function.
+-- cleanup_old_logs() handles both error_logs (90d) and analytics_events (180d) in 10k batches.
+-- The purge-old-error-logs and purge-old-analytics jobs were redundant unbatched versions.
+-- Applied via Supabase MCP. This file exists as a stub to keep local migrations in sync.

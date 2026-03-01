@@ -220,6 +220,10 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
     const onCanPlay = () => {
       loadingEl?.classList.remove('is-loading');
       video.removeEventListener('canplay', onCanPlay);
+      // Retry play after source loads — initial play() may have failed
+      if (player.dataset.mode === 'loop') {
+        video.play().catch(() => {});
+      }
     };
     video.addEventListener('canplay', onCanPlay);
   }

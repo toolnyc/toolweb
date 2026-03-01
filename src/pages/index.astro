@@ -57,7 +57,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
     {/* ── 1. Hero ─────────────────────────────────────────── */}
     <section class="min-h-[100svh] relative overflow-hidden flex flex-col items-center justify-center">
       <canvas id="eyes-canvas" class="absolute inset-0 w-full h-full pointer-events-none" data-anim="eyes-canvas"></canvas>
-      <div class="relative z-10 text-center px-4 -mt-16">
+      <div class="relative z-10 text-center px-4 -mt-10 md:-mt-14">
         <p class="text-body text-caption-gray max-w-md mx-auto opacity-0" data-anim="hero-typing">
           <span class="hero-typing-text">{heroTagline?.content ?? 'Brand, design, and web development. New York.'}</span>
           <span class="hero-cursor" style="opacity: 0;" aria-hidden="true">|</span>
@@ -113,12 +113,14 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                 data-lg-span={lgSpan}
               >
                 {item.media_type === 'video' ? (
-                  <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} />
+                  <div class="absolute inset-0">
+                    <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} />
+                  </div>
                 ) : (
                   <img
                     src={item.media_url}
                     alt={item.title}
-                    class="w-full h-full object-cover block"
+                    class="absolute inset-0 w-full h-full object-cover block"
                     loading="lazy"
                     decoding="async"
                   />
@@ -146,7 +148,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                   </a>
                 )}
 
-                <div class="px-1 py-2">
+                <div class="absolute bottom-0 left-0 right-0 px-1 py-2 z-[1]">
                   <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
                   <p class="text-sm font-medium text-white mt-1">{item.title}</p>
                   {item.description && (

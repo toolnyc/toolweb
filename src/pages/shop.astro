@@ -37,6 +37,8 @@ function formatPrice(price: number) {
                 src={product.image_url}
                 alt={product.name}
                 class="aspect-square object-cover w-full bg-lite-gray"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div class="aspect-square w-full bg-lite-gray" />
@@ -62,6 +64,8 @@ function formatPrice(price: number) {
                 src={product.image_url}
                 alt={product.name}
                 class="aspect-square object-cover w-full bg-lite-gray"
+                loading="lazy"
+                decoding="async"
               />
             ) : (
               <div class="aspect-square w-full bg-lite-gray" />

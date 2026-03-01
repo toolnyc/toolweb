@@ -30,6 +30,9 @@ const calBookingUrl = (Astro.locals.runtime?.env?.CAL_BOOKING_URL as string) || 
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="preload" href="/fonts/SpaceGrotesk-Variable.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preconnect" href="https://media.tool.nyc" />
+    <link rel="preconnect" href="https://eknmuaffpvkiwylrybql.supabase.co" />
+    <link rel="dns-prefetch" href="https://app.cal.com" />
     <meta name="cal-booking-url" content={calBookingUrl} />
     <title>{title}</title>
   </head>

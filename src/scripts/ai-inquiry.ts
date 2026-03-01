@@ -19,7 +19,7 @@ let messages: ChatMessage[] = [];
 let extracted: AIExtracted | null = null;
 let source: 'ai_voice' | 'ai_text' = 'ai_text';
 let userMessageCount = 0;
-const MAX_USER_MESSAGES = 3;
+const MAX_USER_MESSAGES = 5;
 
 // MediaRecorder state
 let mediaRecorder: MediaRecorder | null = null;

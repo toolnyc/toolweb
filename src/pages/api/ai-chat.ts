@@ -1,12 +1,12 @@
 import type { APIRoute } from 'astro';
-import { getSupabaseAdmin, getAI } from '../../lib/env';
+import { getSupabaseAdmin, getOpenAIKey } from '../../lib/env';
 import { transcribeAudio, analyzeIntent, buildInquiryRecord } from '../../lib/ai';
 import type { ChatMessage } from '../../lib/ai';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
 import { logError } from '../../lib/logger';
 import { checkRateLimit } from '../../lib/rate-limit';
 
-const MAX_MESSAGES = 5;
+const MAX_MESSAGES = 10;
 const MAX_CHAR_PER_MESSAGE = 2000;
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024; // 5MB
 const RATE_LIMIT_WINDOW_HOURS = 1;
@@ -50,16 +50,29 @@ async function handleChat(
   const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
   const messages = body.messages ?? [];
 
-  // Rate limit on first message only (new conversation)
+  // Rate limit: 10 conversations/hour/IP (checked on first message only)
   if (messages.length <= 1) {
     const { allowed } = await checkRateLimit(ip, {
-      maxRequests: 3,
+      maxRequests: 10,
       windowSeconds: 3600,
       endpoint: 'ai-chat',
     });
 
     if (!allowed) {
       return json({ error: 'Too many requests. Try again later.' }, 429);
+    }
+  }
+
+  // Daily cap: 30 conversations/day/IP
+  if (messages.length <= 1) {
+    const { allowed } = await checkRateLimit(ip, {
+      maxRequests: 30,
+      windowSeconds: 86400,
+      endpoint: 'ai-chat-daily',
+    });
+
+    if (!allowed) {
+      return json({ error: 'Daily limit reached. Come back tomorrow.' }, 429);
     }
   }
 
@@ -77,7 +90,7 @@ async function handleChat(
 
   let transcript: string | undefined;
 
-  const ai = getAI();
+  const apiKey = getOpenAIKey();
 
   // Handle audio transcription
   if (body.audio) {
@@ -87,7 +100,7 @@ async function handleChat(
       return json({ error: 'Audio too large (max 5MB)' }, 400);
     }
 
-    transcript = await transcribeAudio(audioBuffer, ai);
+    transcript = await transcribeAudio(audioBuffer, apiKey);
 
     // Replace or append the last user message with the transcript
     if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
@@ -97,8 +110,8 @@ async function handleChat(
     }
   }
 
-  // Run through Workers AI
-  const { reply, extracted } = await analyzeIntent(messages, ai);
+  // Run through OpenAI GPT-4o
+  const { reply, extracted } = await analyzeIntent(messages, apiKey);
 
   return json({ reply, extracted, transcript });
 }

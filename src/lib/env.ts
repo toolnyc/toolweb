@@ -46,6 +46,7 @@ export function initClients(env: Record<string, unknown>): void {
     _supabaseAdmin = createClient(url, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
       db: { timeout: 10000 },
+      global: { headers: { 'Cache-Control': 'no-cache' } },
     });
   }
 

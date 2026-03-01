@@ -122,9 +122,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
   }
 
   const response = await next();
-  // Prevent browser caching on admin/portal SSR pages (static _headers only covers assets)
+  // Prevent all caching on admin/portal SSR pages
+  // (Cloudflare Pages _headers only covers static assets, not Functions)
   if (isAdminRoute || isPortalRoute) {
-    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+    response.headers.set('Pragma', 'no-cache');
   }
   recordAnalytics(context, response, startTime, ctx);
   return response;

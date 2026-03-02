@@ -8,6 +8,9 @@ interface Props {
 
 const { item } = Astro.props;
 
+// Ensure external URLs have a protocol so they don't resolve as relative paths
+const ensureProtocol = (url: string) => /^https?:\/\//i.test(url) ? url : `https://${url}`;
+
 // Map display_size to column spans: mobile always 6, desktop varies
 const lgSpanMap = { small: 8, medium: 12, large: 16 } as const;
 const mdSpanMap = { small: 6, medium: 6, large: 12 } as const;
@@ -47,7 +50,7 @@ const mdSpan = mdSpanMap[item.display_size] ?? 6;
       </a>
     ) : item.external_url && (
       <a
-        href={item.external_url}
+        href={ensureProtocol(item.external_url)}
         target="_blank"
         rel="noopener noreferrer"
         class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"

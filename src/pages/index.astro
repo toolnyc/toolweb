@@ -56,7 +56,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
     {/* ── 1. Hero ─────────────────────────────────────────── */}
     <section class="min-h-[100svh] relative overflow-hidden">
       <canvas id="eyes-canvas" class="absolute inset-0 w-full h-full pointer-events-none" data-anim="eyes-canvas"></canvas>
-      <div class="absolute inset-x-0 bottom-[37%] md:bottom-[35%] z-10 text-center px-4">
+      <div id="hero-caption" class="absolute inset-x-0 z-10 text-center px-4" style="top: 50%">
         <p class="text-body text-caption-gray max-w-md mx-auto opacity-0" data-anim="hero-typing">
           <span class="hero-typing-text">{heroTagline?.content ?? 'Brand, design, and web development. New York.'}</span>
           <span class="hero-cursor" style="opacity: 0;" aria-hidden="true">|</span>

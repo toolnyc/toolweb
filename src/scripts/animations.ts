@@ -44,6 +44,10 @@ if (prefersReducedMotion) {
       ctx.textBaseline = 'middle';
       ctx.fillText('TOOL', 40, canvas.offsetHeight / 2);
     }
+    const heroCaptionReduced = document.getElementById('hero-caption');
+    if (heroCaptionReduced) {
+      heroCaptionReduced.style.top = `${(canvas?.offsetHeight ?? 0) / 2 + 60}px`;
+    }
   }
 } else {
   // ── Lenis smooth scroll ───────────────────────────────────────
@@ -111,6 +115,7 @@ if (prefersReducedMotion) {
     window.addEventListener('resize', resizeCanvas);
 
     const headerH = document.querySelector('header')?.offsetHeight ?? 48;
+    const heroCaption = document.getElementById('hero-caption');
 
     // Blink state — droopy lids default ~48% closed (stoned)
     const DROOP = 0.48;
@@ -166,6 +171,11 @@ if (prefersReducedMotion) {
 
         // Draw T and L (white fill, black strokes from the SVG path)
         ctx.drawImage(wordmarkImg, wmX, wmY, targetW, targetH);
+
+        // Position the tagline caption just below the wordmark
+        if (heroCaption) {
+          heroCaption.style.top = `${wmY + targetH + 24}px`;
+        }
 
         // Map SVG eye coordinates to canvas
         const eye1X = wmX + SVG_EYE1.cx * scale;

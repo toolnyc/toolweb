@@ -30,33 +30,30 @@ const mdSpan = mdSpanMap[item.display_size] ?? 6;
     />
   )}
 
-  {item.is_case_study && item.slug ? (
-    <a
-      href={`/work/${item.slug}`}
-      class="absolute inset-0 flex items-end p-4 pb-12"
-    >
-      <span class="text-body text-caption-gray bg-white/90 px-2 py-1">
+  <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pt-10 pb-4 flex flex-col items-start gap-3">
+    <div>
+      <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
+      <p class="text-sm font-medium text-white mt-1">{item.title}</p>
+      {item.description && (
+        <p class="text-xs text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
+      )}
+    </div>
+    {item.is_case_study && item.slug ? (
+      <a
+        href={`/work/${item.slug}`}
+        class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"
+      >
         View case study &rarr;
-      </span>
-    </a>
-  ) : item.external_url && (
-    <a
-      href={item.external_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      class="absolute inset-0 flex items-end p-4 pb-12"
-    >
-      <span class="text-body text-caption-gray bg-white/90 px-2 py-1">
+      </a>
+    ) : item.external_url && (
+      <a
+        href={item.external_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"
+      >
         View project &rarr;
-      </span>
-    </a>
-  )}
-
-  <div class="px-3 py-3">
-    <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
-    <p class="text-sm font-medium text-white mt-1">{item.title}</p>
-    {item.description && (
-      <p class="text-xs text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
+      </a>
     )}
   </div>
 </div>

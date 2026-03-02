@@ -28,6 +28,7 @@ export interface PortfolioItem {
   problem: string | null;
   solution: string | null;
   impact: string | null;
+  body: string | null;
   is_case_study: boolean;
   created_at: string;
   updated_at: string;

@@ -18,6 +18,8 @@ export default {
         'body': ['13px', { lineHeight: '18px' }],
         'hero': ['clamp(3rem, 8vw, 7rem)', { lineHeight: '0.95', letterSpacing: '-0.02em' }],
         'snippet': ['clamp(1.5rem, 3vw, 2.5rem)', { lineHeight: '1.3' }],
+        'prose': ['15px', { lineHeight: '24px' }],
+        'cs-title': ['clamp(1.5rem, 4vw, 3rem)', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
       },
       screens: {
         'sm': '480px',

@@ -17,14 +17,20 @@ const caseStudy = await getCaseStudyBySlug(slug);
 if (!caseStudy) {
   return Astro.redirect('/');
 }
+
+const bodyHtml = caseStudy.body
+  || [caseStudy.problem, caseStudy.solution, caseStudy.impact].filter(Boolean).join('')
+  || null;
+
+const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]*>/g, '').slice(0, 160);
 ---
 
-<BaseLayout title={`${caseStudy.title} — Tool`} description={(caseStudy.problem ?? caseStudy.description ?? '').replace(/<[^>]*>/g, '')}>
+<BaseLayout title={`${caseStudy.title} — Tool`} description={metaDescription}>
   <Header />
 
   <main class="pb-12" id="main-content">
     {/* ── Cover ────────────────────────────────────────────── */}
-    <section class="min-h-[80svh] flex items-end site-grid pb-8">
+    <section class="site-grid pt-4 pb-6">
       <div class="col-span-6 lg:col-span-24">
         {caseStudy.media_type === 'video' ? (
           <VideoPlayer src={caseStudy.media_url} poster={caseStudy.thumbnail_url ?? undefined} title={caseStudy.title} />
@@ -32,37 +38,26 @@ if (!caseStudy) {
           <img
             src={caseStudy.media_url}
             alt={caseStudy.title}
-            class="w-full h-auto block"
+            class="w-full max-h-[60vh] object-cover block"
             loading="eager"
             decoding="async"
           />
         )}
-        <h1 class="text-hero font-bold uppercase tracking-tight mt-6 anim-fade-up" data-anim="cs-title">
+        <h1 class="text-cs-title font-bold uppercase tracking-tight mt-6 anim-fade-up" data-anim="cs-title">
           {caseStudy.title}
         </h1>
         {caseStudy.description && (
-          <p class="text-xs text-neutral-600 mt-2 max-w-md anim-fade-up" data-anim="cs-subtitle">
+          <p class="text-body text-caption-gray mt-2 max-w-md anim-fade-up" data-anim="cs-subtitle">
             {caseStudy.description}
           </p>
         )}
       </div>
     </section>
 
-    {/* ── Problem / Solution ───────────────────────────────── */}
-    {(caseStudy.problem || caseStudy.solution) && (
+    {/* ── Body ─────────────────────────────────────────────── */}
+    {bodyHtml && (
       <section class="site-grid py-8">
-        {caseStudy.problem && (
-          <div class="col-span-6 md:col-span-6 lg:col-span-12 anim-fade-up">
-            <h2 class="text-body font-medium mb-2">Problem</h2>
-            <div class="text-body text-caption-gray max-w-lg space-y-4 [&>p]:leading-relaxed" set:html={caseStudy.problem} />
-          </div>
-        )}
-        {caseStudy.solution && (
-          <div class="col-span-6 md:col-span-6 lg:col-span-12 anim-fade-up">
-            <h2 class="text-body font-medium mb-2">Solution</h2>
-            <div class="text-body text-caption-gray max-w-lg space-y-4 [&>p]:leading-relaxed" set:html={caseStudy.solution} />
-          </div>
-        )}
+        <article class="col-span-6 lg:col-span-24 max-w-2xl text-prose text-dark-gray space-y-4 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-neutral-300 [&_blockquote]:pl-4 [&_blockquote]:text-caption-gray [&_a]:underline anim-fade-up" set:html={bodyHtml} />
       </section>
     )}
 
@@ -83,15 +78,6 @@ if (!caseStudy) {
             )}
           </div>
         ))}
-      </section>
-    )}
-
-    {/* ── Impact ───────────────────────────────────────────── */}
-    {caseStudy.impact && (
-      <section class="site-grid py-8">
-        <div class="col-span-6 lg:col-span-24 anim-fade-up">
-          <div class="text-snippet max-w-2xl space-y-4 [&>p]:leading-relaxed" set:html={caseStudy.impact} />
-        </div>
       </section>
     )}
 

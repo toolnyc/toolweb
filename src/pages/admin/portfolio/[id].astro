@@ -65,9 +65,7 @@ if (Astro.request.method === 'POST' && id) {
         status: formData.get('status'),
         is_case_study: formData.get('is_case_study') === 'on',
         slug: formData.get('slug') || null,
-        problem: formData.get('problem') || null,
-        solution: formData.get('solution') || null,
-        impact: formData.get('impact') || null,
+        body: formData.get('body') || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id);
@@ -211,36 +209,19 @@ if (Astro.request.method === 'POST' && id) {
               </div>
 
               <div>
-                <label for="problem" class="block text-sm font-semibold mb-2">Problem</label>
-                <textarea
-                  id="problem"
-                  name="problem"
-                  rows="3"
-                  placeholder="2-3 sentences. What was wrong."
-                  class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                >{portfolioItem.problem}</textarea>
-              </div>
-
-              <div>
-                <label for="solution" class="block text-sm font-semibold mb-2">Solution</label>
-                <textarea
-                  id="solution"
-                  name="solution"
-                  rows="3"
-                  placeholder="2-3 sentences. What you did."
-                  class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                >{portfolioItem.solution}</textarea>
-              </div>
-
-              <div>
-                <label for="impact" class="block text-sm font-semibold mb-2">Impact</label>
-                <textarea
-                  id="impact"
-                  name="impact"
-                  rows="2"
-                  placeholder="1-3 lines. Metrics or a client quote."
-                  class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
-                >{portfolioItem.impact}</textarea>
+                <label class="block text-sm font-semibold mb-2">Body</label>
+                <input type="hidden" name="body" id="body-input" value={portfolioItem.body || ''} />
+                <div id="tiptap-toolbar" class="flex flex-wrap gap-1 p-2 border border-neutral-300 border-b-0 rounded-t bg-neutral-50">
+                  <button type="button" data-action="bold" class="tt-btn px-2 py-1 text-xs border border-neutral-300 rounded hover:bg-neutral-200" title="Bold"><strong>B</strong></button>
+                  <button type="button" data-action="italic" class="tt-btn px-2 py-1 text-xs border border-neutral-300 rounded hover:bg-neutral-200" title="Italic"><em>I</em></button>
+                  <button type="button" data-action="h2" class="tt-btn px-2 py-1 text-xs border border-neutral-300 rounded hover:bg-neutral-200" title="Heading 2">H2</button>
+                  <button type="button" data-action="h3" class="tt-btn px-2 py-1 text-xs border border-neutral-300 rounded hover:bg-neutral-200" title="Heading 3">H3</button>
+                  <button type="button" data-action="bulletList" class="tt-btn px-2 py-1 text-xs border border-neutral-300 rounded hover:bg-neutral-200" title="Bullet List">UL</button>
+                  <button type="button" data-action="orderedList" class="tt-btn px-2 py-1 text-xs border border-neutral-300 rounded hover:bg-neutral-200" title="Ordered List">OL</button>
+                  <button type="button" data-action="blockquote" class="tt-btn px-2 py-1 text-xs border border-neutral-300 rounded hover:bg-neutral-200" title="Blockquote">BQ</button>
+                  <button type="button" data-action="link" class="tt-btn px-2 py-1 text-xs border border-neutral-300 rounded hover:bg-neutral-200" title="Link">Link</button>
+                </div>
+                <div id="tiptap-editor" class="border border-neutral-300 rounded-b min-h-[200px] px-3 py-2 focus-within:ring-2 focus-within:ring-neutral-900 [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[180px] [&_.ProseMirror_h2]:text-lg [&_.ProseMirror_h2]:font-bold [&_.ProseMirror_h2]:mt-4 [&_.ProseMirror_h2]:mb-2 [&_.ProseMirror_h3]:text-base [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_h3]:mt-3 [&_.ProseMirror_h3]:mb-1 [&_.ProseMirror_p]:mb-2 [&_.ProseMirror_ul]:list-disc [&_.ProseMirror_ul]:pl-5 [&_.ProseMirror_ol]:list-decimal [&_.ProseMirror_ol]:pl-5 [&_.ProseMirror_blockquote]:border-l-2 [&_.ProseMirror_blockquote]:border-neutral-300 [&_.ProseMirror_blockquote]:pl-3 [&_.ProseMirror_blockquote]:text-neutral-500 [&_.ProseMirror_a]:underline [&_.ProseMirror_a]:text-blue-600"></div>
               </div>
 
               <!-- Gallery Images -->
@@ -435,6 +416,78 @@ if (Astro.request.method === 'POST' && id) {
         mediaTypeSelect.value = 'image';
         mediaTypeSelect.dispatchEvent(new Event('change'));
       }
+    });
+  }
+
+  // -- Tiptap editor --
+  import { Editor } from '@tiptap/core';
+  import StarterKit from '@tiptap/starter-kit';
+  import Link from '@tiptap/extension-link';
+
+  const editorEl = document.getElementById('tiptap-editor');
+  const bodyInput = document.getElementById('body-input') as HTMLInputElement | null;
+
+  if (editorEl && bodyInput) {
+    const editor = new Editor({
+      element: editorEl,
+      extensions: [
+        StarterKit,
+        Link.configure({ openOnClick: false }),
+      ],
+      content: bodyInput.value || '',
+      onUpdate: ({ editor: e }) => {
+        bodyInput.value = e.getHTML();
+      },
+    });
+
+    // Sync on form submit
+    editorEl.closest('form')?.addEventListener('submit', () => {
+      bodyInput.value = editor.getHTML();
+    });
+
+    // Toolbar actions
+    document.querySelectorAll<HTMLButtonElement>('#tiptap-toolbar .tt-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        switch (action) {
+          case 'bold': editor.chain().focus().toggleBold().run(); break;
+          case 'italic': editor.chain().focus().toggleItalic().run(); break;
+          case 'h2': editor.chain().focus().toggleHeading({ level: 2 }).run(); break;
+          case 'h3': editor.chain().focus().toggleHeading({ level: 3 }).run(); break;
+          case 'bulletList': editor.chain().focus().toggleBulletList().run(); break;
+          case 'orderedList': editor.chain().focus().toggleOrderedList().run(); break;
+          case 'blockquote': editor.chain().focus().toggleBlockquote().run(); break;
+          case 'link': {
+            const url = prompt('URL:');
+            if (url) {
+              editor.chain().focus().setLink({ href: url }).run();
+            } else {
+              editor.chain().focus().unsetLink().run();
+            }
+            break;
+          }
+        }
+      });
+    });
+
+    // Update active states
+    editor.on('selectionUpdate', () => {
+      document.querySelectorAll<HTMLButtonElement>('#tiptap-toolbar .tt-btn').forEach(btn => {
+        const action = btn.dataset.action;
+        let isActive = false;
+        switch (action) {
+          case 'bold': isActive = editor.isActive('bold'); break;
+          case 'italic': isActive = editor.isActive('italic'); break;
+          case 'h2': isActive = editor.isActive('heading', { level: 2 }); break;
+          case 'h3': isActive = editor.isActive('heading', { level: 3 }); break;
+          case 'bulletList': isActive = editor.isActive('bulletList'); break;
+          case 'orderedList': isActive = editor.isActive('orderedList'); break;
+          case 'blockquote': isActive = editor.isActive('blockquote'); break;
+          case 'link': isActive = editor.isActive('link'); break;
+        }
+        btn.classList.toggle('bg-neutral-900', isActive);
+        btn.classList.toggle('text-white', isActive);
+      });
     });
   }
 

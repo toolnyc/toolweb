@@ -54,9 +54,9 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
 
   <main class="pb-14" id="main-content">
     {/* ── 1. Hero ─────────────────────────────────────────── */}
-    <section class="min-h-[100svh] relative overflow-hidden flex flex-col items-center justify-center">
+    <section class="min-h-[100svh] relative overflow-hidden">
       <canvas id="eyes-canvas" class="absolute inset-0 w-full h-full pointer-events-none" data-anim="eyes-canvas"></canvas>
-      <div class="relative z-10 text-center px-4 -mt-10 md:mt-0">
+      <div class="absolute inset-x-0 bottom-[28%] md:bottom-[26%] z-10 text-center px-4">
         <p class="text-body text-caption-gray max-w-md mx-auto opacity-0" data-anim="hero-typing">
           <span class="hero-typing-text">{heroTagline?.content ?? 'Brand, design, and web development. New York.'}</span>
           <span class="hero-cursor" style="opacity: 0;" aria-hidden="true">|</span>

@@ -46,8 +46,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
       return response;
     }
     // Public pages: allow Cloudflare to cache for 60s, serve stale up to 5min while revalidating
+    // Skip CDN caching on /work/* so draft→published changes appear immediately
     const response = await next();
-    response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    if (!pathname.startsWith('/work/')) {
+      response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+    }
     recordAnalytics(context, response, startTime, ctx);
     return response;
   }

@@ -391,22 +391,16 @@ submitBtn?.addEventListener('click', async () => {
     }
 
     state = 'DONE';
-    if (contactArea) contactArea.classList.add('hidden');
-    if (doneArea) doneArea.classList.remove('hidden');
 
-    // Trigger Cal.com popup with prefilled data
-    if (data.calPrefill && typeof window.Cal === 'function') {
-      setTimeout(() => {
-        window.Cal!('openModal', {
-          calLink: document.querySelector<HTMLMetaElement>('meta[name="cal-booking-url"]')?.content || 'toolnyc/30min',
-          config: {
-            layout: 'month_view',
-            name: data.calPrefill!.name,
-            email: data.calPrefill!.email,
-            notes: data.calPrefill!.notes,
-          },
-        });
-      }, 800);
+    // Redirect to booking page with prefilled data
+    if (data.calPrefill) {
+      const params = new URLSearchParams();
+      if (data.calPrefill.name) params.set('name', data.calPrefill.name);
+      if (data.calPrefill.email) params.set('email', data.calPrefill.email);
+      if (data.calPrefill.notes) params.set('notes', data.calPrefill.notes);
+      window.location.href = `/book?${params.toString()}`;
+    } else {
+      window.location.href = '/book';
     }
   } catch {
     showContactError('Connection error. Try again.');

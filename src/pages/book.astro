@@ -28,9 +28,17 @@ import StickyBar from '../components/StickyBar.astro';
 </BaseLayout>
 
 <script is:inline>
-  Cal("inline", {
-    calLink: document.querySelector('meta[name="cal-booking-url"]')?.content || "toolnyc/30min",
-    elementOrSelector: "#cal-inline",
-    config: { layout: "month_view" },
-  });
+  (function() {
+    var params = new URLSearchParams(window.location.search);
+    var config = { layout: "month_view" };
+    if (params.get("name")) config.name = params.get("name");
+    if (params.get("email")) config.email = params.get("email");
+    if (params.get("notes")) config.notes = params.get("notes");
+
+    Cal("inline", {
+      calLink: document.querySelector('meta[name="cal-booking-url"]')?.content || "toolnyc/30min",
+      elementOrSelector: "#cal-inline",
+      config: config,
+    });
+  })();
 </script>

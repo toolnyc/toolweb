@@ -61,19 +61,12 @@
     .site-grid { grid-template-columns: repeat(24, 1fr); }
   }
 
-  /* Portfolio item hover effects (image cards only — videos use stacked layout) */
+  /* Portfolio item hover effects */
   .portfolio-item img {
     transition: transform 0.4s ease;
   }
   .portfolio-item:hover img {
     transform: scale(1.03);
-  }
-  .portfolio-overlay {
-    opacity: 0.7;
-    transition: opacity 0.3s ease;
-  }
-  .portfolio-item:hover .portfolio-overlay {
-    opacity: 1;
   }
 
   /* 1px gap grid for tight image mosaic */

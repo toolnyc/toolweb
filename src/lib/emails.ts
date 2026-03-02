@@ -2,6 +2,8 @@ import { getResendOrNull } from './env';
 import { logError } from './logger';
 
 const FROM_ADDRESS = 'Tool <hello@tool.nyc>';
+const REPLY_TO_ADDRESS = 'hugetool@proton.me';
+const LOGO_URL = 'https://tool.nyc/brand/wordmark-color.png';
 
 // Shared brand constants
 const FONT_STACK =
@@ -34,8 +36,10 @@ function brandShell(bodyContent: string): string {
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%;">
           <!-- Header -->
           <tr>
-            <td style="padding:40px 32px 24px 32px; border-bottom:1px solid ${COLOR_BLACK};">
-              <span style="font-size:28px; font-weight:700; letter-spacing:6px; color:${COLOR_BLACK}; text-decoration:none;">TOOL</span>
+            <td style="padding:32px 32px 24px 32px; border-bottom:1px solid ${COLOR_BLACK};">
+              <a href="https://tool.nyc" style="text-decoration:none;">
+                <img src="${LOGO_URL}" alt="Tool" width="160" height="44" style="display:block; width:160px; height:auto; border:0;" />
+              </a>
             </td>
           </tr>
           <!-- Body -->
@@ -104,6 +108,7 @@ export async function sendMagicLinkEmail(to: string, magicLinkUrl: string): Prom
   try {
     await resend.emails.send({
       from: FROM_ADDRESS,
+      replyTo: REPLY_TO_ADDRESS,
       to: [to],
       subject: 'Your Tool portal login link',
       html,
@@ -205,6 +210,7 @@ export async function sendOrderConfirmationEmail(
   try {
     await resend.emails.send({
       from: FROM_ADDRESS,
+      replyTo: REPLY_TO_ADDRESS,
       to: [to],
       subject: 'Order confirmed — Tool',
       html,
@@ -279,7 +285,8 @@ export async function sendInquiryNotificationEmail(inquiry: InquiryDetails): Pro
   try {
     await resend.emails.send({
       from: FROM_ADDRESS,
-      to: ['hello@tool.nyc'],
+      replyTo: inquiry.email,
+      to: ['hugetool@proton.me'],
       subject: `New inquiry from ${inquiry.name}`,
       html,
     });
@@ -317,6 +324,7 @@ export async function sendInquiryAutoReplyEmail(to: string, name: string): Promi
   try {
     await resend.emails.send({
       from: FROM_ADDRESS,
+      replyTo: REPLY_TO_ADDRESS,
       to: [to],
       subject: 'We got your message — Tool',
       html,

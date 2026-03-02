@@ -97,7 +97,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
     </section>
 
     {/* ── 3. Portfolio grid with writing snippets ─────────── */}
-    <section class="site-grid">
+    <section class="site-grid pb-16 md:pb-24">
       {portfolioChunks.map((chunk, chunkIndex) => {
         const baseIndex = chunkIndex * chunkSize;
         return (
@@ -118,7 +118,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
               >
                 <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} cover={false} />
                 <div class="px-1 pt-3 pb-1">
-                  <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
+                  <p class="text-[10px] uppercase tracking-widest text-[#FF00FF]">{item.category}</p>
                   <p class="text-sm font-medium text-neutral-900 mt-1">{item.title}</p>
                   {item.description && (
                     <p class="text-xs text-neutral-500 mt-1 line-clamp-2">{item.description}</p>
@@ -143,32 +143,32 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                 </div>
               </div>
             ) : (
-              /* ── Image card: full-bleed with overlay ── */
+              /* ── Image card: image + text below ── */
               <div
-                class="portfolio-item col-span-6 relative overflow-hidden anim-fade-up"
-                style={`grid-column: span 6; aspect-ratio: ${aspect}`}
+                class="portfolio-item col-span-6 anim-fade-up"
+                style="grid-column: span 6"
                 data-md-span={mdSpan}
                 data-lg-span={lgSpan}
               >
-                <img
-                  src={item.media_url}
-                  alt={item.title}
-                  class="absolute inset-0 w-full h-full object-cover block"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div class="portfolio-overlay absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pt-10 pb-4 flex flex-col items-start gap-3 z-[5]">
-                  <div>
-                    <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
-                    <p class="text-sm font-medium text-white mt-1">{item.title}</p>
-                    {item.description && (
-                      <p class="text-xs text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
-                    )}
-                  </div>
+                <div class="relative overflow-hidden" style={`aspect-ratio: ${aspect}`}>
+                  <img
+                    src={item.media_url}
+                    alt={item.title}
+                    class="absolute inset-0 w-full h-full object-cover block"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <div class="px-1 pt-3 pb-1">
+                  <p class="text-[10px] uppercase tracking-widest text-[#FF00FF]">{item.category}</p>
+                  <p class="text-sm font-medium text-neutral-900 mt-1">{item.title}</p>
+                  {item.description && (
+                    <p class="text-xs text-neutral-500 mt-1 line-clamp-2">{item.description}</p>
+                  )}
                   {item.is_case_study && item.slug ? (
                     <a
                       href={`/work/${item.slug}`}
-                      class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"
+                      class="inline-block text-body border border-neutral-300 text-neutral-900 px-4 py-2 mt-3 hover:bg-neutral-900 hover:text-white transition-colors"
                     >
                       View case study &rarr;
                     </a>
@@ -177,7 +177,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                       href={ensureProtocol(item.external_url)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"
+                      class="inline-block text-body border border-neutral-300 text-neutral-900 px-4 py-2 mt-3 hover:bg-neutral-900 hover:text-white transition-colors"
                     >
                       View project &rarr;
                     </a>

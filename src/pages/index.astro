@@ -5,6 +5,7 @@ import Footer from '../components/Footer.astro';
 import StickyBar from '../components/StickyBar.astro';
 import AIInquiryModal from '../components/AIInquiryModal.astro';
 import Accordion from '../components/Accordion.astro';
+import WritingBlock from '../components/WritingBlock.astro';
 import VideoPlayer from '../components/VideoPlayer.astro';
 
 import {
@@ -43,19 +44,11 @@ function getAspectRatio(index: number, displaySize: string): string {
   return aspectPatterns[index % aspectPatterns.length];
 }
 
-// Build interleaved sequence: insert a writing snippet every 3 portfolio items
-type GridItem = { type: 'portfolio'; item: PortfolioItem } | { type: 'writing'; snippet: typeof writing[number] };
-const gridItems: GridItem[] = [];
-let wIdx = 0;
-for (let i = 0; i < portfolio.length; i++) {
-  gridItems.push({ type: 'portfolio', item: portfolio[i] });
-  if ((i + 1) % 3 === 0 && wIdx < writing.length) {
-    gridItems.push({ type: 'writing', snippet: writing[wIdx++] });
-  }
-}
-// Append remaining writing snippets
-while (wIdx < writing.length) {
-  gridItems.push({ type: 'writing', snippet: writing[wIdx++] });
+// Chunk portfolio items for interleaving with writing snippets
+const chunkSize = 4;
+const portfolioChunks: PortfolioItem[][] = [];
+for (let i = 0; i < portfolio.length; i += chunkSize) {
+  portfolioChunks.push(portfolio.slice(i, i + chunkSize));
 }
 ---
 
@@ -105,108 +98,107 @@ while (wIdx < writing.length) {
 
     {/* ── 3. Portfolio grid with writing snippets ─────────── */}
     <section class="site-grid">
-      {gridItems.map((entry, idx) => {
-        if (entry.type === 'writing') {
-          return (
-            <div
-              class="col-span-6 flex items-center anim-fade"
-              style="grid-column: span 6"
-              data-md-span="6"
-              data-lg-span="8"
-            >
-              <div class="py-6 px-1">
-                <p class="text-snippet leading-relaxed">{entry.snippet.content}</p>
-                {entry.snippet.attribution && (
-                  <p class="text-body text-caption-gray mt-2">{entry.snippet.attribution}</p>
-                )}
+      {portfolioChunks.map((chunk, chunkIndex) => {
+        const baseIndex = chunkIndex * chunkSize;
+        return (
+        <>
+          {chunk.map((item, i) => {
+            const globalIndex = baseIndex + i;
+            const lgSpan = lgSpanMap[item.display_size] ?? 8;
+            const mdSpan = mdSpanMap[item.display_size] ?? 6;
+            const isVideo = item.media_type === 'video';
+            const aspect = isVideo ? undefined : getAspectRatio(globalIndex, item.display_size);
+            return isVideo ? (
+              /* ── Video card: natural ratio + text below ── */
+              <div
+                class="portfolio-item col-span-6 anim-fade-up"
+                style="grid-column: span 6"
+                data-md-span={mdSpan}
+                data-lg-span={lgSpan}
+              >
+                <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} cover={false} />
+                <div class="px-1 pt-3 pb-1">
+                  <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
+                  <p class="text-sm font-medium text-neutral-900 mt-1">{item.title}</p>
+                  {item.description && (
+                    <p class="text-xs text-neutral-500 mt-1 line-clamp-2">{item.description}</p>
+                  )}
+                  {item.is_case_study && item.slug ? (
+                    <a
+                      href={`/work/${item.slug}`}
+                      class="inline-block text-body border border-neutral-300 text-neutral-900 px-4 py-2 mt-3 hover:bg-neutral-900 hover:text-white transition-colors"
+                    >
+                      View case study &rarr;
+                    </a>
+                  ) : item.external_url && (
+                    <a
+                      href={ensureProtocol(item.external_url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-block text-body border border-neutral-300 text-neutral-900 px-4 py-2 mt-3 hover:bg-neutral-900 hover:text-white transition-colors"
+                    >
+                      View project &rarr;
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        }
+            ) : (
+              /* ── Image card: full-bleed with overlay ── */
+              <div
+                class="portfolio-item col-span-6 relative overflow-hidden anim-fade-up"
+                style={`grid-column: span 6; aspect-ratio: ${aspect}`}
+                data-md-span={mdSpan}
+                data-lg-span={lgSpan}
+              >
+                <img
+                  src={item.media_url}
+                  alt={item.title}
+                  class="absolute inset-0 w-full h-full object-cover block"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div class="portfolio-overlay absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pt-10 pb-4 flex flex-col items-start gap-3 z-[5]">
+                  <div>
+                    <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
+                    <p class="text-sm font-medium text-white mt-1">{item.title}</p>
+                    {item.description && (
+                      <p class="text-xs text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
+                    )}
+                  </div>
+                  {item.is_case_study && item.slug ? (
+                    <a
+                      href={`/work/${item.slug}`}
+                      class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"
+                    >
+                      View case study &rarr;
+                    </a>
+                  ) : item.external_url && (
+                    <a
+                      href={ensureProtocol(item.external_url)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"
+                    >
+                      View project &rarr;
+                    </a>
+                  )}
+                </div>
+              </div>
+            );
+          })}
 
-        const item = entry.item;
-        const lgSpan = lgSpanMap[item.display_size] ?? 8;
-        const mdSpan = mdSpanMap[item.display_size] ?? 6;
-        const isVideo = item.media_type === 'video';
-        const aspect = isVideo ? undefined : getAspectRatio(idx, item.display_size);
-        return isVideo ? (
-          /* ── Video card: natural ratio + text below ── */
-          <div
-            class="portfolio-item col-span-6 anim-fade-up"
-            style="grid-column: span 6"
-            data-md-span={mdSpan}
-            data-lg-span={lgSpan}
-          >
-            <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} cover={false} />
-            <div class="px-1 pt-3 pb-1">
-              <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
-              <p class="text-sm font-medium text-neutral-900 mt-1">{item.title}</p>
-              {item.description && (
-                <p class="text-xs text-neutral-500 mt-1 line-clamp-2">{item.description}</p>
-              )}
-              {item.is_case_study && item.slug ? (
-                <a
-                  href={`/work/${item.slug}`}
-                  class="inline-block text-body border border-neutral-300 text-neutral-900 px-4 py-2 mt-3 hover:bg-neutral-900 hover:text-white transition-colors"
-                >
-                  View case study &rarr;
-                </a>
-              ) : item.external_url && (
-                <a
-                  href={ensureProtocol(item.external_url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-block text-body border border-neutral-300 text-neutral-900 px-4 py-2 mt-3 hover:bg-neutral-900 hover:text-white transition-colors"
-                >
-                  View project &rarr;
-                </a>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* ── Image card: full-bleed with overlay ── */
-          <div
-            class="portfolio-item col-span-6 relative overflow-hidden anim-fade-up"
-            style={`grid-column: span 6; aspect-ratio: ${aspect}`}
-            data-md-span={mdSpan}
-            data-lg-span={lgSpan}
-          >
-            <img
-              src={item.media_url}
-              alt={item.title}
-              class="absolute inset-0 w-full h-full object-cover block"
-              loading="lazy"
-              decoding="async"
-            />
-            <div class="portfolio-overlay absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pt-10 pb-4 flex flex-col items-start gap-3 z-[5]">
-              <div>
-                <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
-                <p class="text-sm font-medium text-white mt-1">{item.title}</p>
-                {item.description && (
-                  <p class="text-xs text-neutral-400 mt-1 line-clamp-2">{item.description}</p>
-                )}
-              </div>
-              {item.is_case_study && item.slug ? (
-                <a
-                  href={`/work/${item.slug}`}
-                  class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"
-                >
-                  View case study &rarr;
-                </a>
-              ) : item.external_url && (
-                <a
-                  href={ensureProtocol(item.external_url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="inline-block text-body border border-white/60 text-white px-4 py-2 hover:bg-white hover:text-black transition-colors"
-                >
-                  View project &rarr;
-                </a>
-              )}
-            </div>
-          </div>
+          {/* Writing snippet after this chunk */}
+          {writing[chunkIndex] && (
+            <WritingBlock snippet={writing[chunkIndex]} />
+          )}
+        </>
         );
       })}
+
+      {/* Remaining writing snippets */}
+      {writing.slice(portfolioChunks.length).map((snippet) => (
+        <WritingBlock snippet={snippet} />
+      ))}
     </section>
 
     {/* ── 4. Testimonials ─────────────────────────────────── */}

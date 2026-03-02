@@ -28,15 +28,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const { action } = body;
 
     if (action === 'chat') {
-      return handleChat(request, body);
+      return await handleChat(request, body);
     } else if (action === 'submit') {
-      return handleSubmit(body);
+      return await handleSubmit(body);
     }
 
     return json({ error: 'Invalid action' }, 400);
   } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unexpected error';
     logError('error', 'ai-chat error', { path: '/api/ai-chat', error: err }, ctx);
-    return json({ error: 'Unexpected error' }, 500);
+    return json({ error: message }, 500);
   }
 };
 

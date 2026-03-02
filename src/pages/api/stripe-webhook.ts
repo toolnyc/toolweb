@@ -166,7 +166,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         const invoice = event.data.object as unknown as Record<string, unknown>;
         resend.emails.send({
           from: 'Tool <noreply@tool.nyc>',
-          to: ['hello@tool.nyc'],
+          to: ['hugetool@proton.me'],
           subject: 'Invoice payment failed',
           text: `Payment failed for invoice ${invoice.id}. Customer: ${invoice.customer_email || 'unknown'}`,
         }).catch((err) => logError('warn', 'Failed to send invoice failure notification', { path: '/api/stripe-webhook', error: err }, ctx));

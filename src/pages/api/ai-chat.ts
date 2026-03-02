@@ -180,10 +180,20 @@ async function handleSubmit(body: {
     sendInquiryAutoReplyEmail(email, name),
   ]);
 
-  // Build Cal.com prefill data
-  const calNotes = record.ai_summary
-    ? `AI Summary: ${record.ai_summary}\nSource: ${record.source}`
-    : `Source: ${record.source}`;
+  // Build Cal.com prefill notes from extracted intent + conversation
+  const notesParts: string[] = [];
+  if (record.ai_summary) notesParts.push(record.ai_summary);
+  if (record.project_type) notesParts.push(`Project: ${record.project_type}`);
+  if (record.budget_range) notesParts.push(`Budget: ${record.budget_range}`);
+  if (record.timeline) notesParts.push(`Timeline: ${record.timeline}`);
+  if (record.ai_transcript) {
+    const userMessages = (messages ?? [])
+      .filter((m) => m.role === 'user')
+      .map((m) => m.content)
+      .join(' ');
+    if (userMessages) notesParts.push(`\nContext: ${userMessages}`);
+  }
+  const calNotes = notesParts.join('\n') || '';
 
   return json({
     success: true,

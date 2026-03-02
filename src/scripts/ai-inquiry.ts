@@ -265,10 +265,11 @@ async function sendMessage(text: string, audio?: string) {
       }
     }
 
-    // Add AI reply
+    // Add AI reply (strip any URLs the model may have included)
     if (data.reply) {
-      messages.push({ role: 'assistant', content: data.reply });
-      appendMessage('assistant', data.reply);
+      const cleanReply = data.reply.replace(/https?:\/\/\S+/g, '').replace(/\s{2,}/g, ' ').trim();
+      messages.push({ role: 'assistant', content: cleanReply });
+      appendMessage('assistant', cleanReply);
     }
 
     // Update extracted intent

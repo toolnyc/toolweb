@@ -48,6 +48,11 @@ if (prefersReducedMotion) {
     if (heroCaptionReduced) {
       heroCaptionReduced.style.top = `${(canvas?.offsetHeight ?? 0) / 2 + 60}px`;
     }
+    const heroClientsReduced = document.getElementById('hero-clients');
+    if (heroClientsReduced) {
+      heroClientsReduced.style.top = `${(canvas?.offsetHeight ?? 0) - 144}px`;
+      heroClientsReduced.style.bottom = 'auto';
+    }
   }
 } else {
   // ── Lenis smooth scroll ───────────────────────────────────────
@@ -116,6 +121,7 @@ if (prefersReducedMotion) {
 
     const headerH = document.querySelector('header')?.offsetHeight ?? 48;
     const heroCaption = document.getElementById('hero-caption');
+    const heroClients = document.getElementById('hero-clients');
 
     // Blink state — droopy lids default ~48% closed (stoned)
     const DROOP = 0.48;
@@ -175,6 +181,12 @@ if (prefersReducedMotion) {
         // Position the tagline caption just below the wordmark
         if (heroCaption) {
           heroCaption.style.top = `${wmY + targetH + 24}px`;
+        }
+
+        // Pin client list in lower portion of hero
+        if (heroClients) {
+          heroClients.style.top = `${ch - 144}px`;
+          heroClients.style.bottom = 'auto';
         }
 
         // Map SVG eye coordinates to canvas

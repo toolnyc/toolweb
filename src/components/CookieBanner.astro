@@ -14,20 +14,18 @@ const hasConsent = Astro.cookies.get('tool-cookie-consent')?.value === 'accepted
     role="region"
     aria-label="Cookie consent"
   >
-    <div class="site-grid items-center py-2">
-      <p class="col-span-4 lg:col-span-20 text-body text-neutral-600">
+    <div class="flex items-center justify-between gap-3 px-4 py-2">
+      <p class="text-[11px] sm:text-body text-neutral-600">
         This site uses cookies for authentication and basic functionality.
         <a href="/privacy" class="underline hover:text-neutral-900 transition-colors">Privacy policy</a>
       </p>
-      <div class="col-span-2 lg:col-span-4 text-right">
-        <button
-          id="cookie-accept"
-          type="button"
-          class="text-body font-medium bg-neutral-900 text-white px-3 py-[6px] hover:opacity-90 transition-opacity"
-        >
-          Accept
-        </button>
-      </div>
+      <button
+        id="cookie-accept"
+        type="button"
+        class="text-[11px] sm:text-body font-medium bg-neutral-900 text-white px-3 py-[6px] hover:opacity-90 transition-opacity shrink-0"
+      >
+        Accept
+      </button>
     </div>
   </div>
 )}

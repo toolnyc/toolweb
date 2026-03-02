@@ -66,9 +66,9 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
         </button>
       </div>
 
-      {/* Client list — bottom-centered, just above sticky bar */}
+      {/* Client list — bottom-centered, JS-positioned to stay fixed in hero */}
       {clients.length > 0 && (
-        <div class="absolute bottom-36 left-0 right-0 z-10 text-center px-4 anim-fade" data-anim="clients">
+        <div id="hero-clients" class="absolute left-0 right-0 z-10 text-center px-4 anim-fade" data-anim="clients" style="bottom: 144px;">
           <p class="text-body text-caption-gray">
             <span class="text-neutral-400">Trusted by:</span>
             {clients.map((client, i) => (

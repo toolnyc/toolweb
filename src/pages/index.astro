@@ -104,16 +104,16 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
             const lgSpan = lgSpanMap[item.display_size] ?? 8;
             const mdSpan = mdSpanMap[item.display_size] ?? 6;
             const isVideo = item.media_type === 'video';
-            const aspect = isVideo ? undefined : getAspectRatio(globalIndex, item.display_size);
+            const aspect = getAspectRatio(globalIndex, item.display_size);
             return (
               <div
                 class="portfolio-item col-span-6 relative overflow-hidden anim-fade-up"
-                style={`grid-column: span 6;${aspect ? ` aspect-ratio: ${aspect}` : ''}`}
+                style={`grid-column: span 6; aspect-ratio: ${aspect}`}
                 data-md-span={mdSpan}
                 data-lg-span={lgSpan}
               >
                 {isVideo ? (
-                  <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} cover={false} />
+                  <VideoPlayer src={item.media_url} poster={item.thumbnail_url ?? undefined} title={item.title} cover={true} />
                 ) : (
                   <img
                     src={item.media_url}
@@ -124,7 +124,7 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                   />
                 )}
 
-                <div class="portfolio-overlay absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pt-10 pb-4 flex flex-col items-start gap-3 z-[1]">
+                <div class="portfolio-overlay absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pt-10 pb-4 flex flex-col items-start gap-3 z-[5]">
                   <div>
                     <p class="text-[10px] uppercase tracking-widest text-[#00FFFF]">{item.category}</p>
                     <p class="text-sm font-medium text-white mt-1">{item.title}</p>

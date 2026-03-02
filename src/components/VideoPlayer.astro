@@ -43,7 +43,7 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
       title={title}
       allow="autoplay; fullscreen"
       allowfullscreen
-      class={`w-full border-0 ${cover ? 'h-full' : 'h-auto'}`}
+      class={`w-full border-0 ${cover ? 'h-full' : 'aspect-video'}`}
       loading="lazy"
     />
   ) : (

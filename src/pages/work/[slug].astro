@@ -35,7 +35,7 @@ const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]
     <section class="site-grid pb-6">
       <div class="col-span-6 lg:col-span-24">
         {caseStudy.media_type === 'video' ? (
-          <VideoPlayer src={caseStudy.media_url} poster={caseStudy.thumbnail_url ?? undefined} title={caseStudy.title} cover={false} />
+          <VideoPlayer src={caseStudy.media_url} poster={caseStudy.thumbnail_url ?? undefined} title={caseStudy.title} cover={false} eager />
         ) : (
           <img
             src={caseStudy.media_url}

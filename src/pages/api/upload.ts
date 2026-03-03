@@ -89,7 +89,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const arrayBuffer = await file.arrayBuffer();
 
     await bucket.put(filename, arrayBuffer, {
-      httpMetadata: { contentType: file.type },
+      httpMetadata: {
+        contentType: file.type,
+        cacheControl: 'public, max-age=31536000, immutable',
+      },
     });
 
     const url = `${publicUrl}/${filename}`;

@@ -180,14 +180,29 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
         });
       }
 
-      // --- IntersectionObserver: autoplay loop while in viewport ---
+      // --- IntersectionObservers: preload ahead, play/pause on actual visibility ---
       if (video) {
         const dataSrc = video.dataset.src;
-        if (!dataSrc) return;
-
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-        const observer = new IntersectionObserver(
+        // Preload observer: load video src when approaching viewport (lazy videos only)
+        if (dataSrc) {
+          const preloadObserver = new IntersectionObserver(
+            (entries) => {
+              entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                  loadVideo(player, video);
+                  preloadObserver.unobserve(player);
+                }
+              });
+            },
+            { rootMargin: '600px 0px', threshold: 0 }
+          );
+          preloadObserver.observe(player);
+        }
+
+        // Visibility observer: play/pause based on actual viewport
+        const visibilityObserver = new IntersectionObserver(
           (entries) => {
             entries.forEach((entry) => {
               if (player.dataset.mode === 'paused') return;
@@ -205,9 +220,9 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
               }
             });
           },
-          { rootMargin: '600px 0px', threshold: 0.15 }
+          { rootMargin: '0px', threshold: 0.15 }
         );
-        observer.observe(player);
+        visibilityObserver.observe(player);
       }
     });
   }
@@ -234,8 +249,16 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
 
   function enforceLimit(current: HTMLDivElement) {
     if (activePlayers.size <= MAX_CONCURRENT) return;
+    // Prefer pausing off-screen videos first
+    const offScreen: HTMLDivElement[] = [];
+    const onScreen: HTMLDivElement[] = [];
     for (const p of activePlayers) {
       if (p === current) continue;
+      const rect = p.getBoundingClientRect();
+      const inViewport = rect.bottom > 0 && rect.top < window.innerHeight;
+      (inViewport ? onScreen : offScreen).push(p);
+    }
+    for (const p of [...offScreen, ...onScreen]) {
       if (activePlayers.size <= MAX_CONCURRENT) break;
       const v = p.querySelector<HTMLVideoElement>('[data-video]');
       if (v) {

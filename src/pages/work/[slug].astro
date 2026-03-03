@@ -18,8 +18,10 @@ if (!caseStudy) {
   return Astro.redirect('/');
 }
 
-const bodyHtml = caseStudy.body
-  || [caseStudy.problem, caseStudy.solution, caseStudy.impact].filter(Boolean).join('')
+const hasText = (html: string | null) => html && html.replace(/<[^>]*>/g, '').trim().length > 0;
+
+const bodyHtml = (hasText(caseStudy.body) ? caseStudy.body : null)
+  || [caseStudy.problem, caseStudy.solution, caseStudy.impact].filter(hasText).join('')
   || null;
 
 const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]*>/g, '').slice(0, 160);
@@ -33,12 +35,12 @@ const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]
     <section class="site-grid pt-4 pb-6">
       <div class="col-span-6 lg:col-span-24">
         {caseStudy.media_type === 'video' ? (
-          <VideoPlayer src={caseStudy.media_url} poster={caseStudy.thumbnail_url ?? undefined} title={caseStudy.title} />
+          <VideoPlayer src={caseStudy.media_url} poster={caseStudy.thumbnail_url ?? undefined} title={caseStudy.title} cover={false} />
         ) : (
           <img
             src={caseStudy.media_url}
             alt={caseStudy.title}
-            class="w-full max-h-[60vh] object-cover block"
+            class="w-full h-auto block"
             loading="eager"
             decoding="async"
           />

@@ -57,6 +57,7 @@ if (prefersReducedMotion) {
 } else {
   // ── Lenis smooth scroll ───────────────────────────────────────
   const lenis = new Lenis();
+  (window as any).__lenis = lenis;
 
   lenis.on('scroll', ScrollTrigger.update);
 

@@ -67,6 +67,7 @@ function openModal() {
     modal.classList.remove('opacity-0', 'scale-95');
   });
   state = 'IDLE';
+  (window as any).__lenis?.stop();
   textInput?.focus();
 }
 
@@ -76,6 +77,7 @@ function closeModal() {
   overlay.classList.add('opacity-0');
   modal.classList.remove('opacity-100', 'scale-100');
   modal.classList.add('opacity-0', 'scale-95');
+  (window as any).__lenis?.start();
   setTimeout(() => {
     overlay.classList.add('hidden');
     modal.classList.add('hidden');
@@ -153,19 +155,19 @@ if (window.visualViewport) {
 // Scroll focused inputs into view when keyboard opens
 textInput?.addEventListener('focus', () => {
   setTimeout(() => {
-    textInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    textInput.scrollIntoView({ block: 'center', behavior: 'instant' });
   }, 300);
 });
 
 nameInput?.addEventListener('focus', () => {
   setTimeout(() => {
-    nameInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    nameInput.scrollIntoView({ block: 'center', behavior: 'instant' });
   }, 300);
 });
 
 emailInput?.addEventListener('focus', () => {
   setTimeout(() => {
-    emailInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    emailInput.scrollIntoView({ block: 'center', behavior: 'instant' });
   }, 300);
 });
 

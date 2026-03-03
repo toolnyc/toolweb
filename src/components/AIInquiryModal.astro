@@ -95,9 +95,20 @@
     margin-bottom: auto;
     height: 65dvh;
   }
+  #ai-conversation {
+    overscroll-behavior: contain;
+  }
+  #ai-modal input[type="text"],
+  #ai-modal input[type="email"] {
+    font-size: 16px;
+  }
   @media (min-width: 768px) {
     #ai-modal {
       height: 80dvh;
+    }
+    #ai-modal input[type="text"],
+    #ai-modal input[type="email"] {
+      font-size: 13px;
     }
   }
 </style>

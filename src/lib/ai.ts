@@ -9,6 +9,7 @@ export interface AIExtracted {
   urgency: 'immediate' | 'soon' | 'flexible';
   sentiment: 'excited' | 'neutral' | 'frustrated' | 'exploratory';
   summary: string;
+  ready_to_book: boolean;
 }
 
 interface AnalyzeResult {
@@ -49,10 +50,12 @@ const SYSTEM_PROMPT = `You are the intake assistant for Tool (tool.nyc) — a on
 After EVERY response, append a JSON block with your best read on their intent. Update it as new info emerges:
 
 ---EXTRACTED---
-{"project_type":"brand|web|motion|graphic|other","budget_signal":"low|mid|high|enterprise","urgency":"immediate|soon|flexible","sentiment":"excited|neutral|frustrated|exploratory","summary":"one sentence summary"}
+{"project_type":"brand|web|motion|graphic|other","budget_signal":"low|mid|high|enterprise","urgency":"immediate|soon|flexible","sentiment":"excited|neutral|frustrated|exploratory","summary":"one sentence summary","ready_to_book":false}
 ---END---
 
-Best-guess any field you're unsure about. Always include the block.`;
+Best-guess any field you're unsure about. Always include the block.
+
+Set ready_to_book to true when you've gathered enough context about the project to recommend a discovery call. This typically happens after 2-4 exchanges, but could be sooner if the user gives a lot of detail upfront, or later if the conversation needs more qualification. When you set it to true, mention in your reply that a quick call would be a good next step.`;
 
 /**
  * Transcribe audio via OpenAI Whisper API.

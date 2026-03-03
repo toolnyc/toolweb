@@ -164,8 +164,14 @@ async function handleSubmit(body: {
     .insert(record);
 
   if (insertError) {
-    logError('error', 'Error inserting AI inquiry', { path: '/api/ai-chat', error: insertError });
-    return json({ error: 'Failed to save inquiry' }, 500);
+    logError('error', 'Error inserting AI inquiry', {
+      path: '/api/ai-chat',
+      error: insertError,
+      errorMessage: insertError.message,
+      errorCode: insertError.code,
+      errorDetails: insertError.details,
+    });
+    return json({ error: 'Failed to save inquiry. Please try again.' }, 500);
   }
 
   // Fire notification emails (non-blocking)

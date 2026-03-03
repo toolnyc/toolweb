@@ -4,19 +4,8 @@ import { getSupabaseAdmin } from '../../../lib/env';
 
 const supabaseAdmin = getSupabaseAdmin();
 
-let contentItems: any[] = [];
 let error = '';
 let success = '';
-
-{
-  const { data } = await supabaseAdmin
-    .from('site_content')
-    .select('*')
-    .order('content_group', { ascending: true })
-    .order('sort_order', { ascending: true });
-
-  contentItems = data || [];
-}
 
 if (Astro.request.method === 'POST') {
   const formData = await Astro.request.formData();
@@ -42,15 +31,17 @@ if (Astro.request.method === 'POST') {
       error = updateError.message;
     } else {
       success = 'Content updated';
-      const { data } = await supabaseAdmin
-        .from('site_content')
-        .select('*')
-        .order('content_group', { ascending: true })
-        .order('sort_order', { ascending: true });
-      contentItems = data || [];
     }
   }
 }
+
+const { data } = await supabaseAdmin
+  .from('site_content')
+  .select('*')
+  .order('content_group', { ascending: true })
+  .order('sort_order', { ascending: true });
+
+const contentItems = data || [];
 
 const groupedContent = contentItems.reduce((acc, item) => {
   const group = item.content_group || 'general';

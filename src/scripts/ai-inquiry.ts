@@ -12,6 +12,7 @@ interface AIExtracted {
   urgency: string;
   sentiment: string;
   summary: string;
+  ready_to_book: boolean;
 }
 
 let state: State = 'IDLE';
@@ -19,7 +20,7 @@ let messages: ChatMessage[] = [];
 let extracted: AIExtracted | null = null;
 let source: 'ai_voice' | 'ai_text' = 'ai_text';
 let userMessageCount = 0;
-const MAX_USER_MESSAGES = 5;
+const SAFETY_CAP_MESSAGES = 10;
 
 // MediaRecorder state
 let mediaRecorder: MediaRecorder | null = null;
@@ -104,12 +105,56 @@ function resetState() {
   if (nameInput) nameInput.value = '';
   if (emailInput) emailInput.value = '';
   if (contactError) contactError.classList.add('hidden');
+
+  // Reset mobile keyboard adjustments
+  if (modal) {
+    modal.style.height = '';
+    modal.style.top = '';
+    modal.style.bottom = '';
+  }
 }
 
 // Listen for open event
 document.addEventListener('open-ai-inquiry', openModal);
 overlay?.addEventListener('click', closeModal);
 closeBtn?.addEventListener('click', closeModal);
+
+// ── Mobile keyboard handling ──────────────────────────────────
+// Adjust modal position when virtual keyboard opens/closes
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    if (!modal || modal.classList.contains('hidden')) return;
+    const vv = window.visualViewport!;
+    modal.style.height = `${vv.height - 32}px`;
+    modal.style.top = `${vv.offsetTop + 16}px`;
+    modal.style.bottom = 'auto';
+  });
+
+  window.visualViewport.addEventListener('scroll', () => {
+    if (!modal || modal.classList.contains('hidden')) return;
+    const vv = window.visualViewport!;
+    modal.style.top = `${vv.offsetTop + 16}px`;
+  });
+}
+
+// Scroll focused inputs into view when keyboard opens
+textInput?.addEventListener('focus', () => {
+  setTimeout(() => {
+    textInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, 300);
+});
+
+nameInput?.addEventListener('focus', () => {
+  setTimeout(() => {
+    nameInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, 300);
+});
+
+emailInput?.addEventListener('focus', () => {
+  setTimeout(() => {
+    emailInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, 300);
+});
 
 // Close on Escape
 document.addEventListener('keydown', (e) => {
@@ -278,8 +323,8 @@ async function sendMessage(text: string, audio?: string) {
       updateExtractedCard(data.extracted);
     }
 
-    // Check if conversation limit reached
-    if (userMessageCount >= MAX_USER_MESSAGES) {
+    // Transition to contact form when AI signals ready, or at safety cap
+    if (data.extracted?.ready_to_book === true || userMessageCount >= SAFETY_CAP_MESSAGES) {
       state = 'CONTACT';
       showContactForm();
     } else {
@@ -385,7 +430,11 @@ submitBtn?.addEventListener('click', async () => {
     };
 
     if (!res.ok) {
-      showContactError(data.error ?? 'Failed to save. Try again.');
+      if (res.status === 429) {
+        showContactError(data.error ?? 'Too many inquiries. Please try again later.');
+      } else {
+        showContactError('Something went wrong saving your info. Please try again, or email hugetool@proton.me directly.');
+      }
       (submitBtn as HTMLButtonElement).disabled = false;
       (submitBtn as HTMLButtonElement).textContent = 'Book a Call';
       return;

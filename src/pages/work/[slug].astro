@@ -33,26 +33,28 @@ const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]
   <main class="pb-12" id="main-content">
     {/* ── Cover ────────────────────────────────────────────── */}
     <section class="site-grid pb-6">
-      <div class="col-span-6 lg:col-span-24 text-center">
+      <div class="col-span-6 lg:col-span-24">
         {caseStudy.media_type === 'video' ? (
           <VideoPlayer src={caseStudy.media_url} poster={caseStudy.thumbnail_url ?? undefined} title={caseStudy.title} cover={false} />
         ) : (
           <img
             src={caseStudy.media_url}
             alt={caseStudy.title}
-            class="max-w-full max-h-[70vh] h-auto block mx-auto"
+            class="max-w-full max-h-[70vh] w-auto h-auto block mx-auto"
             loading="eager"
             decoding="async"
           />
         )}
-        <h1 class="text-cs-title font-bold uppercase tracking-tight mt-6">
-          {caseStudy.title}
-        </h1>
-        {caseStudy.description && (
-          <p class="text-body text-caption-gray mt-2">
-            {caseStudy.description}
-          </p>
-        )}
+        <div class="max-w-4xl mx-auto">
+          <h1 class="text-cs-title font-bold uppercase tracking-tight mt-6">
+            {caseStudy.title}
+          </h1>
+          {caseStudy.description && (
+            <p class="text-body text-caption-gray mt-2">
+              {caseStudy.description}
+            </p>
+          )}
+        </div>
       </div>
     </section>
 
@@ -85,7 +87,7 @@ const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]
 
     {/* ── CTA ──────────────────────────────────────────────── */}
     <section class="site-grid py-8 border-t border-neutral-200">
-      <div class="col-span-6 lg:col-span-24">
+      <div class="col-span-6 lg:col-span-24 max-w-4xl mx-auto">
         <p class="text-body mb-4">Want results like this?</p>
         <a href="/book" class="inline-block text-body border border-neutral-900 px-4 py-2 hover:bg-neutral-900 hover:text-white transition-colors">
           Let's talk

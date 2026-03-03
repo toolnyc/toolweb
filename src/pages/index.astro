@@ -72,7 +72,8 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
       {/* Client list — bottom-centered, JS-positioned to stay fixed in hero */}
       {clients.length > 0 && (
         <div id="hero-clients" class="absolute left-0 right-0 z-10 text-center px-4 anim-fade" data-anim="clients" style="bottom: 144px;">
-          <p class="text-body text-caption-gray">
+          {/* Desktop: show all */}
+          <p class="hidden md:block text-body text-caption-gray">
             <span class="text-neutral-400">Trusted by:</span>
             {clients.map((client, i) => (
               <>
@@ -91,6 +92,28 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
                 )}
               </>
             ))}
+          </p>
+          {/* Mobile: truncate to 3 clients + "& more" */}
+          <p class="md:hidden text-body text-caption-gray">
+            <span class="text-neutral-400">Trusted by:</span>
+            {clients.slice(0, 3).map((client, i) => (
+              <>
+                <span> {i > 0 && <span>&middot;</span>} </span>
+                {client.website_url ? (
+                  <a
+                    href={client.website_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="hover:text-neutral-900 transition-colors"
+                  >
+                    {client.name}
+                  </a>
+                ) : (
+                  <span>{client.name}</span>
+                )}
+              </>
+            ))}
+            {clients.length > 3 && <span> & more</span>}
           </p>
         </div>
       )}

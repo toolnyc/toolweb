@@ -40,7 +40,7 @@ const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]
           <img
             src={caseStudy.media_url}
             alt={caseStudy.title}
-            class="w-full h-auto block"
+            class="w-full max-h-[70vh] object-cover object-top block"
             loading="eager"
             decoding="async"
           />
@@ -49,7 +49,7 @@ const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]
           {caseStudy.title}
         </h1>
         {caseStudy.description && (
-          <p class="text-body text-caption-gray mt-2 max-w-md">
+          <p class="text-body text-caption-gray mt-2">
             {caseStudy.description}
           </p>
         )}
@@ -59,7 +59,7 @@ const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]
     {/* ── Body ─────────────────────────────────────────────── */}
     {bodyHtml && (
       <section class="site-grid py-8">
-        <article class="col-span-6 lg:col-span-24 max-w-2xl text-prose text-dark-gray space-y-4 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-neutral-300 [&_blockquote]:pl-4 [&_blockquote]:text-caption-gray [&_a]:underline" set:html={bodyHtml} />
+        <article class="col-span-6 lg:col-span-24 max-w-4xl text-prose text-dark-gray space-y-4 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-1 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_blockquote]:border-l-2 [&_blockquote]:border-neutral-300 [&_blockquote]:pl-4 [&_blockquote]:text-caption-gray [&_a]:underline" set:html={bodyHtml} />
       </section>
     )}
 

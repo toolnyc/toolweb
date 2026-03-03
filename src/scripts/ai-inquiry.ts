@@ -111,6 +111,8 @@ function resetState() {
     modal.style.height = '';
     modal.style.top = '';
     modal.style.bottom = '';
+    modal.style.marginTop = '';
+    modal.style.marginBottom = '';
   }
 }
 
@@ -122,19 +124,30 @@ closeBtn?.addEventListener('click', closeModal);
 // ── Mobile keyboard handling ──────────────────────────────────
 // Adjust modal position when virtual keyboard opens/closes
 if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', () => {
+  const adjustForKeyboard = () => {
     if (!modal || modal.classList.contains('hidden')) return;
     const vv = window.visualViewport!;
-    modal.style.height = `${vv.height - 32}px`;
-    modal.style.top = `${vv.offsetTop + 16}px`;
-    modal.style.bottom = 'auto';
-  });
-
-  window.visualViewport.addEventListener('scroll', () => {
-    if (!modal || modal.classList.contains('hidden')) return;
-    const vv = window.visualViewport!;
-    modal.style.top = `${vv.offsetTop + 16}px`;
-  });
+    const keyboardHeight = window.innerHeight - vv.height;
+    if (keyboardHeight > 100) {
+      // Keyboard is open — fit modal in visible area, centered
+      const modalH = Math.min(vv.height - 32, vv.height * 0.85);
+      const topOffset = vv.offsetTop + (vv.height - modalH) / 2;
+      modal.style.height = `${modalH}px`;
+      modal.style.top = `${topOffset}px`;
+      modal.style.bottom = 'auto';
+      modal.style.marginTop = '0';
+      modal.style.marginBottom = '0';
+    } else {
+      // Keyboard closed — reset to CSS defaults
+      modal.style.height = '';
+      modal.style.top = '';
+      modal.style.bottom = '';
+      modal.style.marginTop = '';
+      modal.style.marginBottom = '';
+    }
+  };
+  window.visualViewport.addEventListener('resize', adjustForKeyboard);
+  window.visualViewport.addEventListener('scroll', adjustForKeyboard);
 }
 
 // Scroll focused inputs into view when keyboard opens

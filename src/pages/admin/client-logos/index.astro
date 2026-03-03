@@ -1,0 +1,197 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { getSupabaseAdmin } from '../../../lib/env';
+
+const supabaseAdmin = getSupabaseAdmin();
+
+let clients: any[] = [];
+let error = '';
+
+{
+  const { data } = await supabaseAdmin
+    .from('client_logos')
+    .select('*')
+    .order('sort_order', { ascending: true });
+
+  clients = data || [];
+}
+
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const action = formData.get('action');
+
+  if (action === 'create') {
+    const { error: insertError } = await supabaseAdmin
+      .from('client_logos')
+      .insert({
+        name: formData.get('name'),
+        website_url: formData.get('website_url') || null,
+        sort_order: clients.length,
+        is_visible: formData.has('is_visible'),
+      });
+
+    if (insertError) {
+      error = insertError.message;
+    } else {
+      return Astro.redirect('/admin/client-logos');
+    }
+  }
+
+  if (action === 'update') {
+    const clientId = formData.get('client_id');
+    const { error: updateError } = await supabaseAdmin
+      .from('client_logos')
+      .update({
+        name: formData.get('name'),
+        website_url: formData.get('website_url') || null,
+        sort_order: parseInt(formData.get('sort_order') as string) || 0,
+        is_visible: formData.has('is_visible'),
+      })
+      .eq('id', clientId);
+
+    if (updateError) {
+      error = updateError.message;
+    } else {
+      return Astro.redirect('/admin/client-logos');
+    }
+  }
+
+  if (action === 'delete') {
+    const clientId = formData.get('client_id');
+    const { error: deleteError } = await supabaseAdmin
+      .from('client_logos')
+      .delete()
+      .eq('id', clientId);
+
+    if (deleteError) {
+      error = deleteError.message;
+    } else {
+      return Astro.redirect('/admin/client-logos');
+    }
+  }
+}
+---
+
+<Admin title="Trusted By">
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold">Trusted By</h1>
+    <p class="text-sm text-neutral-500 mt-1">Client names shown in the homepage hero section.</p>
+  </div>
+
+  <div class="bg-white rounded border border-neutral-200 p-6 mb-8 max-w-2xl">
+    <h2 class="text-lg font-semibold mb-4">Add Client</h2>
+    <form method="POST" class="space-y-4">
+      <input type="hidden" name="action" value="create" />
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label for="name" class="block text-sm font-semibold mb-2">Name *</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            required
+            placeholder="Company or person"
+            class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          />
+        </div>
+
+        <div>
+          <label for="website_url" class="block text-sm font-semibold mb-2">Website URL</label>
+          <input
+            type="url"
+            id="website_url"
+            name="website_url"
+            placeholder="https://example.com"
+            class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+          />
+        </div>
+      </div>
+
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" name="is_visible" value="true" checked class="rounded" />
+        Visible on site
+      </label>
+
+      <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+        Add Client
+      </button>
+    </form>
+  </div>
+
+  {clients.length > 0 ? (
+    <div class="space-y-4 max-w-2xl">
+      {clients.map((client) => (
+        <div class="bg-white rounded border border-neutral-200 p-6">
+          <form method="POST" class="space-y-4">
+            <input type="hidden" name="action" value="update" />
+            <input type="hidden" name="client_id" value={client.id} />
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold mb-2">Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={client.name}
+                  required
+                  class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-semibold mb-2">Website URL</label>
+                <input
+                  type="url"
+                  name="website_url"
+                  value={client.website_url || ''}
+                  placeholder="https://example.com"
+                  class="w-full px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+              <div>
+                <label class="block text-sm font-semibold mb-2">Sort Order</label>
+                <input
+                  type="number"
+                  name="sort_order"
+                  value={client.sort_order}
+                  class="w-20 px-3 py-2 border border-neutral-300 rounded focus:outline-none focus:ring-2 focus:ring-neutral-900"
+                />
+              </div>
+              <label class="flex items-center gap-2 text-sm mt-5">
+                <input type="checkbox" name="is_visible" value="true" checked={client.is_visible} class="rounded" />
+                Visible
+              </label>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <button type="submit" class="px-4 py-2 bg-neutral-900 text-white rounded hover:opacity-90">
+                Save
+              </button>
+            </div>
+          </form>
+
+          <form method="POST" class="mt-3 pt-3 border-t border-neutral-100">
+            <input type="hidden" name="action" value="delete" />
+            <input type="hidden" name="client_id" value={client.id} />
+            <button
+              type="submit"
+              class="text-sm text-red-600 hover:text-red-700"
+              onclick="return confirm('Remove this client?')"
+            >
+              Delete
+            </button>
+          </form>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center max-w-2xl">
+      <p class="text-neutral-500">No clients added yet</p>
+    </div>
+  )}
+</Admin>

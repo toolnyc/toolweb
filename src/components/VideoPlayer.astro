@@ -5,9 +5,11 @@ interface Props {
   title: string;
   /** When false, video displays at natural aspect ratio instead of filling parent. Default: true */
   cover?: boolean;
+  /** When true, loads video immediately instead of waiting for IntersectionObserver. Use for hero/above-fold videos. */
+  eager?: boolean;
 }
 
-const { src, poster, title, cover = true } = Astro.props;
+const { src, poster, title, cover = true, eager = false } = Astro.props;
 
 const isCloudflareStream = src.includes('cloudflarestream.com');
 
@@ -57,9 +59,9 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
         />
       )}
       <video
-        data-src={src}
-        poster={poster ?? undefined}
-        preload="metadata"
+        data-src={eager ? undefined : src}
+        src={eager ? src : undefined}
+        preload={eager ? 'auto' : 'metadata'}
         muted
         playsinline
         loop
@@ -203,7 +205,7 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
               }
             });
           },
-          { rootMargin: '200px 0px', threshold: 0.15 }
+          { rootMargin: '600px 0px', threshold: 0.15 }
         );
         observer.observe(player);
       }
@@ -219,15 +221,15 @@ const playerId = `vp-${Math.random().toString(36).slice(2, 9)}`;
     loadingEl?.classList.add('is-loading');
     video.preload = 'auto';
     video.src = dataSrc;
-    const onCanPlay = () => {
+    const onReady = () => {
       loadingEl?.classList.remove('is-loading');
-      video.removeEventListener('canplay', onCanPlay);
+      video.removeEventListener('loadeddata', onReady);
       // Retry play after source loads — initial play() may have failed
       if (player.dataset.mode === 'loop') {
         video.play().catch(() => {});
       }
     };
-    video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('loadeddata', onReady);
   }
 
   function enforceLimit(current: HTMLDivElement) {

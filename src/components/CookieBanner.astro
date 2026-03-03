@@ -1,8 +1,8 @@
 ---
 /**
- * Cookie consent banner — small fixed bar above the StickyBar.
+ * Cookie consent toast — corner card with animated cookie character.
  * Reads `tool-cookie-consent` cookie server-side; if present, renders nothing.
- * Client-side sets the cookie on accept and hides the banner.
+ * Client-side sets the cookie on accept and animates out.
  */
 const hasConsent = Astro.cookies.get('tool-cookie-consent')?.value === 'accepted';
 ---
@@ -10,32 +10,284 @@ const hasConsent = Astro.cookies.get('tool-cookie-consent')?.value === 'accepted
 {!hasConsent && (
   <div
     id="cookie-banner"
-    class="fixed bottom-[44px] left-0 right-0 z-[45] bg-lite-gray border-t border-neutral-200"
+    class="fixed bottom-[60px] right-4 z-[45] bg-white rounded-xl shadow-lg border border-neutral-200 p-4 max-w-[320px] w-[calc(100vw-2rem)] translate-x-[120%] sm:w-auto"
     role="region"
     aria-label="Cookie consent"
   >
-    <div class="flex items-center justify-between gap-3 px-4 py-2">
-      <p class="text-[11px] sm:text-body text-neutral-600">
-        This site uses cookies for authentication and basic functionality.
-        <a href="/privacy" class="underline hover:text-neutral-900 transition-colors">Privacy policy</a>
-      </p>
-      <button
-        id="cookie-accept"
-        type="button"
-        class="text-[11px] sm:text-body font-medium bg-neutral-900 text-white px-3 py-[6px] hover:opacity-90 transition-opacity shrink-0"
-      >
-        Accept
-      </button>
+    <div class="flex items-start gap-3">
+      <canvas
+        id="cookie-canvas"
+        width="160"
+        height="160"
+        class="w-[80px] h-[80px] shrink-0"
+        aria-hidden="true"
+      />
+      <div class="flex flex-col gap-2 pt-1">
+        <p class="text-[13px] leading-snug text-neutral-700">
+          I use cookies for auth. That's it.
+          <a href="/privacy" class="underline hover:text-neutral-900 transition-colors">Privacy</a>
+        </p>
+        <button
+          id="cookie-accept"
+          type="button"
+          class="text-[12px] font-medium bg-neutral-900 text-white px-3 py-[6px] rounded hover:opacity-90 transition-opacity self-start"
+        >
+          Got it
+        </button>
+      </div>
     </div>
   </div>
 )}
 
 <script>
-  const banner = document.getElementById('cookie-banner');
+  const banner = document.getElementById('cookie-banner') as HTMLDivElement | null;
+  const canvas = document.getElementById('cookie-canvas') as HTMLCanvasElement | null;
   const acceptBtn = document.getElementById('cookie-accept');
+  if (!banner || !canvas || !acceptBtn) throw new Error(''); // SSR excluded — nothing to do
 
-  acceptBtn?.addEventListener('click', () => {
+  const ctx = canvas.getContext('2d')!;
+  const DPR = window.devicePixelRatio || 1;
+  const CW = canvas.width; // 160 logical
+  const CH = canvas.height;
+  canvas.width = CW * DPR;
+  canvas.height = CH * DPR;
+  ctx.scale(DPR, DPR);
+
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ── Cookie drawing constants ────────────────────────────────
+  const BODY_R = 62;
+  const CX = CW / 2;
+  const CY = CH / 2;
+  const BODY_COLOR = '#d4a055';
+  const BODY_EDGE = '#b8863d';
+  const CHIP_COLOR = '#5c3a1e';
+  const STROKE_COLOR = '#231f20';
+  const STROKE_W = 4;
+
+  // Chip positions (relative to center, within body radius)
+  const CHIPS = [
+    { x: -22, y: -28, r: 4 },
+    { x: 20, y: -18, r: 3.5 },
+    { x: -12, y: 18, r: 4.5 },
+    { x: 28, y: 22, r: 3.5 },
+    { x: -30, y: 4, r: 3 },
+    { x: 8, y: 32, r: 3 },
+    { x: 34, y: -4, r: 3 },
+    { x: -38, y: -14, r: 3.5 },
+    { x: 40, y: 10, r: 3 },
+    { x: -4, y: -38, r: 3 },
+    { x: 14, y: 40, r: 2.5 },
+    { x: -24, y: 36, r: 3 },
+  ];
+
+  // Eyes — two small eyes on the cookie, same style as TOOL logo
+  const EYE_L = { cx: CX - 16, cy: CY - 8 };
+  const EYE_R = { cx: CX + 16, cy: CY - 8 };
+  const EYE_R_SIZE = 12;
+  const EYE_STROKE = 3;
+
+  // Blink state
+  const DROOP = 0.48;
+  const BLINK_INTERVAL = 4000;
+  const BLINK_DURATION = 200;
+  let blinkPhase = 0;
+  let lastBlinkTime = Date.now();
+  let forceBlink = false;
+
+  // Mouse tracking
+  let mouseX = CX;
+  let mouseY = CY;
+  document.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+
+  let rafId = 0;
+
+  function drawCookie(lidClose: number) {
+    ctx.clearRect(0, 0, CW, CH);
+
+    // ── Cookie body ──────────────────────────────────────────
+    // Slightly irregular edge
+    ctx.beginPath();
+    for (let i = 0; i <= 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      const wobble = Math.sin(a * 7) * 2 + Math.cos(a * 11) * 1.5;
+      const r = BODY_R + wobble;
+      const x = CX + Math.cos(a) * r;
+      const y = CY + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = BODY_COLOR;
+    ctx.fill();
+    ctx.strokeStyle = BODY_EDGE;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // ── Chocolate chips ──────────────────────────────────────
+    for (const chip of CHIPS) {
+      ctx.beginPath();
+      ctx.arc(CX + chip.x, CY + chip.y, chip.r, 0, Math.PI * 2);
+      ctx.fillStyle = CHIP_COLOR;
+      ctx.fill();
+    }
+
+    // ── Eyes ──────────────────────────────────────────────────
+    const rect = canvas!.getBoundingClientRect();
+
+    for (const eye of [EYE_L, EYE_R]) {
+      const ex = eye.cx;
+      const ey = eye.cy;
+      const innerR = EYE_R_SIZE - EYE_STROKE * 0.5;
+      const lidBottom = ey - innerR + (innerR * 2) * lidClose;
+      const sag = EYE_R_SIZE * 0.15;
+
+      // Circle base — white fill, black stroke
+      ctx.beginPath();
+      ctx.arc(ex, ey, EYE_R_SIZE, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      ctx.strokeStyle = STROKE_COLOR;
+      ctx.lineWidth = EYE_STROKE;
+      ctx.stroke();
+
+      // Clip to exposed eye area below lid
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(ex - innerR, lidBottom);
+      ctx.quadraticCurveTo(ex, lidBottom + sag, ex + innerR, lidBottom);
+      const startAngle = Math.atan2(lidBottom - ey, innerR);
+      const endAngle = Math.atan2(lidBottom - ey, -innerR);
+      ctx.arc(ex, ey, innerR, startAngle, endAngle, false);
+      ctx.closePath();
+      ctx.clip();
+
+      // White eye area
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(ex - innerR, lidBottom - sag, innerR * 2, innerR * 2);
+
+      // Pupil — tracks mouse
+      const relX = mouseX - rect.left - ex;
+      const relY = mouseY - rect.top - ey;
+      const dist = Math.sqrt(relX * relX + relY * relY);
+      const pupilR = EYE_R_SIZE * 0.42;
+      const maxTravel = EYE_R_SIZE - pupilR - EYE_STROKE;
+      const clampDist = Math.min(dist, maxTravel);
+      const angle = Math.atan2(relY, relX);
+      const restY = ey + EYE_R_SIZE * 0.12;
+      const dotX = ex + Math.cos(angle) * clampDist * 0.4;
+      const dotY = restY + Math.sin(angle) * clampDist * 0.4;
+
+      ctx.beginPath();
+      ctx.ellipse(dotX, dotY, pupilR, pupilR * 1.08, 0, 0, Math.PI * 2);
+      ctx.fillStyle = STROKE_COLOR;
+      ctx.fill();
+
+      // Highlight dot
+      ctx.beginPath();
+      ctx.arc(dotX - pupilR * 0.28, dotY - pupilR * 0.3, pupilR * 0.22, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+
+      ctx.restore(); // remove clip
+
+      // Lid arc stroke
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ex, ey, innerR, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.strokeStyle = STROKE_COLOR;
+      ctx.lineWidth = EYE_STROKE;
+      ctx.beginPath();
+      ctx.moveTo(ex - innerR, lidBottom);
+      ctx.quadraticCurveTo(ex, lidBottom + sag, ex + innerR, lidBottom);
+      ctx.stroke();
+      ctx.restore();
+
+      // Re-stroke circle
+      ctx.beginPath();
+      ctx.arc(ex, ey, EYE_R_SIZE, 0, Math.PI * 2);
+      ctx.strokeStyle = STROKE_COLOR;
+      ctx.lineWidth = EYE_STROKE;
+      ctx.stroke();
+    }
+  }
+
+  function animate() {
+    const now = Date.now();
+
+    // Blink logic
+    if (forceBlink) {
+      blinkPhase = 1;
+      lastBlinkTime = now;
+      forceBlink = false;
+    } else if (now - lastBlinkTime > BLINK_INTERVAL && blinkPhase === 0) {
+      blinkPhase = 1;
+      lastBlinkTime = now;
+    }
+
+    let lidClose = DROOP;
+    if (blinkPhase > 0) {
+      const elapsed = now - lastBlinkTime;
+      const closeTime = BLINK_DURATION * 0.35;
+      const openTime = BLINK_DURATION * 0.65;
+      if (elapsed < closeTime) {
+        const t = elapsed / closeTime;
+        lidClose = DROOP + (1 - DROOP) * (t * t);
+      } else if (elapsed < BLINK_DURATION) {
+        const t = (elapsed - closeTime) / openTime;
+        const eased = 1 - Math.pow(1 - t, 3) * Math.cos(t * Math.PI * 0.5);
+        lidClose = DROOP + (1 - DROOP) * (1 - eased);
+      } else {
+        blinkPhase = 0;
+        lidClose = DROOP;
+      }
+    }
+
+    drawCookie(lidClose);
+    rafId = requestAnimationFrame(animate);
+  }
+
+  // ── Entrance / exit ────────────────────────────────────────
+  banner.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease';
+
+  if (prefersReduced) {
+    // Static cookie, simple fade
+    drawCookie(DROOP);
+    banner.style.transition = 'opacity 0.3s ease';
+    banner.style.transform = 'translateX(0)';
+    banner.style.opacity = '0';
+    setTimeout(() => {
+      banner.style.opacity = '1';
+    }, 1500);
+  } else {
+    // Animated entrance after 1.5s delay
+    animate();
+    setTimeout(() => {
+      banner.style.transform = 'translateX(0)';
+    }, 1500);
+  }
+
+  acceptBtn.addEventListener('click', () => {
     document.cookie = 'tool-cookie-consent=accepted; path=/; max-age=31536000; SameSite=Lax';
-    banner?.remove();
+
+    if (prefersReduced) {
+      banner.style.opacity = '0';
+      setTimeout(() => banner.remove(), 300);
+    } else {
+      // Happy blink then slide out
+      forceBlink = true;
+      setTimeout(() => {
+        banner.style.transition = 'transform 0.4s cubic-bezier(0.55, 0, 1, 0.45)';
+        banner.style.transform = 'translateX(120%)';
+        setTimeout(() => {
+          cancelAnimationFrame(rafId);
+          banner.remove();
+        }, 400);
+      }, 400);
+    }
   });
 </script>

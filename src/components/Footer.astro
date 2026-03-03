@@ -1,15 +1,18 @@
 ---
-/**
- * Site footer — 24-col grid layout. Clock moved to StickyBar.
- */
+import { getSiteContent } from '../lib/queries';
+
+const footerContent = await getSiteContent('footer');
+const email = footerContent.find(c => c.content_key === 'footer_email')?.content ?? 'hugetool@proton.me';
+const instagram = footerContent.find(c => c.content_key === 'footer_instagram')?.content ?? 'https://instagram.com/tool.nyc';
+const linkedin = footerContent.find(c => c.content_key === 'footer_linkedin')?.content ?? 'https://linkedin.com/company/tool-nyc';
 ---
 
 <footer class="border-t border-neutral-200 pb-14">
   <div class="flex flex-col items-center gap-3 py-6 px-2">
     <div class="flex gap-4 text-body text-caption-gray">
-      <a href="mailto:hugetool@proton.me" class="hover:text-neutral-900 transition-colors">Email</a>
-      <a href="https://instagram.com/tool.nyc" target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 transition-colors">Instagram</a>
-      <a href="https://linkedin.com/company/tool-nyc" target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 transition-colors">LinkedIn</a>
+      <a href={`mailto:${email}`} class="hover:text-neutral-900 transition-colors">Email</a>
+      <a href={instagram} target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 transition-colors">Instagram</a>
+      <a href={linkedin} target="_blank" rel="noopener noreferrer" class="hover:text-neutral-900 transition-colors">LinkedIn</a>
       <a href="/privacy" class="hover:text-neutral-900 transition-colors">Privacy</a>
     </div>
     <p class="text-body text-caption-gray">

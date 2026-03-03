@@ -67,13 +67,18 @@ const hasConsent = Astro.cookies.get('tool-cookie-consent')?.value === 'accepted
 
   // Chip positions (relative to center, within body radius)
   const CHIPS = [
-    { x: -22, y: -28, r: 6 },
-    { x: 20, y: -18, r: 5 },
-    { x: -12, y: 18, r: 7 },
-    { x: 28, y: 22, r: 5 },
-    { x: -30, y: 4, r: 5 },
-    { x: 8, y: 32, r: 4 },
-    { x: 34, y: -4, r: 4 },
+    { x: -22, y: -28, r: 4 },
+    { x: 20, y: -18, r: 3.5 },
+    { x: -12, y: 18, r: 4.5 },
+    { x: 28, y: 22, r: 3.5 },
+    { x: -30, y: 4, r: 3 },
+    { x: 8, y: 32, r: 3 },
+    { x: 34, y: -4, r: 3 },
+    { x: -38, y: -14, r: 3.5 },
+    { x: 40, y: 10, r: 3 },
+    { x: -4, y: -38, r: 3 },
+    { x: 14, y: 40, r: 2.5 },
+    { x: -24, y: 36, r: 3 },
   ];
 
   // Eyes — two small eyes on the cookie, same style as TOOL logo

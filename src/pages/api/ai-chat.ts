@@ -3,6 +3,7 @@ import { getSupabaseAdmin, getOpenAIKey } from '../../lib/env';
 import { transcribeAudio, analyzeIntent, buildInquiryRecord } from '../../lib/ai';
 import type { ChatMessage } from '../../lib/ai';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
+import { sendTelegramNotification } from '../../lib/notify';
 import { logError } from '../../lib/logger';
 import { checkRateLimit } from '../../lib/rate-limit';
 
@@ -174,7 +175,7 @@ async function handleSubmit(body: {
     return json({ error: 'Failed to save inquiry. Please try again.' }, 500);
   }
 
-  // Fire notification emails (non-blocking)
+  // Fire notification emails + Telegram (non-blocking)
   await Promise.allSettled([
     sendInquiryNotificationEmail({
       name,
@@ -184,6 +185,15 @@ async function handleSubmit(body: {
       timeline: record.timeline ?? undefined,
     }),
     sendInquiryAutoReplyEmail(email, name),
+    sendTelegramNotification({
+      source: 'ai_chat',
+      name,
+      email,
+      projectType: record.project_type ?? undefined,
+      message: record.description,
+      budget: record.budget_range ?? undefined,
+      timeline: record.timeline ?? undefined,
+    }),
   ]);
 
   // Build Cal.com prefill notes from extracted intent + conversation

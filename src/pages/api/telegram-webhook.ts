@@ -44,14 +44,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   // Process command in background via waitUntil
   const openaiKey = env.OPENAI_API_KEY ?? '';
-  const braveKey = (env.BRAVE_SEARCH_API_KEY as string) ?? '';
 
   ctx.waitUntil(
     handleCommand(message.text, {
       botToken,
       chatId,
       openaiKey,
-      braveKey,
     }).catch((err) => {
       logError('error', 'Telegram command error', {
         path: '/api/telegram-webhook',

@@ -15,6 +15,8 @@ export interface RuntimeEnv {
   AI?: Ai;
   PUBLIC_SITE_URL?: string;
   NTFY_TOPIC?: string;
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_CHAT_ID?: string;
   CAL_BOOKING_URL?: string;
   [key: string]: unknown;
 }

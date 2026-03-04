@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { getSupabaseAdmin } from '../../lib/env';
 import { sendInquiryNotificationEmail, sendInquiryAutoReplyEmail } from '../../lib/emails';
+import { sendTelegramNotification } from '../../lib/notify';
 import { logError } from '../../lib/logger';
 import { checkRateLimit } from '../../lib/rate-limit';
 
@@ -55,7 +56,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: 'Failed to submit' }), { status: 500 });
     }
 
-    // Send branded notification email to admin and auto-reply to submitter
+    // Send branded notification email to admin, auto-reply to submitter, and Telegram ping
     await Promise.allSettled([
       sendInquiryNotificationEmail({
         name,
@@ -66,6 +67,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
         timeline: timeline || undefined,
       }),
       sendInquiryAutoReplyEmail(email, name),
+      sendTelegramNotification({
+        source: 'form',
+        name,
+        email,
+        company: company || undefined,
+        projectType: project_type || undefined,
+        message: description,
+        budget: budget_range || undefined,
+        timeline: timeline || undefined,
+      }),
     ]);
 
     return new Response(JSON.stringify({ success: true }), {

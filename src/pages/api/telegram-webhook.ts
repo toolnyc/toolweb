@@ -8,7 +8,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const ctx = locals.runtime.ctx;
   const env = getEnv();
 
-  const botToken = env.TELEGRAM_BOT_TOKEN;
+  const botToken = (env.TELEGRAM_CONTENT_BOT_TOKEN as string) || env.TELEGRAM_BOT_TOKEN;
   const chatId = env.TELEGRAM_CHAT_ID;
   const webhookSecret = env.TELEGRAM_WEBHOOK_SECRET as string | undefined;
 

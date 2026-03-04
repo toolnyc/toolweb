@@ -35,7 +35,7 @@ export async function handleCommand(text: string, env: CommandEnv): Promise<void
 
 async function handleHelp(env: CommandEnv): Promise<void> {
   const text = [
-    '<b>Tool.NYC Content Bot</b>',
+    '**Tool.NYC Content Bot**',
     '',
     '/content [topic] — Generate 3-5 content ideas with hooks',
     '/trends — Trending topics + content angles',
@@ -52,7 +52,7 @@ async function handleContent(topic: string, env: CommandEnv): Promise<void> {
     return;
   }
 
-  await sendMessage(env.botToken, env.chatId, `Generating content ideas for "${escapeHtml(topic)}"...`);
+  await sendMessage(env.botToken, env.chatId, `Generating content ideas for "${topic}"...`);
 
   const reply = await callOpenAI(env.openaiKey, [
     `Generate 3-5 content ideas for the topic: "${topic}"`,
@@ -126,11 +126,4 @@ async function callOpenAI(apiKey: string, userPrompt: string, useSearch = true):
   }
 
   return 'No response generated.';
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 }

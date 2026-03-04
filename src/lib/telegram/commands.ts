@@ -88,7 +88,7 @@ async function handleNews(env: CommandEnv): Promise<void> {
 
 async function callOpenAI(apiKey: string, userPrompt: string, useSearch = true): Promise<string> {
   const body: Record<string, unknown> = {
-    model: 'gpt-4o-mini',
+    model: 'gpt-4o',
     instructions: STRATEGY_SYSTEM_PROMPT,
     input: userPrompt,
     temperature: 0.8,

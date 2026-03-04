@@ -17,6 +17,8 @@ export interface RuntimeEnv {
   NTFY_TOPIC?: string;
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_CHAT_ID?: string;
+  TELEGRAM_WEBHOOK_SECRET?: string;
+  BRAVE_SEARCH_API_KEY?: string;
   CAL_BOOKING_URL?: string;
   [key: string]: unknown;
 }

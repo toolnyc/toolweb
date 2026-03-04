@@ -33,6 +33,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     pathname === '/api/checkout' ||
     pathname === '/api/ai-chat' ||
     pathname === '/api/upload-check' ||
+    pathname === '/api/telegram-webhook' ||
     pathname.startsWith('/api/auth/')
   );
 

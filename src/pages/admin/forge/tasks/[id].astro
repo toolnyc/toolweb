@@ -1,0 +1,192 @@
+---
+import Admin from '../../../../layouts/Admin.astro';
+import { getForgeSupabase } from '../../../../lib/env';
+
+const forge = getForgeSupabase();
+const { id } = Astro.params;
+
+let task: any = null;
+let judgments: any[] = [];
+let error = '';
+
+{
+  const { data, error: fetchError } = await forge
+    .from('tasks')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (fetchError) {
+    error = fetchError.message;
+  } else {
+    task = data;
+  }
+
+  if (task) {
+    const { data: jData } = await forge
+      .from('judgments')
+      .select('*')
+      .eq('task_id', id)
+      .order('attempt');
+
+    judgments = jData || [];
+  }
+}
+
+function formatDate(dateString: string | null) {
+  if (!dateString) return '-';
+  return new Date(dateString).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function formatCost(cost: number | null) {
+  if (!cost) return '-';
+  return `$${cost.toFixed(4)}`;
+}
+---
+
+<Admin title={task ? `Task ${task.id.slice(0, 8)}` : 'Task'}>
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <div class="mb-4">
+    <a href="/admin/forge/tasks" class="text-sm text-neutral-600 hover:text-neutral-900">&larr; Back to tasks</a>
+  </div>
+
+  {task ? (
+    <>
+      <h1 class="text-2xl font-bold mb-6">{task.title}</h1>
+
+      <!-- Metadata -->
+      <div class="bg-white rounded border border-neutral-200 p-6 mb-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <div class="text-sm text-neutral-600">Status</div>
+            <span class:list={[
+              'inline-block mt-1 px-2 py-1 text-xs rounded',
+              task.status === 'complete' ? 'bg-green-100 text-green-700' :
+              task.status === 'running' ? 'bg-blue-100 text-blue-700' :
+              task.status === 'failed' ? 'bg-red-100 text-red-700' :
+              'bg-yellow-100 text-yellow-700'
+            ]}>
+              {task.status}
+            </span>
+          </div>
+          <div>
+            <div class="text-sm text-neutral-600">Agent</div>
+            <div class="mt-1 font-medium">{task.agent_name || '-'}</div>
+          </div>
+          <div>
+            <div class="text-sm text-neutral-600">Model</div>
+            <div class="mt-1 font-medium">{task.model_used || '-'}</div>
+          </div>
+          <div>
+            <div class="text-sm text-neutral-600">Cost</div>
+            <div class="mt-1 font-medium">{formatCost(task.cost_usd)}</div>
+          </div>
+          <div>
+            <div class="text-sm text-neutral-600">Tokens In</div>
+            <div class="mt-1 font-medium">{task.tokens_in?.toLocaleString() || '-'}</div>
+          </div>
+          <div>
+            <div class="text-sm text-neutral-600">Tokens Out</div>
+            <div class="mt-1 font-medium">{task.tokens_out?.toLocaleString() || '-'}</div>
+          </div>
+          <div>
+            <div class="text-sm text-neutral-600">Created</div>
+            <div class="mt-1 font-medium">{formatDate(task.created_at)}</div>
+          </div>
+          <div>
+            <div class="text-sm text-neutral-600">Completed</div>
+            <div class="mt-1 font-medium">{formatDate(task.completed_at)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output -->
+      {task.output && (
+        <div class="mb-6">
+          <h2 class="text-lg font-semibold mb-3">Output</h2>
+          <div class="bg-white rounded border border-neutral-200 p-6">
+            <pre class="whitespace-pre-wrap text-sm text-neutral-800">{
+              typeof task.output === 'object' && task.output.response
+                ? task.output.response
+                : typeof task.output === 'object' && task.output.error
+                  ? task.output.error
+                  : JSON.stringify(task.output, null, 2)
+            }</pre>
+          </div>
+        </div>
+      )}
+
+      <!-- Judgments -->
+      {judgments.length > 0 && (
+        <div>
+          <h2 class="text-lg font-semibold mb-3">Judgments</h2>
+          {judgments.map((j) => {
+            const scores = typeof j.scores === 'string' ? JSON.parse(j.scores) : (j.scores || []);
+            return (
+              <div class="bg-white rounded border border-neutral-200 p-6 mb-4">
+                <div class="flex gap-4 items-center mb-4">
+                  <span class="font-medium">Attempt {j.attempt}</span>
+                  <span class:list={[
+                    'px-2 py-1 text-xs rounded',
+                    j.verdict === 'pass' ? 'bg-green-100 text-green-700' :
+                    j.verdict === 'fail_retry' ? 'bg-yellow-100 text-yellow-700' :
+                    j.verdict === 'escalate' ? 'bg-orange-100 text-orange-700' :
+                    'bg-red-100 text-red-700'
+                  ]}>
+                    {j.verdict}
+                  </span>
+                  <span class="text-sm text-neutral-600">{j.reason}</span>
+                  {j.total_judge_cost && (
+                    <span class="text-sm text-neutral-600">Cost: {formatCost(j.total_judge_cost)}</span>
+                  )}
+                </div>
+
+                {scores.length > 0 && (
+                  <table class="w-full">
+                    <thead class="bg-neutral-50 border-b border-neutral-200">
+                      <tr>
+                        <th class="text-left p-3 text-sm font-semibold">Judge</th>
+                        <th class="text-left p-3 text-sm font-semibold">Passed</th>
+                        <th class="text-left p-3 text-sm font-semibold">Score</th>
+                        <th class="text-left p-3 text-sm font-semibold">Weight</th>
+                        <th class="text-left p-3 text-sm font-semibold">Reason</th>
+                        <th class="text-left p-3 text-sm font-semibold">Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scores.map((s: any) => (
+                        <tr class="border-b border-neutral-100 last:border-b-0">
+                          <td class="p-3 text-sm">{s.judge_name}</td>
+                          <td class="p-3">
+                            <span class:list={[
+                              'px-2 py-1 text-xs rounded',
+                              s.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            ]}>
+                              {s.passed ? 'yes' : 'no'}
+                            </span>
+                          </td>
+                          <td class="p-3 text-sm">{s.score?.toFixed(2)}</td>
+                          <td class="p-3 text-sm">{s.weight?.toFixed(1)}</td>
+                          <td class="p-3 text-sm text-neutral-600">{s.reason?.slice(0, 80) || '-'}</td>
+                          <td class="p-3 text-sm text-neutral-600">{formatCost(s.cost_usd)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center">
+      <p class="text-neutral-500">Task not found</p>
+    </div>
+  )}
+</Admin>

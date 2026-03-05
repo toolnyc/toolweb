@@ -1,0 +1,202 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { getForgeSupabase } from '../../../lib/env';
+
+const forge = getForgeSupabase();
+
+let error = '';
+let tasks: any[] = [];
+let todayCost = 0;
+let weekCost = 0;
+let totalCost = 0;
+let passRate = 0;
+
+const now = new Date();
+const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+const weekStart = new Date(now.getTime() - 7 * 86400000).toISOString();
+
+{
+  // Recent tasks
+  const { data: taskData, error: taskError } = await forge
+    .from('tasks')
+    .select('id, title, status, agent_name, model_used, cost_usd, created_at')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (taskError) {
+    error = taskError.message;
+  } else {
+    tasks = taskData || [];
+  }
+
+  // Cost aggregation
+  const { data: costData } = await forge
+    .from('cost_log')
+    .select('cost_usd, created_at');
+
+  for (const row of costData || []) {
+    const cost = Number(row.cost_usd) || 0;
+    totalCost += cost;
+    if (row.created_at >= todayStart) todayCost += cost;
+    if (row.created_at >= weekStart) weekCost += cost;
+  }
+
+  // Judge pass rate
+  const { data: judgments } = await forge
+    .from('judgments')
+    .select('verdict');
+
+  if (judgments && judgments.length > 0) {
+    const passed = judgments.filter((j: any) => j.verdict === 'pass').length;
+    passRate = Math.round((passed / judgments.length) * 100);
+  }
+}
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatCost(cost: number) {
+  return `$${cost.toFixed(4)}`;
+}
+
+// Handle task submission
+let submitMsg = '';
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const prompt = formData.get('prompt')?.toString().trim();
+    if (prompt) {
+      const taskId = crypto.randomUUID();
+      const { error: insertError } = await forge
+        .from('tasks')
+        .insert({
+          id: taskId,
+          title: `dashboard: ${prompt.slice(0, 80)}`,
+          description: prompt,
+          status: 'pending',
+          input: { prompt, source: 'dashboard' },
+          task_type: 'general',
+          agent_name: 'research',
+        });
+      if (insertError) {
+        submitMsg = `Error: ${insertError.message}`;
+      } else {
+        submitMsg = `Task created: ${taskId.slice(0, 8)}`;
+      }
+    }
+  } catch (e: any) {
+    submitMsg = `Error: ${e.message}`;
+  }
+}
+---
+
+<Admin title="Forge">
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <h1 class="text-2xl font-bold mb-8">Forge</h1>
+
+  <!-- Task submission -->
+  <form method="POST" class="mb-8 bg-white rounded border border-neutral-200 p-4">
+    <div class="flex gap-3">
+      <input
+        type="text"
+        name="prompt"
+        placeholder="Ask forge something..."
+        class="flex-1 px-3 py-2 border border-neutral-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-neutral-900"
+        required
+      />
+      <button
+        type="submit"
+        class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:bg-neutral-800"
+      >
+        Submit
+      </button>
+    </div>
+    {submitMsg && (
+      <p class:list={['mt-2 text-sm', submitMsg.startsWith('Error') ? 'text-red-600' : 'text-green-600']}>
+        {submitMsg}
+      </p>
+    )}
+  </form>
+
+  <!-- Metric cards -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <div class="bg-white rounded border border-neutral-200 p-4">
+      <div class="text-sm text-neutral-600">Today's Cost</div>
+      <div class="text-2xl font-bold mt-1">{formatCost(todayCost)}</div>
+    </div>
+    <div class="bg-white rounded border border-neutral-200 p-4">
+      <div class="text-sm text-neutral-600">Week Cost</div>
+      <div class="text-2xl font-bold mt-1">{formatCost(weekCost)}</div>
+    </div>
+    <div class="bg-white rounded border border-neutral-200 p-4">
+      <div class="text-sm text-neutral-600">Total Cost</div>
+      <div class="text-2xl font-bold mt-1">{formatCost(totalCost)}</div>
+    </div>
+    <div class="bg-white rounded border border-neutral-200 p-4">
+      <div class="text-sm text-neutral-600">Judge Pass Rate</div>
+      <div class="text-2xl font-bold mt-1">{passRate}%</div>
+    </div>
+  </div>
+
+  <!-- Recent tasks -->
+  <div class="flex justify-between items-center mb-4">
+    <h2 class="text-lg font-semibold">Recent Tasks</h2>
+    <a href="/admin/forge/tasks" class="text-sm text-neutral-600 hover:text-neutral-900">View all</a>
+  </div>
+
+  {tasks.length > 0 ? (
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-neutral-50 border-b border-neutral-200">
+          <tr>
+            <th class="text-left p-4 text-sm font-semibold">ID</th>
+            <th class="text-left p-4 text-sm font-semibold">Title</th>
+            <th class="text-left p-4 text-sm font-semibold">Status</th>
+            <th class="text-left p-4 text-sm font-semibold">Agent</th>
+            <th class="text-left p-4 text-sm font-semibold">Cost</th>
+            <th class="text-left p-4 text-sm font-semibold">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tasks.map((task) => (
+            <tr class="border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50">
+              <td class="p-4 text-sm text-neutral-600">
+                <a href={`/admin/forge/tasks/${task.id}`} class="font-medium hover:underline">
+                  {task.id.slice(0, 8)}
+                </a>
+              </td>
+              <td class="p-4 text-sm">{task.title?.slice(0, 50)}</td>
+              <td class="p-4">
+                <span class:list={[
+                  'px-2 py-1 text-xs rounded',
+                  task.status === 'complete' ? 'bg-green-100 text-green-700' :
+                  task.status === 'running' ? 'bg-blue-100 text-blue-700' :
+                  task.status === 'failed' ? 'bg-red-100 text-red-700' :
+                  'bg-yellow-100 text-yellow-700'
+                ]}>
+                  {task.status}
+                </span>
+              </td>
+              <td class="p-4 text-sm text-neutral-600">{task.agent_name || '-'}</td>
+              <td class="p-4 text-sm text-neutral-600">{task.cost_usd ? formatCost(task.cost_usd) : '-'}</td>
+              <td class="p-4 text-sm text-neutral-600">{formatDate(task.created_at)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center">
+      <p class="text-neutral-500">No tasks yet</p>
+    </div>
+  )}
+
+  <!-- Quick links -->
+  <div class="flex gap-4 mt-6">
+    <a href="/admin/forge/costs" class="text-sm text-neutral-600 hover:text-neutral-900">Cost breakdown</a>
+    <a href="/admin/forge/judgments" class="text-sm text-neutral-600 hover:text-neutral-900">Judge decisions</a>
+    <a href="/admin/forge/models" class="text-sm text-neutral-600 hover:text-neutral-900">Model settings</a>
+  </div>
+</Admin>

@@ -131,6 +131,19 @@ Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
 - `supabase/migrations/` — Database migrations (managed via Supabase CLI)
 - `docs/style-guide.md` — Voice and copy guidelines
 
+### Forge Dashboard (`src/pages/admin/forge/`)
+
+5 admin pages that read from a separate Forge Supabase project:
+- `index.astro` — Overview (metrics + recent tasks)
+- `tasks/index.astro` — Tasks list
+- `tasks/[id].astro` — Task detail
+- `costs.astro` — Cost breakdown by model/day
+- `judgments.astro` — Judge verdicts
+
+**Config:** `getForgeSupabase()` in `src/lib/env.ts` uses `FORGE_SUPABASE_URL` + `FORGE_SUPABASE_KEY` (set in wrangler.toml vars + secrets). No code dependency on the forge repo — pure Supabase API reads.
+
+**Tables queried:** `tasks`, `cost_log`, `judgments` (from forge's Supabase, not toolweb's)
+
 ### Key Patterns
 
 **Env var architecture** (`src/lib/env.ts`):

@@ -1,0 +1,123 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { getForgeSupabase } from '../../../lib/env';
+
+const forge = getForgeSupabase();
+
+let error = '';
+let models: any[] = [];
+
+// Handle toggle/priority updates
+if (Astro.request.method === 'POST') {
+  try {
+    const formData = await Astro.request.formData();
+    const action = formData.get('action')?.toString();
+    const modelId = formData.get('model_id')?.toString();
+
+    if (action === 'toggle' && modelId) {
+      const currentEnabled = formData.get('current_enabled') === 'true';
+      await forge.from('model_registry').update({ enabled: !currentEnabled }).eq('id', modelId);
+    }
+
+    if (action === 'priority' && modelId) {
+      const priority = parseInt(formData.get('priority')?.toString() || '10', 10);
+      await forge.from('model_registry').update({ priority }).eq('id', modelId);
+    }
+  } catch (e: any) {
+    error = e.message;
+  }
+}
+
+// Fetch models
+const { data, error: fetchError } = await forge
+  .from('model_registry')
+  .select('*')
+  .order('priority');
+
+if (fetchError) {
+  error = fetchError.message;
+} else {
+  models = data || [];
+}
+---
+
+<Admin title="Forge Models">
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-2xl font-bold">Model Registry</h1>
+    <a href="/admin/forge" class="text-sm text-neutral-600 hover:text-neutral-900">Back to Forge</a>
+  </div>
+
+  {models.length > 0 ? (
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-neutral-50 border-b border-neutral-200">
+          <tr>
+            <th class="text-left p-4 text-sm font-semibold">Model</th>
+            <th class="text-left p-4 text-sm font-semibold">Provider</th>
+            <th class="text-left p-4 text-sm font-semibold">Max Complexity</th>
+            <th class="text-left p-4 text-sm font-semibold">Priority</th>
+            <th class="text-left p-4 text-sm font-semibold">Enabled</th>
+          </tr>
+        </thead>
+        <tbody>
+          {models.map((m) => (
+            <tr class="border-b border-neutral-100 last:border-b-0">
+              <td class="p-4">
+                <div class="text-sm font-medium">{m.name}</div>
+                {m.base_url && <div class="text-xs text-neutral-400 mt-1">{m.base_url}</div>}
+              </td>
+              <td class="p-4 text-sm text-neutral-600">{m.provider}</td>
+              <td class="p-4">
+                <span class:list={[
+                  'px-2 py-1 text-xs rounded',
+                  m.max_complexity === 'complex' ? 'bg-purple-100 text-purple-700' :
+                  m.max_complexity === 'standard' ? 'bg-blue-100 text-blue-700' :
+                  'bg-neutral-100 text-neutral-700'
+                ]}>
+                  {m.max_complexity}
+                </span>
+              </td>
+              <td class="p-4">
+                <form method="POST" class="flex items-center gap-2">
+                  <input type="hidden" name="action" value="priority" />
+                  <input type="hidden" name="model_id" value={m.id} />
+                  <input
+                    type="number"
+                    name="priority"
+                    value={m.priority}
+                    min="1"
+                    max="99"
+                    class="w-16 px-2 py-1 border border-neutral-300 rounded text-sm text-center"
+                  />
+                  <button type="submit" class="text-xs text-neutral-500 hover:text-neutral-900">Save</button>
+                </form>
+              </td>
+              <td class="p-4">
+                <form method="POST">
+                  <input type="hidden" name="action" value="toggle" />
+                  <input type="hidden" name="model_id" value={m.id} />
+                  <input type="hidden" name="current_enabled" value={String(m.enabled)} />
+                  <button
+                    type="submit"
+                    class:list={[
+                      'px-3 py-1 text-xs rounded',
+                      m.enabled ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+                    ]}
+                  >
+                    {m.enabled ? 'On' : 'Off'}
+                  </button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center">
+      <p class="text-neutral-500">No models configured. Run the model_registry migration first.</p>
+    </div>
+  )}
+</Admin>

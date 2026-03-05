@@ -1,0 +1,89 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { getForgeSupabase } from '../../../lib/env';
+
+const forge = getForgeSupabase();
+
+let error = '';
+let judgments: any[] = [];
+
+{
+  const { data, error: fetchError } = await forge
+    .from('judgments')
+    .select('*, tasks(title)')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (fetchError) {
+    error = fetchError.message;
+  } else {
+    judgments = data || [];
+  }
+}
+
+function formatDate(dateString: string | null) {
+  if (!dateString) return '-';
+  return new Date(dateString).toLocaleString('en-US', {
+    month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+function formatCost(cost: number | null) {
+  if (!cost) return '-';
+  return `$${cost.toFixed(4)}`;
+}
+---
+
+<Admin title="Forge Judgments">
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <h1 class="text-2xl font-bold mb-8">Judge Decisions</h1>
+
+  {judgments.length > 0 ? (
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-neutral-50 border-b border-neutral-200">
+          <tr>
+            <th class="text-left p-4 text-sm font-semibold">Task</th>
+            <th class="text-left p-4 text-sm font-semibold">Attempt</th>
+            <th class="text-left p-4 text-sm font-semibold">Verdict</th>
+            <th class="text-left p-4 text-sm font-semibold">Reason</th>
+            <th class="text-left p-4 text-sm font-semibold">Cost</th>
+            <th class="text-left p-4 text-sm font-semibold">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {judgments.map((j) => (
+            <tr class="border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50">
+              <td class="p-4 text-sm">
+                <a href={`/admin/forge/tasks/${j.task_id}`} class="font-medium hover:underline">
+                  {j.tasks?.title?.slice(0, 30) || j.task_id?.slice(0, 8)}
+                </a>
+              </td>
+              <td class="p-4 text-sm text-neutral-600">{j.attempt}</td>
+              <td class="p-4">
+                <span class:list={[
+                  'px-2 py-1 text-xs rounded',
+                  j.verdict === 'pass' ? 'bg-green-100 text-green-700' :
+                  j.verdict === 'fail_retry' ? 'bg-yellow-100 text-yellow-700' :
+                  j.verdict === 'escalate' ? 'bg-orange-100 text-orange-700' :
+                  'bg-red-100 text-red-700'
+                ]}>
+                  {j.verdict}
+                </span>
+              </td>
+              <td class="p-4 text-sm text-neutral-600">{j.reason?.slice(0, 60) || '-'}</td>
+              <td class="p-4 text-sm text-neutral-600">{formatCost(j.total_judge_cost)}</td>
+              <td class="p-4 text-sm text-neutral-600">{formatDate(j.created_at)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center">
+      <p class="text-neutral-500">No judgments yet</p>
+    </div>
+  )}
+</Admin>

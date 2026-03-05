@@ -20,6 +20,8 @@ export interface RuntimeEnv {
   TELEGRAM_CHAT_ID?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
   CAL_BOOKING_URL?: string;
+  FORGE_SUPABASE_URL?: string;
+  FORGE_SUPABASE_KEY?: string;
   [key: string]: unknown;
 }
 
@@ -28,6 +30,7 @@ let _supabase: SupabaseClient | null = null;
 let _supabaseAdmin: SupabaseClient | null = null;
 let _stripe: Stripe | null = null;
 let _resend: Resend | null = null;
+let _forgeSupabase: SupabaseClient | null = null;
 
 export function initClients(env: Record<string, unknown>): void {
   _env = env as RuntimeEnv;
@@ -62,6 +65,15 @@ export function initClients(env: Record<string, unknown>): void {
   const resendKey = _env.RESEND_API_KEY;
   if (resendKey && !_resend) {
     _resend = new Resend(resendKey);
+  }
+
+  const forgeUrl = _env.FORGE_SUPABASE_URL;
+  const forgeKey = _env.FORGE_SUPABASE_KEY;
+  if (forgeUrl && forgeKey && !_forgeSupabase) {
+    _forgeSupabase = createClient(forgeUrl, forgeKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      db: { timeout: 10000 },
+    });
   }
 }
 
@@ -101,6 +113,11 @@ export function getOpenAIKey(): string {
 export function getAI(): Ai {
   if (!_env?.AI) throw new Error('AI binding not configured');
   return _env.AI;
+}
+
+export function getForgeSupabase(): SupabaseClient {
+  if (!_forgeSupabase) throw new Error('Forge Supabase not configured (missing FORGE_SUPABASE_URL)');
+  return _forgeSupabase;
 }
 
 export function getCalBookingUrl(): string {

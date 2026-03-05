@@ -1,0 +1,126 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { getForgeSupabase } from '../../../lib/env';
+
+const forge = getForgeSupabase();
+
+let error = '';
+let byModel: { model: string; cost: number; count: number }[] = [];
+let byDay: { date: string; cost: number; count: number }[] = [];
+
+{
+  const { data, error: fetchError } = await forge
+    .from('cost_log')
+    .select('model, cost_usd, created_at');
+
+  if (fetchError) {
+    error = fetchError.message;
+  } else {
+    const rows = data || [];
+
+    // Aggregate by model
+    const modelMap = new Map<string, { cost: number; count: number }>();
+    const dayMap = new Map<string, { cost: number; count: number }>();
+
+    for (const row of rows) {
+      const cost = Number(row.cost_usd) || 0;
+      const model = row.model || 'unknown';
+      const day = row.created_at?.slice(0, 10) || 'unknown';
+
+      const m = modelMap.get(model) || { cost: 0, count: 0 };
+      m.cost += cost;
+      m.count += 1;
+      modelMap.set(model, m);
+
+      const d = dayMap.get(day) || { cost: 0, count: 0 };
+      d.cost += cost;
+      d.count += 1;
+      dayMap.set(day, d);
+    }
+
+    byModel = [...modelMap.entries()]
+      .map(([model, v]) => ({ model, ...v }))
+      .sort((a, b) => b.cost - a.cost);
+
+    byDay = [...dayMap.entries()]
+      .map(([date, v]) => ({ date, ...v }))
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 30);
+  }
+}
+
+const grandTotal = byModel.reduce((sum, m) => sum + m.cost, 0);
+
+function formatCost(cost: number) {
+  return `$${cost.toFixed(4)}`;
+}
+---
+
+<Admin title="Forge Costs">
+  {error && <p class="mb-4 bg-red-50 text-red-600 p-3 rounded">{error}</p>}
+
+  <h1 class="text-2xl font-bold mb-8">Cost Breakdown</h1>
+
+  <!-- By model -->
+  <h2 class="text-lg font-semibold mb-3">By Model</h2>
+  {byModel.length > 0 ? (
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden mb-8">
+      <table class="w-full">
+        <thead class="bg-neutral-50 border-b border-neutral-200">
+          <tr>
+            <th class="text-left p-4 text-sm font-semibold">Model</th>
+            <th class="text-right p-4 text-sm font-semibold">Total Cost</th>
+            <th class="text-right p-4 text-sm font-semibold">Task Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {byModel.map((row) => (
+            <tr class="border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50">
+              <td class="p-4 text-sm font-medium">{row.model}</td>
+              <td class="p-4 text-sm text-neutral-600 text-right">{formatCost(row.cost)}</td>
+              <td class="p-4 text-sm text-neutral-600 text-right">{row.count}</td>
+            </tr>
+          ))}
+          <tr class="bg-neutral-50 font-semibold">
+            <td class="p-4 text-sm">Total</td>
+            <td class="p-4 text-sm text-right">{formatCost(grandTotal)}</td>
+            <td class="p-4 text-sm text-right">{byModel.reduce((sum, m) => sum + m.count, 0)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center mb-8">
+      <p class="text-neutral-500">No cost data yet</p>
+    </div>
+  )}
+
+  <!-- By day -->
+  <h2 class="text-lg font-semibold mb-3">By Day (last 30 days)</h2>
+  {byDay.length > 0 ? (
+    <div class="bg-white rounded border border-neutral-200 overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-neutral-50 border-b border-neutral-200">
+          <tr>
+            <th class="text-left p-4 text-sm font-semibold">Date</th>
+            <th class="text-right p-4 text-sm font-semibold">Cost</th>
+            <th class="text-right p-4 text-sm font-semibold">Tasks</th>
+          </tr>
+        </thead>
+        <tbody>
+          {byDay.map((row) => (
+            <tr class="border-b border-neutral-100 last:border-b-0 hover:bg-neutral-50">
+              <td class="p-4 text-sm font-medium">{row.date}</td>
+              <td class="p-4 text-sm text-neutral-600 text-right">{formatCost(row.cost)}</td>
+              <td class="p-4 text-sm text-neutral-600 text-right">{row.count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center">
+      <p class="text-neutral-500">No cost data yet</p>
+    </div>
+  )}
+</Admin>

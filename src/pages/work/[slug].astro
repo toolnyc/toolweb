@@ -25,9 +25,28 @@ const bodyHtml = (hasText(caseStudy.body) ? caseStudy.body : null)
   || null;
 
 const metaDescription = (caseStudy.description ?? bodyHtml ?? '').replace(/<[^>]*>/g, '').slice(0, 160);
+
+const caseStudySchema = {
+  '@context': 'https://schema.org',
+  '@type': 'CreativeWork',
+  name: caseStudy.title,
+  description: metaDescription,
+  image: caseStudy.media_url || undefined,
+  author: {
+    '@type': 'Organization',
+    name: 'Tool',
+    url: 'https://tool.nyc',
+  },
+  url: `https://tool.nyc/work/${slug}`,
+};
 ---
 
-<BaseLayout title={`${caseStudy.title} — Tool`} description={metaDescription}>
+<BaseLayout
+  title={`${caseStudy.title} — Tool`}
+  description={metaDescription}
+  image={caseStudy.media_type !== 'video' ? caseStudy.media_url : (caseStudy.thumbnail_url ?? undefined)}
+  jsonLd={caseStudySchema}
+>
   <Header />
 
   <main class="pb-12" id="main-content">

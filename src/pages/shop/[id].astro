@@ -16,9 +16,29 @@ function formatPrice(price: number) {
 }
 
 const hasStock = product.variants.some(v => v.stock_count > 0);
+
+const productSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: product.name,
+  description: product.description || product.name,
+  image: product.image_url || undefined,
+  offers: {
+    '@type': 'Offer',
+    price: product.price,
+    priceCurrency: 'USD',
+    availability: hasStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+    url: `https://tool.nyc/shop/${product.id}`,
+  },
+};
 ---
 
-<BaseLayout title={`${product.name} — Tool`}>
+<BaseLayout
+  title={`${product.name} — Tool`}
+  description={product.description || `${product.name} — available at Tool.`}
+  image={product.image_url || undefined}
+  jsonLd={productSchema}
+>
   <Header />
   <main class="pb-12" id="main-content">
     <div class="site-grid py-2">

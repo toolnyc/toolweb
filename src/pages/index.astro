@@ -50,9 +50,26 @@ const portfolioChunks: PortfolioItem[][] = [];
 for (let i = 0; i < portfolio.length; i += chunkSize) {
   portfolioChunks.push(portfolio.slice(i, i + chunkSize));
 }
+
+const organizationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  name: 'Tool',
+  url: 'https://tool.nyc',
+  logo: 'https://tool.nyc/og-image.png',
+  description: 'Brand, design, and web development. New York.',
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'New York',
+    addressRegion: 'NY',
+    addressCountry: 'US',
+  },
+  serviceType: ['Brand Identity', 'Web Design', 'Web Development', 'Graphic Design', 'Motion Design'],
+  email: 'hugetool@proton.me',
+};
 ---
 
-<BaseLayout>
+<BaseLayout jsonLd={organizationSchema}>
   <Header />
 
   <main class="pb-14" id="main-content">

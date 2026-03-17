@@ -48,6 +48,55 @@ export async function searchPeopleAtCompany(
   return data.people ?? [];
 }
 
+export interface IcpFilters {
+  titles: string[];
+  /** Apollo employee range strings, e.g. ["1,50", "51,200"] */
+  employeeRanges: string[];
+  /** City/state/country strings Apollo understands, e.g. ["New York, New York, United States"] */
+  locations: string[];
+  page?: number;
+  perPage?: number;
+}
+
+/**
+ * Discover people matching an ICP profile without specifying a company.
+ * Uses the same mixed_people/search endpoint — free, no credits.
+ */
+export async function discoverByIcp(
+  apiKey: string,
+  filters: IcpFilters,
+): Promise<{ people: ApolloPerson[]; total: number }> {
+  const response = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+    },
+    body: JSON.stringify({
+      person_titles: filters.titles,
+      organization_num_employees_ranges: filters.employeeRanges,
+      person_locations: filters.locations,
+      page: filters.page ?? 1,
+      per_page: filters.perPage ?? 25,
+    }),
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Apollo ICP search error ${response.status}: ${err}`);
+  }
+
+  const data = await response.json() as {
+    people?: ApolloPerson[];
+    pagination?: { total_entries?: number };
+  };
+
+  return {
+    people: data.people ?? [],
+    total: data.pagination?.total_entries ?? 0,
+  };
+}
+
 /**
  * Enrich a person by Apollo ID to get verified email and fuller profile.
  * Costs credits — only call for high-confidence prospects.

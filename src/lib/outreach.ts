@@ -1,4 +1,4 @@
-import { searchPeopleAtCompany, enrichPerson, type ApolloPerson } from './apollo';
+import { searchPeopleAtCompany, discoverByIcp, enrichPerson, type ApolloPerson } from './apollo';
 import { getSupabaseAdmin, getEnv } from './env';
 
 // Titles likely to be decision-makers for a solo creative/dev shop
@@ -121,6 +121,139 @@ Company description: ${person.organization?.short_description ?? 'none'}`;
   } catch {
     return { subject: '', body: raw };
   }
+}
+
+// ICP profile for Pete's solo creative/dev shop
+const ICP_FILTERS = {
+  titles: TARGET_TITLES,
+  // Sweet spot: 10–300 employees
+  employeeRanges: ['10,50', '51,200', '201,300'],
+  // NYC metro + other major US creative hubs
+  locations: [
+    'New York, New York, United States',
+    'Brooklyn, New York, United States',
+    'Los Angeles, California, United States',
+    'Chicago, Illinois, United States',
+    'Miami, Florida, United States',
+  ],
+};
+
+/**
+ * Run ICP-based discovery — no company names needed.
+ * Pulls people matching the ICP profile from Apollo, deduplicates against
+ * existing prospects, scores, drafts, and inserts into a new batch.
+ * Returns the batch ID.
+ */
+export async function runIcpDiscovery(pages = 2): Promise<string> {
+  const supabase = getSupabaseAdmin();
+  const env = getEnv();
+  const apolloKey = env.APOLLO_API_KEY;
+  const openaiKey = env.OPENAI_API_KEY;
+
+  if (!apolloKey) throw new Error('APOLLO_API_KEY not configured');
+  if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
+
+  // Load existing apollo_person_ids to deduplicate
+  const { data: existing } = await supabase
+    .from('outreach_prospects')
+    .select('apollo_person_id')
+    .not('apollo_person_id', 'is', null);
+
+  const seenIds = new Set((existing ?? []).map((r: { apollo_person_id: string }) => r.apollo_person_id));
+
+  // Create batch record
+  const { data: batch, error: batchError } = await supabase
+    .from('outreach_batches')
+    .insert({
+      status: 'running',
+      visitor_count: 0,
+      notes: `ICP discovery — ${pages} page(s)`,
+    })
+    .select()
+    .single();
+
+  if (batchError || !batch) throw new Error(`Failed to create batch: ${batchError?.message}`);
+
+  const batchId = batch.id as string;
+  let totalProspects = 0;
+
+  for (let page = 1; page <= pages; page++) {
+    let people: ApolloPerson[] = [];
+    try {
+      const result = await discoverByIcp(apolloKey, { ...ICP_FILTERS, page, perPage: 25 });
+      people = result.people;
+    } catch (err) {
+      console.error(`Apollo ICP discovery page ${page} failed:`, err);
+      break;
+    }
+
+    for (const person of people) {
+      // Skip already-seen prospects
+      if (person.id && seenIds.has(person.id)) continue;
+      if (person.id) seenIds.add(person.id);
+
+      const score = scoreProspect(person);
+      if (score < 30) continue;
+
+      let enriched = person;
+      if (score >= 55 && !person.email && person.id) {
+        try {
+          const result = await enrichPerson(apolloKey, person.id);
+          if (result) enriched = result;
+        } catch {
+          // Non-fatal
+        }
+      }
+
+      let draftSubject: string | null = null;
+      let draftBody: string | null = null;
+      if (score >= 40) {
+        try {
+          const draft = await draftEmail(openaiKey, enriched);
+          draftSubject = draft.subject;
+          draftBody = draft.body;
+        } catch (err) {
+          console.error(`Draft failed for ${person.name}:`, err);
+        }
+      }
+
+      const org = enriched.organization;
+      const prospect: ProspectDraft = {
+        apollo_person_id: enriched.id,
+        name: enriched.name,
+        title: enriched.title,
+        company: org?.name ?? 'Unknown',
+        email: enriched.email,
+        linkedin_url: enriched.linkedin_url,
+        signal: 'ICP discovery — profile match',
+        company_size: org?.estimated_num_employees != null
+          ? String(org.estimated_num_employees)
+          : null,
+        company_industry: org?.industry ?? null,
+        confidence_score: score,
+        draft_subject: draftSubject,
+        draft_body: draftBody,
+      };
+
+      await supabase.from('outreach_prospects').insert({
+        batch_id: batchId,
+        ...prospect,
+      });
+
+      totalProspects++;
+    }
+  }
+
+  await supabase
+    .from('outreach_batches')
+    .update({
+      status: 'complete',
+      prospect_count: totalProspects,
+      completed_at: new Date().toISOString(),
+    })
+    .eq('id', batchId);
+
+  return batchId;
 }
 
 /**

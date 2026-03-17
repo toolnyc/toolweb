@@ -81,6 +81,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
         },
       ],
       metadata: {
+        checkout_type: 'shop',
         variant_id: variantId,
         product_id: product.id as string,
         quantity: quantity.toString(),

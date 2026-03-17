@@ -18,7 +18,7 @@ node_modules/
 .vscode/
 .idea/
 .agents/
-.claude/
+.claude/settings.local.json
 *.swp
 *.swo
 .DS_Store

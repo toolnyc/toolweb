@@ -39,6 +39,7 @@ function formatDate(d: string) {
       {latestBatch && (
         <p class="text-sm text-neutral-500 mt-1">
           Last batch: {formatDate(latestBatch.created_at)} — {latestBatch.prospect_count} prospects
+          {latestBatch.notes && <span class="text-neutral-400"> · {latestBatch.notes}</span>}
           <span class:list={[
             'ml-2 px-2 py-0.5 text-xs rounded',
             latestBatch.status === 'complete' ? 'bg-green-100 text-green-700' :
@@ -48,13 +49,21 @@ function formatDate(d: string) {
         </p>
       )}
     </div>
-    <button
-      id="run-btn"
-      class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
-      onclick="document.getElementById('run-modal').classList.remove('hidden')"
-    >
-      Run batch
-    </button>
+    <div class="flex gap-2">
+      <button
+        class="px-4 py-2 bg-neutral-100 text-neutral-700 text-sm rounded hover:bg-neutral-200"
+        onclick="document.getElementById('discover-modal').classList.remove('hidden')"
+      >
+        Discover
+      </button>
+      <button
+        id="run-btn"
+        class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
+        onclick="document.getElementById('run-modal').classList.remove('hidden')"
+      >
+        Run batch
+      </button>
+    </div>
   </div>
 
   {pending.length > 0 ? (
@@ -77,6 +86,9 @@ function formatDate(d: string) {
                   )}
                   {p.status === 'approved' && (
                     <span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">approved</span>
+                  )}
+                  {p.signal === 'ICP discovery — profile match' && (
+                    <span class="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-500">discovered</span>
                   )}
                 </div>
                 <div class="text-sm text-neutral-500 mt-0.5">
@@ -143,7 +155,7 @@ function formatDate(d: string) {
     </div>
   ) : (
     <div class="bg-white rounded border border-neutral-200 p-12 text-center mb-10">
-      <p class="text-neutral-400">Queue empty — run a batch to populate it.</p>
+      <p class="text-neutral-400">Queue empty — discover prospects or run a batch.</p>
     </div>
   )}
 
@@ -167,6 +179,45 @@ function formatDate(d: string) {
     </div>
   )}
 </Admin>
+
+<!-- Discover modal -->
+<div id="discover-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg w-full max-w-md mx-4 p-6">
+    <h2 class="text-lg font-semibold mb-1">Discover prospects</h2>
+    <p class="text-sm text-neutral-500 mb-4">
+      Searches Apollo for people matching your ICP — creative directors, marketing heads, founders
+      at 10–300 person companies in NYC, LA, Chicago, and Miami. Skips anyone already in the queue.
+    </p>
+    <div class="mb-4">
+      <label class="text-sm font-medium text-neutral-700 block mb-1">Pages to fetch</label>
+      <select
+        id="discover-pages"
+        class="border border-neutral-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-neutral-400"
+      >
+        <option value="1">1 page (~25 results)</option>
+        <option value="2" selected>2 pages (~50 results)</option>
+        <option value="3">3 pages (~75 results)</option>
+        <option value="5">5 pages (~125 results)</option>
+      </select>
+    </div>
+    <div id="discover-error" class="text-sm text-red-600 mb-3 hidden"></div>
+    <div class="flex gap-3 justify-end">
+      <button
+        class="px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900"
+        onclick="document.getElementById('discover-modal').classList.add('hidden')"
+      >
+        Cancel
+      </button>
+      <button
+        id="discover-submit"
+        class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
+        onclick="submitDiscover()"
+      >
+        Discover
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- Run batch modal -->
 <div id="run-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
@@ -243,6 +294,29 @@ async function sendProspect(id: string) {
     if (el) el.style.opacity = '1';
     const data = await res.json() as { error?: string };
     alert(data.error ?? 'Send failed');
+  }
+}
+
+async function submitDiscover() {
+  const pages = parseInt(((document.getElementById('discover-pages') as unknown) as HTMLSelectElement)?.value ?? '2', 10);
+  const errEl = document.getElementById('discover-error');
+  const btn = document.getElementById('discover-submit');
+
+  if (btn) btn.textContent = 'Discovering…';
+  if (errEl) errEl.classList.add('hidden');
+
+  const res = await fetch('/api/outreach/discover', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pages }),
+  });
+
+  if (res.ok) {
+    window.location.reload();
+  } else {
+    const data = await res.json() as { error?: string };
+    if (errEl) { errEl.textContent = data.error ?? 'Discovery failed'; errEl.classList.remove('hidden'); }
+    if (btn) btn.textContent = 'Discover';
   }
 }
 

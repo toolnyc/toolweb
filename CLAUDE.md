@@ -14,6 +14,8 @@ git worktree add -b feature/<name> ../toolweb-<name>
 cd ../toolweb-<name> && pnpm install
 ```
 
+A pre-commit hook enforces this — commits to `master` will be rejected.
+
 **Stay scoped.** Fix/build what was asked. Don't refactor adjacent code, add docstrings, or expand scope.
 
 ## Commands
@@ -23,22 +25,32 @@ pnpm dev            # Dev server
 pnpm build          # Production build (Cloudflare Pages)
 pnpm preview        # Preview production build
 pnpm astro check    # Type-check .astro + .ts files
+pnpm test           # Run all tests (unit + architecture invariants)
+pnpm test:arch      # Run architecture invariant tests only
 ```
 
-### Database (Supabase CLI)
+## Skills (Progressive Disclosure)
 
-Supabase CLI runs via `npx` on this machine (not installed globally):
-```bash
-npx supabase migration new <name>   # Create a new migration file
-npx supabase db push                # Push migrations to remote
-npx supabase migration list         # Check migration status
-```
+Domain knowledge is split into skill files. Read the relevant skill before making changes in that area:
 
-Requires `SUPABASE_ACCESS_TOKEN` env var to be set first.
+| Skill | When to Load |
+|-------|-------------|
+| `.claude/skills/stripe-webhook.md` | Checkout, webhooks, orders, payments, money math |
+| `.claude/skills/supabase-queries.md` | Database queries, migrations, RLS, dual client pattern |
+| `.claude/skills/cloudflare-pages.md` | wrangler.toml, R2 uploads, V8 constraints, env vars |
+| `.claude/skills/data-model.md` | Tables, enums, relationships, schema changes |
 
-**Database environments:**
-- Supabase project: `eknmuaffpvkiwylrybql` — single project, shared across preview and production
-- Safe to push migrations anytime; both environments read from the same DB
+## Workflow Commands
+
+Reusable workflows for common multi-step operations:
+
+| Command | Use When |
+|---------|----------|
+| `.claude/commands/worktree.md` | Starting any feature work |
+| `.claude/commands/new-feature.md` | End-to-end feature implementation |
+| `.claude/commands/migration.md` | Database schema changes |
+| `.claude/commands/deploy.md` | Pre-deploy checklist and deployment |
+| `.claude/commands/stripe-change.md` | Any payment/checkout modification |
 
 ## Git Workflow
 
@@ -47,8 +59,6 @@ Requires `SUPABASE_ACCESS_TOKEN` env var to be set first.
 ```bash
 # Create worktree for new feature
 git worktree add -b feature/my-feature ../toolweb-my-feature
-
-# Work in the worktree
 cd ../toolweb-my-feature
 pnpm install  # Required — worktrees don't share node_modules
 
@@ -74,48 +84,11 @@ The site serves as: portfolio mood board, inbound sales funnel (sticky CTA → C
 - **Database**: Supabase Postgres with Row Level Security
 - **Auth**: Supabase Auth — magic links for clients, password for admin
 - **Storage**: Cloudflare R2 for media, Cloudflare Stream for video
-- **Payments**: Stripe Checkout + webhooks
+- **Payments**: Stripe Checkout + webhooks → see `.claude/skills/stripe-webhook.md`
 - **Email**: Resend for transactional emails
 - **Scheduling**: Cal.com embed
 - **Animation**: GSAP + ScrollTrigger + Lenis smooth scroll
 - **Styling**: Tailwind CSS
-
-### Cloudflare Workers Constraints
-
-This runs V8 isolates, NOT Node.js:
-- **No Sharp** — use `browser-image-compression` client-side before upload
-- **No `fs`** — file ops via R2 bindings only
-- **No native Node modules** — Web API compatible libraries only
-- Supabase JS + Stripe SDK work fine (both use fetch internally)
-- **R2 uploads**: Use `file.arrayBuffer()` not `file.stream()` for `R2Bucket.put()` — more reliable across runtimes
-
-### Cloudflare Pages `wrangler.toml` — Non-Inheritable Keys
-
-**CRITICAL**: In Cloudflare Pages, certain `wrangler.toml` keys are "non-inheritable": `vars`, `r2_buckets`, `kv_namespaces`, `d1_databases`, `durable_objects`, `services`, `queues`, `vectorize`, `hyperdrive`, `analytics_engine_datasets`, `ai`.
-
-If **any one** of these is overridden in `[env.preview]` or `[env.production]`, then **all** of them must be repeated in that environment block — otherwise the ones not specified are silently dropped.
-
-```toml
-# Top-level (applies to production + local dev)
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "tool-media"
-
-[vars]
-MY_VAR = "production-value"
-
-# Preview env — MUST repeat r2_buckets here because vars is overridden
-[[env.preview.r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "tool-media"
-
-[env.preview.vars]
-MY_VAR = "preview-value"
-```
-
-This caused a production bug where `MEDIA_BUCKET` was configured at the top level but missing from preview deploys because `[env.preview.vars]` existed without a matching `[[env.preview.r2_buckets]]`.
-
-Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
 
 ### Directory Structure
 - `src/lib/` — Service clients, queries, mutations, types
@@ -128,89 +101,21 @@ Docs: https://developers.cloudflare.com/pages/functions/wrangler-configuration/
 - `src/components/` — Astro components (Accordion, FileUpload, VideoPlayer, etc.)
 - `src/layouts/` — BaseLayout.astro (public), Admin.astro (admin)
 - `src/scripts/` — Client-side JS (GSAP animations)
-- `supabase/migrations/` — Database migrations (managed via Supabase CLI)
+- `supabase/migrations/` — Database migrations
+- `tests/` — Architecture invariant tests + unit tests
 - `docs/style-guide.md` — Voice and copy guidelines
 
 ### Forge Dashboard (`src/pages/admin/forge/`)
 
-5 admin pages that read from a separate Forge Supabase project:
-- `index.astro` — Overview (metrics + recent tasks)
-- `tasks/index.astro` — Tasks list
-- `tasks/[id].astro` — Task detail
-- `costs.astro` — Cost breakdown by model/day
-- `judgments.astro` — Judge verdicts
-
-**Config:** `getForgeSupabase()` in `src/lib/env.ts` uses `FORGE_SUPABASE_URL` + `FORGE_SUPABASE_KEY` (set in wrangler.toml vars + secrets). No code dependency on the forge repo — pure Supabase API reads.
-
-**Tables queried:** `tasks`, `cost_log`, `judgments` (from forge's Supabase, not toolweb's)
+5 admin pages reading from a separate Forge Supabase project. Config via `getForgeSupabase()` in `src/lib/env.ts`. Tables: `tasks`, `cost_log`, `judgments`.
 
 ### Key Patterns
 
-**Env var architecture** (`src/lib/env.ts`):
-- All custom env vars read from `Astro.locals.runtime.env` via lazy singletons
-- `import.meta.env` only used for Vite built-ins (`PROD`, `DEV`, `MODE`) in `cookies.ts`
-- Non-secrets in `wrangler.toml [vars]` (split prod/preview sections)
-- Secrets set via `wrangler pages secret put` (both environments)
-- Local dev uses `.dev.vars` file
-- Exported getters: `getSupabase()`, `getSupabaseAdmin()`, `getStripe()`, `getResendOrNull()`, `getEnv()`
-
-**Supabase dual clients** (`src/lib/env.ts`):
-- `getSupabase()` — anon key, respects RLS (public queries)
-- `getSupabaseAdmin()` — service key, bypasses RLS (server-side mutations, auth)
-- Initialization happens in middleware via `initClients(context.locals.runtime.env)`
-
-**Auth middleware** (`src/middleware.ts`):
-- Protects all `/admin/*` routes except `/admin/login`
-- Protects `/portal/*` routes except `/portal` (login) and `/portal/verify`
-- Uses cookie-based sessions (`sb-access-token`, `sb-refresh-token`)
-- Stores authenticated user in `context.locals.user`, client record in `context.locals.client`
-
-**Stripe flow**:
-1. POST `/api/checkout` creates Stripe Checkout session
-2. `/api/stripe-webhook` handles `checkout.session.completed`
-3. Orders use `stripe_session_id` as idempotency key
-4. Purchase emails fire from webhook via Resend, not app code
-
-**Stripe ↔ Resend coupling**: Stale webhook endpoints poison idempotency. After any Resend/Stripe config change, verify the webhook in Stripe dashboard.
-
-**Query layer** (`src/lib/queries.ts`):
-- All public reads use the anon client (RLS-scoped)
-- Returns empty arrays on error, never throws
-- Admin pages import `getSupabaseAdmin()` directly for full access
-
-### Data Model
-
-Core tables: `portfolio_items`, `case_study_images`, `testimonials`, `writing_snippets`, `client_logos`, `clients`, `projects`, `project_inquiries`, `products`, `product_variants`, `orders`, `site_content`
-
-**Enums:**
-- `portfolio_category`: motion | graphic | web | brand
-- `display_size`: small | medium | large (controls grid span on homepage)
-- `content_status`: draft | published
-- `product_status`: draft | upcoming | active | sold_out
-- `order_status`: paid | shipped | delivered | refunded
-- `client_status`: active | inactive
-- `project_status`: inquiry | discovery | proposal | active | review | complete
-- `inquiry_status`: new | reviewed | converted | declined
-
-**Case studies:** Portfolio items with `is_case_study = true` and a `slug` get their own page at `/work/[slug]`. They have additional fields: `problem`, `solution`, `impact`, and a related `case_study_images` table for galleries.
-
-**Site content:** Key-value store (`site_content` table) for editable text blocks. Keys used: `hero_tagline`, `about_blurb`, `process_blurb`. Grouped by `content_group`, sorted by `sort_order`.
-
-### PostgREST / Supabase — Multiple Foreign Keys Between Tables
-
-**CRITICAL**: When adding a foreign key that creates a second relationship between two tables, you MUST update all existing queries that embed the related table.
-
-This causes PostgREST error `PGRST201: Could not embed because more than one relationship was found`. Fix by using explicit FK names:
-
-```typescript
-// Ambiguous (breaks with multiple FKs):
-.select(`*, ticket_tiers (*)`)
-
-// Explicit (works):
-.select(`*, ticket_tiers!ticket_tiers_event_id_fkey (*)`)
-```
-
-Always test queries locally after adding FKs that reference tables already linked by other FKs.
+- **Env vars**: All through `src/lib/env.ts` getters → `.claude/skills/cloudflare-pages.md`
+- **Auth middleware** (`src/middleware.ts`): Protects `/admin/*` and `/portal/*`, cookie-based sessions
+- **Stripe flow**: → `.claude/skills/stripe-webhook.md`
+- **Query layer**: → `.claude/skills/supabase-queries.md`
+- **Data model**: → `.claude/skills/data-model.md`
 
 ## Design
 
@@ -222,55 +127,31 @@ Mobile-first (traffic from Instagram/LinkedIn links).
 
 ### Animation System (`src/scripts/animations.ts`)
 
-GSAP + Lenis smooth scroll with `prefers-reduced-motion` bailout. Elements use `data-anim` attributes and CSS classes (`anim-fade-up`, `anim-fade`) for initial hidden state. ScrollTrigger reveals on scroll. StickyBar slides up from bottom on a 1s delay.
-
-Lenis is wired to GSAP's ticker — `lenis.raf(time * 1000)` on every frame, with `lagSmoothing(0)`.
+GSAP + Lenis smooth scroll with `prefers-reduced-motion` bailout. Elements use `data-anim` attributes and CSS classes (`anim-fade-up`, `anim-fade`) for initial hidden state.
 
 ## Voice & Copy
 
 See `docs/style-guide.md` for full reference. Key points:
 - Direct, understated confidence, plain language
 - A person, not an agency — never say "we" when it's one person
-- Site copy: composed and clear (potential client register)
-- Portfolio/store: where personality and taste show up
 - Anti-patterns: marketing buzzwords, hedging, superlatives, filler enthusiasm
-- Primary audience: 2nd-degree connections via LinkedIn and Instagram
 
-## Production-Critical Patterns
+## Architecture Enforcement
 
-Lessons from live production bugs in the sibling VERBS codebase. These apply directly here.
+Invariants are tested mechanically in `tests/architecture.test.ts`. Run with `pnpm test:arch`.
 
-**Stripe metadata must identify the checkout flow:**
-- Always include `checkout_type` in Stripe session metadata (e.g., `'shop'`, `'invoice'`, `'pos'`)
-- Log `session.id` and full `session.metadata` on webhook errors — bare `console.error('Missing metadata')` is useless in production
-
-**Stripe `stock_count` safety:**
-- Always clamp: `Math.max(0, stock_count - quantity)` — never allow negative inventory
-- Validate `stripe_price_id` exists before rendering checkout — don't show a broken buy button
-- If Stripe sync fails on product creation, surface a "Sync to Stripe" recovery path in admin
-
-**Webhook handler discipline:**
-- The webhook is the most dangerous code — it turns Stripe events into money and inventory changes
-- Extract parsing logic into pure functions in `src/lib/`, test independently
-- Route handler should only: (1) parse, (2) execute side effects, (3) return HTTP response
-- Never inline-copy logic into test files — always import from production code
-
-**Money math:**
-- Stripe amounts are integers (cents). Divide by 100 once at the webhook boundary
-- Keep internal calculations in cents to avoid IEEE 754 float issues
-- Test with real prices ($13.99, $41.97) not round numbers — round numbers never expose float edge cases
-
-**Don't duplicate business logic:**
-- When fixing a bug, grep for ALL instances of the pattern across the codebase
-- DB queries (`.eq('status', 'published')`) are business logic — if the rule changes, every query must update
-- Define status/visibility checks once in `src/lib/`, import everywhere
+Current checks:
+- **No banned Node.js imports** — `sharp`, `fs`, `child_process` (Cloudflare V8 constraint)
+- **`import.meta.env` isolation** — only allowed in `cookies.ts`
+- **R2 upload pattern** — `.stream()` rejected, must use `.arrayBuffer()`
+- **wrangler.toml consistency** — non-inheritable keys verified across env blocks
+- **Stripe metadata** — checkout endpoints must include `checkout_type`
 
 ## Testing
 
 Vitest (unit/integration) + Playwright (E2E). Prioritize critical user flows (checkout, auth, portal access) over test count.
 
-**Testing principles:**
 - Extract pure logic into `src/lib/` modules — import in both route handlers and tests
-- For numeric boundaries, always test: exact boundary, one past boundary, zero state, corrupted state (`sold_count > max_stock`)
-- Never copy production logic into test files — tests must import from the real modules
-- Verify float expectations with `node -e` before writing them in assertions
+- For numeric boundaries: test exact boundary, one past boundary, zero state, corrupted state
+- Never copy production logic into test files — import from real modules
+- Verify float expectations with `node -e` before writing assertions

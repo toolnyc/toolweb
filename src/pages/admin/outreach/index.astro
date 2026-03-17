@@ -250,7 +250,19 @@ function formatDate(d: string) {
 </div>
 
 <script>
-async function actionProspect(id: string, action: string) {
+// Expose all handlers on window — Astro scripts are ES modules,
+// so plain function declarations are not in global scope and can't
+// be reached by inline onclick attributes.
+declare global {
+  interface Window {
+    actionProspect: (id: string, action: string) => void;
+    sendProspect: (id: string) => void;
+    submitDiscover: () => void;
+    submitBatch: () => void;
+  }
+}
+
+window.actionProspect = async function actionProspect(id: string, action: string) {
   const el = document.getElementById(`prospect-${id}`);
   if (!el) return;
   el.style.opacity = '0.5';
@@ -270,7 +282,7 @@ async function actionProspect(id: string, action: string) {
   }
 }
 
-async function sendProspect(id: string) {
+window.sendProspect = async function sendProspect(id: string) {
   const subject = (document.getElementById(`subject-${id}`) as HTMLInputElement)?.value;
   const body = (document.getElementById(`body-${id}`) as HTMLTextAreaElement)?.value;
 
@@ -297,7 +309,7 @@ async function sendProspect(id: string) {
   }
 }
 
-async function submitDiscover() {
+window.submitDiscover = async function submitDiscover() {
   const pages = parseInt(((document.getElementById('discover-pages') as unknown) as HTMLSelectElement)?.value ?? '2', 10);
   const errEl = document.getElementById('discover-error');
   const btn = document.getElementById('discover-submit');
@@ -320,7 +332,7 @@ async function submitDiscover() {
   }
 }
 
-async function submitBatch() {
+window.submitBatch = async function submitBatch() {
   const raw = (document.getElementById('companies-input') as HTMLTextAreaElement)?.value ?? '';
   const companies = raw.split('\n').map((s: string) => s.trim()).filter(Boolean);
 

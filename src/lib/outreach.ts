@@ -128,14 +128,10 @@ const ICP_FILTERS = {
   titles: TARGET_TITLES,
   // Sweet spot: 10–300 employees
   employeeRanges: ['10,50', '51,200', '201,300'],
-  // NYC metro + other major US creative hubs
-  locations: [
-    'New York, New York, United States',
-    'Brooklyn, New York, United States',
-    'Los Angeles, California, United States',
-    'Chicago, Illinois, United States',
-    'Miami, Florida, United States',
-  ],
+  // Location omitted — Apollo's person_locations requires exact internal
+  // geography strings and silently returns 0 when they don't match.
+  // Title + size filters are sufficient for targeting without the risk.
+  locations: [] as string[],
 };
 
 /**
@@ -176,12 +172,15 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
 
   const batchId = batch.id as string;
   let totalProspects = 0;
+  let totalFromApollo = 0;
+  let totalFiltered = 0;
 
   for (let page = 1; page <= pages; page++) {
     let people: ApolloPerson[] = [];
     try {
       const result = await discoverByIcp(apolloKey, { ...ICP_FILTERS, page, perPage: 25 });
       people = result.people;
+      totalFromApollo += people.length;
     } catch (err) {
       console.error(`Apollo ICP discovery page ${page} failed:`, err);
       break;
@@ -193,7 +192,9 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
       if (person.id) seenIds.add(person.id);
 
       const score = scoreProspect(person);
-      if (score < 30) continue;
+      // Use a lower threshold for ICP discovery — Apollo search results often
+      // lack org size and email, so raw scores are lower than enriched ones.
+      if (score < 20) { totalFiltered++; continue; }
 
       let enriched = person;
       if (score >= 55 && !person.email && person.id) {
@@ -250,6 +251,7 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
       status: 'complete',
       prospect_count: totalProspects,
       completed_at: new Date().toISOString(),
+      notes: `ICP discovery — ${pages} page(s) · ${totalFromApollo} from Apollo · ${totalFiltered} below threshold · ${totalProspects} added`,
     })
     .eq('id', batchId);
 

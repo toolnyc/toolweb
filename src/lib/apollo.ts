@@ -75,7 +75,9 @@ export async function discoverByIcp(
     body: JSON.stringify({
       person_titles: filters.titles,
       organization_num_employees_ranges: filters.employeeRanges,
-      person_locations: filters.locations,
+      // Only send person_locations if non-empty — an empty array can
+      // act as a filter that matches nothing on Apollo's side.
+      ...(filters.locations.length > 0 && { person_locations: filters.locations }),
       page: filters.page ?? 1,
       per_page: filters.perPage ?? 25,
     }),

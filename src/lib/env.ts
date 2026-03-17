@@ -22,6 +22,7 @@ export interface RuntimeEnv {
   CAL_BOOKING_URL?: string;
   FORGE_SUPABASE_URL?: string;
   FORGE_SUPABASE_KEY?: string;
+  APOLLO_API_KEY?: string;
   [key: string]: unknown;
 }
 

@@ -175,3 +175,47 @@ export interface SiteContent {
   sort_order: number;
   updated_at: string;
 }
+
+// -- Outreach --
+
+export type OutreachProspectStatus = 'pending' | 'approved' | 'skipped' | 'declined' | 'sent';
+
+export interface OutreachBatch {
+  id: string;
+  status: string;
+  visitor_count: number;
+  prospect_count: number;
+  notes: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface OutreachProspect {
+  id: string;
+  batch_id: string;
+  apollo_person_id: string | null;
+  name: string;
+  title: string | null;
+  company: string;
+  email: string | null;
+  linkedin_url: string | null;
+  signal: string | null;
+  company_size: string | null;
+  company_industry: string | null;
+  recent_news: string | null;
+  confidence_score: number | null;
+  draft_subject: string | null;
+  draft_body: string | null;
+  status: OutreachProspectStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OutreachMessage {
+  id: string;
+  prospect_id: string;
+  subject: string;
+  body: string;
+  resend_message_id: string | null;
+  sent_at: string;
+}

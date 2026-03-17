@@ -1,0 +1,278 @@
+---
+import Admin from '../../../layouts/Admin.astro';
+import { getSupabaseAdmin } from '../../../lib/env';
+import type { OutreachProspect, OutreachBatch } from '../../../lib/types';
+
+const supabase = getSupabaseAdmin();
+
+// Load latest batch + its pending prospects
+const { data: batches } = await supabase
+  .from('outreach_batches')
+  .select('*')
+  .order('created_at', { ascending: false })
+  .limit(5);
+
+const latestBatch = (batches ?? [])[0] as OutreachBatch | undefined;
+
+let prospects: OutreachProspect[] = [];
+if (latestBatch) {
+  const { data } = await supabase
+    .from('outreach_prospects')
+    .select('*')
+    .eq('batch_id', latestBatch.id)
+    .order('confidence_score', { ascending: false });
+  prospects = (data ?? []) as OutreachProspect[];
+}
+
+const pending = prospects.filter(p => p.status === 'pending' || p.status === 'approved');
+const done = prospects.filter(p => p.status === 'sent' || p.status === 'skipped' || p.status === 'declined');
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+---
+
+<Admin title="Outreach">
+  <div class="mb-8 flex items-start justify-between">
+    <div>
+      <h1 class="text-2xl font-bold">Outreach</h1>
+      {latestBatch && (
+        <p class="text-sm text-neutral-500 mt-1">
+          Last batch: {formatDate(latestBatch.created_at)} — {latestBatch.prospect_count} prospects
+          <span class:list={[
+            'ml-2 px-2 py-0.5 text-xs rounded',
+            latestBatch.status === 'complete' ? 'bg-green-100 text-green-700' :
+            latestBatch.status === 'running' ? 'bg-blue-100 text-blue-700' :
+            'bg-neutral-100 text-neutral-600'
+          ]}>{latestBatch.status}</span>
+        </p>
+      )}
+    </div>
+    <button
+      id="run-btn"
+      class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
+      onclick="document.getElementById('run-modal').classList.remove('hidden')"
+    >
+      Run batch
+    </button>
+  </div>
+
+  {pending.length > 0 ? (
+    <div class="space-y-4 mb-10">
+      <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Queue ({pending.length})</h2>
+      {pending.map(p => (
+        <div class="bg-white rounded border border-neutral-200" id={`prospect-${p.id}`}>
+          <div class="p-5">
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <div class="flex items-center gap-3">
+                  <span class="font-semibold">{p.name}</span>
+                  {p.confidence_score != null && (
+                    <span class:list={[
+                      'text-xs px-2 py-0.5 rounded',
+                      p.confidence_score >= 70 ? 'bg-green-100 text-green-700' :
+                      p.confidence_score >= 45 ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-neutral-100 text-neutral-500'
+                    ]}>{p.confidence_score}</span>
+                  )}
+                  {p.status === 'approved' && (
+                    <span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">approved</span>
+                  )}
+                </div>
+                <div class="text-sm text-neutral-500 mt-0.5">
+                  {p.title && <span>{p.title} · </span>}{p.company}
+                  {p.company_industry && <span class="text-neutral-400"> · {p.company_industry}</span>}
+                  {p.company_size && <span class="text-neutral-400"> · {p.company_size} employees</span>}
+                </div>
+                {p.email && (
+                  <div class="text-sm text-neutral-700 mt-1">{p.email}</div>
+                )}
+                {!p.email && (
+                  <div class="text-sm text-neutral-400 mt-1 italic">No email — enrichment needed</div>
+                )}
+                {p.linkedin_url && (
+                  <a href={p.linkedin_url} target="_blank" rel="noopener" class="text-xs text-neutral-400 underline mt-0.5 inline-block">LinkedIn</a>
+                )}
+              </div>
+            </div>
+
+            {p.draft_subject && p.draft_body && (
+              <div class="mt-4 border-t border-neutral-100 pt-4">
+                <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Draft</p>
+                <div class="space-y-2">
+                  <input
+                    id={`subject-${p.id}`}
+                    type="text"
+                    value={p.draft_subject}
+                    class="w-full border border-neutral-200 rounded px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-neutral-400"
+                  />
+                  <textarea
+                    id={`body-${p.id}`}
+                    rows="6"
+                    class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y"
+                  >{p.draft_body}</textarea>
+                </div>
+              </div>
+            )}
+
+            <div class="mt-4 flex gap-2">
+              {p.email && (
+                <button
+                  class="px-4 py-1.5 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
+                  onclick={`sendProspect('${p.id}')`}
+                >
+                  Send
+                </button>
+              )}
+              <button
+                class="px-4 py-1.5 bg-neutral-100 text-neutral-700 text-sm rounded hover:bg-neutral-200"
+                onclick={`actionProspect('${p.id}', 'skip')`}
+              >
+                Skip
+              </button>
+              <button
+                class="px-4 py-1.5 text-red-500 text-sm hover:text-red-700"
+                onclick={`actionProspect('${p.id}', 'decline')`}
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center mb-10">
+      <p class="text-neutral-400">Queue empty — run a batch to populate it.</p>
+    </div>
+  )}
+
+  {done.length > 0 && (
+    <div>
+      <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">Sent / Archived ({done.length})</h2>
+      <div class="space-y-2">
+        {done.map(p => (
+          <div class="flex items-center justify-between px-4 py-3 bg-white rounded border border-neutral-200 text-sm">
+            <span class="font-medium">{p.name}</span>
+            <span class="text-neutral-400">{p.title} · {p.company}</span>
+            <span class:list={[
+              'px-2 py-0.5 text-xs rounded',
+              p.status === 'sent' ? 'bg-green-100 text-green-700' :
+              p.status === 'skipped' ? 'bg-neutral-100 text-neutral-500' :
+              'bg-red-50 text-red-400'
+            ]}>{p.status}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )}
+</Admin>
+
+<!-- Run batch modal -->
+<div id="run-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg w-full max-w-md mx-4 p-6">
+    <h2 class="text-lg font-semibold mb-1">Run outreach batch</h2>
+    <p class="text-sm text-neutral-500 mb-4">Enter company names to research, one per line.</p>
+    <textarea
+      id="companies-input"
+      rows="6"
+      placeholder="Acme Corp&#10;Globex Industries&#10;Initech"
+      class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y mb-4"
+    ></textarea>
+    <div id="batch-error" class="text-sm text-red-600 mb-3 hidden"></div>
+    <div class="flex gap-3 justify-end">
+      <button
+        class="px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900"
+        onclick="document.getElementById('run-modal').classList.add('hidden')"
+      >
+        Cancel
+      </button>
+      <button
+        id="run-submit"
+        class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
+        onclick="submitBatch()"
+      >
+        Run
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+async function actionProspect(id: string, action: string) {
+  const el = document.getElementById(`prospect-${id}`);
+  if (!el) return;
+  el.style.opacity = '0.5';
+
+  const res = await fetch('/api/outreach/action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prospect_id: id, action }),
+  });
+
+  if (res.ok) {
+    el.remove();
+  } else {
+    el.style.opacity = '1';
+    const data = await res.json() as { error?: string };
+    alert(data.error ?? 'Action failed');
+  }
+}
+
+async function sendProspect(id: string) {
+  const subject = (document.getElementById(`subject-${id}`) as HTMLInputElement)?.value;
+  const body = (document.getElementById(`body-${id}`) as HTMLTextAreaElement)?.value;
+
+  if (!subject || !body) {
+    alert('Subject and body are required');
+    return;
+  }
+
+  const el = document.getElementById(`prospect-${id}`);
+  if (el) el.style.opacity = '0.5';
+
+  const res = await fetch('/api/outreach/action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prospect_id: id, action: 'send', subject, body }),
+  });
+
+  if (res.ok) {
+    el?.remove();
+  } else {
+    if (el) el.style.opacity = '1';
+    const data = await res.json() as { error?: string };
+    alert(data.error ?? 'Send failed');
+  }
+}
+
+async function submitBatch() {
+  const raw = (document.getElementById('companies-input') as HTMLTextAreaElement)?.value ?? '';
+  const companies = raw.split('\n').map((s: string) => s.trim()).filter(Boolean);
+
+  const errEl = document.getElementById('batch-error');
+  const btn = document.getElementById('run-submit');
+
+  if (companies.length === 0) {
+    if (errEl) { errEl.textContent = 'Enter at least one company name'; errEl.classList.remove('hidden'); }
+    return;
+  }
+
+  if (btn) btn.textContent = 'Running…';
+  if (errEl) errEl.classList.add('hidden');
+
+  const res = await fetch('/api/outreach/run-batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ companies }),
+  });
+
+  if (res.ok) {
+    window.location.reload();
+  } else {
+    const data = await res.json() as { error?: string };
+    if (errEl) { errEl.textContent = data.error ?? 'Batch failed'; errEl.classList.remove('hidden'); }
+    if (btn) btn.textContent = 'Run';
+  }
+}
+</script>

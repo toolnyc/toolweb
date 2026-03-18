@@ -177,9 +177,61 @@ function formatDate(d: string) {
       id="companies-input"
       rows="6"
       placeholder="Acme Corp&#10;Globex Industries&#10;Initech"
-      class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y mb-4"
+      class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y"
     ></textarea>
-    <div id="batch-error" class="text-sm text-red-600 mb-3 hidden"></div>
+
+    <details class="mt-4 border-t border-neutral-100 pt-3">
+      <summary class="text-xs text-neutral-500 cursor-pointer select-none hover:text-neutral-700">
+        ⚙ Parameters
+      </summary>
+      <div class="mt-3 space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-neutral-500 mb-1" for="param-titles">Target titles (one per line)</label>
+          <textarea
+            id="param-titles"
+            rows="7"
+            class="w-full border border-neutral-200 rounded px-3 py-2 text-xs font-mono focus:outline-none focus:border-neutral-400 resize-y"
+          >Creative Director
+Head of Design
+Head of Marketing
+VP Marketing
+VP Brand
+Brand Director
+Director of Marketing
+Director of Brand
+Head of Brand
+Marketing Director
+CMO
+Founder
+CEO
+Co-founder</textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-neutral-500 mb-1" for="param-min-score">Min confidence score</label>
+            <input id="param-min-score" type="number" value="30" min="0" max="100"
+              class="w-full border border-neutral-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-500 mb-1" for="param-per-page">Results per company</label>
+            <input id="param-per-page" type="number" value="10" min="1" max="25"
+              class="w-full border border-neutral-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-500 mb-1" for="param-min-emp">Min employees</label>
+            <input id="param-min-emp" type="number" value="10" min="1"
+              class="w-full border border-neutral-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-neutral-500 mb-1" for="param-max-emp">Max employees</label>
+            <input id="param-max-emp" type="number" value="300" min="1"
+              class="w-full border border-neutral-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div id="batch-error" class="text-sm text-red-600 mt-3 hidden"></div>
     <div class="flex gap-3 justify-end">
       <button
         class="px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900"
@@ -258,13 +310,21 @@ async function submitBatch() {
     return;
   }
 
+  // Collect advanced parameters
+  const titlesRaw = (document.getElementById('param-titles') as HTMLTextAreaElement)?.value ?? '';
+  const targetTitles = titlesRaw.split('\n').map((s: string) => s.trim()).filter(Boolean);
+  const minScore = parseInt((document.getElementById('param-min-score') as HTMLInputElement)?.value ?? '30', 10);
+  const minEmployees = parseInt((document.getElementById('param-min-emp') as HTMLInputElement)?.value ?? '10', 10);
+  const maxEmployees = parseInt((document.getElementById('param-max-emp') as HTMLInputElement)?.value ?? '300', 10);
+  const perPage = parseInt((document.getElementById('param-per-page') as HTMLInputElement)?.value ?? '10', 10);
+
   if (btn) btn.textContent = 'Running…';
   if (errEl) errEl.classList.add('hidden');
 
   const res = await fetch('/api/outreach/run-batch', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companies }),
+    body: JSON.stringify({ companies, targetTitles, minScore, minEmployees, maxEmployees, perPage }),
   });
 
   if (res.ok) {

@@ -24,6 +24,7 @@ export async function searchPeopleAtCompany(
   apiKey: string,
   companyName: string,
   targetTitles: string[],
+  perPage: number = 10,
 ): Promise<ApolloPerson[]> {
   const response = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
     method: 'POST',
@@ -35,7 +36,7 @@ export async function searchPeopleAtCompany(
       q_organization_name: companyName,
       person_titles: targetTitles,
       page: 1,
-      per_page: 10,
+      per_page: perPage,
     }),
   });
 

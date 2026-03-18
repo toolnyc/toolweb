@@ -34,7 +34,7 @@ interface ProspectDraft {
   draft_body: string | null;
 }
 
-function scoreProspect(person: ApolloPerson): number {
+function scoreProspect(person: ApolloPerson, minEmployees: number = 10, maxEmployees: number = 300): number {
   let score = 0;
   const title = (person.title ?? '').toLowerCase();
 
@@ -50,10 +50,11 @@ function scoreProspect(person: ApolloPerson): number {
   // Has LinkedIn
   if (person.linkedin_url) score += 10;
 
-  // Company size sweet spot (10–300 employees — solo op clientele)
+  // Company size sweet spot
   const employees = person.organization?.estimated_num_employees ?? 0;
-  if (employees >= 10 && employees <= 50) score += 20;
-  else if (employees > 50 && employees <= 300) score += 10;
+  const midpoint = minEmployees + (maxEmployees - minEmployees) / 5;
+  if (employees >= minEmployees && employees <= midpoint) score += 20;
+  else if (employees > midpoint && employees <= maxEmployees) score += 10;
 
   return Math.min(score, 100);
 }
@@ -123,12 +124,20 @@ Company description: ${person.organization?.short_description ?? 'none'}`;
   }
 }
 
+export interface BatchOptions {
+  targetTitles?: string[];
+  minScore?: number;
+  minEmployees?: number;
+  maxEmployees?: number;
+  perPage?: number;
+}
+
 /**
  * Run the outreach pipeline for a list of company names.
  * Writes results to outreach_batches + outreach_prospects.
  * Returns the batch ID.
  */
-export async function runOutreachBatch(companies: string[]): Promise<string> {
+export async function runOutreachBatch(companies: string[], options?: BatchOptions): Promise<string> {
   const supabase = getSupabaseAdmin();
   const env = getEnv();
   const apolloKey = env.APOLLO_API_KEY;
@@ -136,6 +145,12 @@ export async function runOutreachBatch(companies: string[]): Promise<string> {
 
   if (!apolloKey) throw new Error('APOLLO_API_KEY not configured');
   if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
+
+  const titles = options?.targetTitles ?? TARGET_TITLES;
+  const minScore = options?.minScore ?? 30;
+  const minEmployees = options?.minEmployees ?? 10;
+  const maxEmployees = options?.maxEmployees ?? 300;
+  const perPage = options?.perPage ?? 10;
 
   // Create batch record
   const { data: batch, error: batchError } = await supabase
@@ -155,15 +170,15 @@ export async function runOutreachBatch(companies: string[]): Promise<string> {
   for (const company of companies) {
     let people: ApolloPerson[] = [];
     try {
-      people = await searchPeopleAtCompany(apolloKey, company, TARGET_TITLES);
+      people = await searchPeopleAtCompany(apolloKey, company, titles, perPage);
     } catch (err) {
       console.error(`Apollo search failed for ${company}:`, err);
       continue;
     }
 
     for (const person of people) {
-      const score = scoreProspect(person);
-      if (score < 30) continue;
+      const score = scoreProspect(person, minEmployees, maxEmployees);
+      if (score < minScore) continue;
 
       // Enrich high-confidence prospects to get verified email
       let enriched = person;

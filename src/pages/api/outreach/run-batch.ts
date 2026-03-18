@@ -61,16 +61,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   const batchId = batch.id as string;
 
-  const runtime = (locals as unknown as Record<string, unknown>).runtime as { ctx?: { waitUntil?: (p: Promise<unknown>) => void } } | undefined;
-  const waitUntil = runtime?.ctx?.waitUntil?.bind(runtime.ctx);
-
-  // Always fire-and-forget — runOutreachBatch handles its own error state (updates batch to 'failed')
-  const work = runOutreachBatch(companies, batchId, options);
-  if (waitUntil) {
-    waitUntil(work);
-  } else {
-    void work;
-  }
+  // Use the same ctx pattern as middleware.ts and telegram-webhook.ts
+  locals.runtime.ctx.waitUntil(runOutreachBatch(companies, batchId, options));
 
   return json({ ok: true, batch_id: batchId });
 };

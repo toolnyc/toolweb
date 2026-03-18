@@ -33,6 +33,15 @@ function formatDate(d: string) {
 ---
 
 <Admin title="Outreach">
+  <!-- Batch status bar (shown while a batch is running) -->
+  <div id="batch-status-bar" class="hidden mb-6 px-4 py-3 bg-blue-50 border border-blue-200 rounded flex items-center gap-3 text-sm">
+    <svg class="animate-spin h-4 w-4 text-blue-500 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+    </svg>
+    <span id="batch-status-text">Running batch…</span>
+  </div>
+
   <div class="mb-8 flex items-start justify-between">
     <div>
       <h1 class="text-2xl font-bold">Outreach</h1>
@@ -251,14 +260,14 @@ async function submitBatch() {
   const companies = raw.split('\n').map((s: string) => s.trim()).filter(Boolean);
 
   const errEl = document.getElementById('batch-error');
-  const btn = document.getElementById('run-submit');
+  const btn = document.getElementById('run-submit') as HTMLButtonElement | null;
 
   if (companies.length === 0) {
     if (errEl) { errEl.textContent = 'Enter at least one company name'; errEl.classList.remove('hidden'); }
     return;
   }
 
-  if (btn) btn.textContent = 'Running…';
+  if (btn) { btn.textContent = 'Starting…'; btn.disabled = true; }
   if (errEl) errEl.classList.add('hidden');
 
   const res = await fetch('/api/outreach/run-batch', {
@@ -268,11 +277,68 @@ async function submitBatch() {
   });
 
   if (res.ok) {
-    window.location.reload();
+    const data = await res.json() as { ok: boolean; batch_id: string };
+    // Close the modal immediately
+    document.getElementById('run-modal')?.classList.add('hidden');
+    if (btn) { btn.textContent = 'Run'; btn.disabled = false; }
+    // Start polling for progress
+    startPolling(data.batch_id);
   } else {
     const data = await res.json() as { error?: string };
     if (errEl) { errEl.textContent = data.error ?? 'Batch failed'; errEl.classList.remove('hidden'); }
-    if (btn) btn.textContent = 'Run';
+    if (btn) { btn.textContent = 'Run'; btn.disabled = false; }
   }
+}
+
+function startPolling(batchId: string) {
+  const bar = document.getElementById('batch-status-bar');
+  const text = document.getElementById('batch-status-text');
+
+  if (bar) bar.classList.remove('hidden');
+  if (text) text.textContent = 'Running batch…';
+
+  let failCount = 0;
+  const MAX_FAILS = 5;
+
+  const interval = window.setInterval(async () => {
+    try {
+      const res = await fetch(`/api/outreach/batch-status?id=${encodeURIComponent(batchId)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const data = await res.json() as { status: string; prospect_count: number; completed_at: string | null };
+      failCount = 0;
+
+      if (data.status === 'running') {
+        const count = data.prospect_count ?? 0;
+        if (text) text.textContent = `Running batch… ${count} prospect${count === 1 ? '' : 's'} found so far`;
+      } else if (data.status === 'complete') {
+        window.clearInterval(interval);
+        const count = data.prospect_count ?? 0;
+        if (bar) {
+          bar.classList.remove('bg-blue-50', 'border-blue-200');
+          bar.classList.add('bg-green-50', 'border-green-200');
+          // Swap spinner for a checkmark
+          const svg = bar.querySelector('svg');
+          if (svg) {
+            svg.classList.remove('animate-spin', 'text-blue-500');
+            svg.classList.add('text-green-500');
+            svg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" stroke="currentColor" fill="none"/>';
+          }
+        }
+        if (text) text.textContent = `Batch complete — ${count} prospect${count === 1 ? '' : 's'} found`;
+        window.setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch {
+      failCount++;
+      if (failCount >= MAX_FAILS) {
+        window.clearInterval(interval);
+        if (text) text.textContent = 'Could not reach server — check back later';
+        if (bar) {
+          bar.classList.remove('bg-blue-50', 'border-blue-200');
+          bar.classList.add('bg-red-50', 'border-red-200');
+        }
+      }
+    }
+  }, 2000);
 }
 </script>

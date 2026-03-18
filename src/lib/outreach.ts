@@ -125,10 +125,10 @@ Company description: ${person.organization?.short_description ?? 'none'}`;
 
 /**
  * Run the outreach pipeline for a list of company names.
- * Writes results to outreach_batches + outreach_prospects.
- * Returns the batch ID.
+ * Writes prospect records to outreach_prospects and marks the batch complete.
+ * The batch record must already exist with status 'running' before calling this.
  */
-export async function runOutreachBatch(companies: string[]): Promise<string> {
+export async function runOutreachBatch(companies: string[], batchId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const env = getEnv();
   const apolloKey = env.APOLLO_API_KEY;
@@ -137,19 +137,6 @@ export async function runOutreachBatch(companies: string[]): Promise<string> {
   if (!apolloKey) throw new Error('APOLLO_API_KEY not configured');
   if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
 
-  // Create batch record
-  const { data: batch, error: batchError } = await supabase
-    .from('outreach_batches')
-    .insert({
-      status: 'running',
-      visitor_count: companies.length,
-    })
-    .select()
-    .single();
-
-  if (batchError || !batch) throw new Error(`Failed to create batch: ${batchError?.message}`);
-
-  const batchId = batch.id as string;
   let totalProspects = 0;
 
   for (const company of companies) {
@@ -225,6 +212,4 @@ export async function runOutreachBatch(companies: string[]): Promise<string> {
       completed_at: new Date().toISOString(),
     })
     .eq('id', batchId);
-
-  return batchId;
 }

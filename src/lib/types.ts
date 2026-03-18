@@ -203,6 +203,7 @@ export interface OutreachProspect {
   company_size: string | null;
   company_industry: string | null;
   recent_news: string | null;
+  company_description: string | null;
   confidence_score: number | null;
   draft_subject: string | null;
   draft_body: string | null;

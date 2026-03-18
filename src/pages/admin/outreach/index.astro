@@ -93,37 +93,16 @@ function formatDate(d: string) {
                 {p.linkedin_url && (
                   <a href={p.linkedin_url} target="_blank" rel="noopener" class="text-xs text-neutral-400 underline mt-0.5 inline-block">LinkedIn</a>
                 )}
+                {p.company_description && (
+                  <p class="text-sm text-neutral-600 mt-2">{p.company_description}</p>
+                )}
+                {p.signal && (
+                  <p class="text-xs text-neutral-400 italic mt-1">{p.signal}</p>
+                )}
               </div>
             </div>
 
-            {p.draft_subject && p.draft_body && (
-              <div class="mt-4 border-t border-neutral-100 pt-4">
-                <p class="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">Draft</p>
-                <div class="space-y-2">
-                  <input
-                    id={`subject-${p.id}`}
-                    type="text"
-                    value={p.draft_subject}
-                    class="w-full border border-neutral-200 rounded px-3 py-1.5 text-sm font-medium focus:outline-none focus:border-neutral-400"
-                  />
-                  <textarea
-                    id={`body-${p.id}`}
-                    rows="6"
-                    class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y"
-                  >{p.draft_body}</textarea>
-                </div>
-              </div>
-            )}
-
             <div class="mt-4 flex gap-2">
-              {p.email && (
-                <button
-                  class="px-4 py-1.5 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
-                  onclick={`sendProspect('${p.id}')`}
-                >
-                  Send
-                </button>
-              )}
               <button
                 class="px-4 py-1.5 bg-neutral-100 text-neutral-700 text-sm rounded hover:bg-neutral-200"
                 onclick={`actionProspect('${p.id}', 'skip')`}
@@ -216,33 +195,6 @@ async function actionProspect(id: string, action: string) {
     el.style.opacity = '1';
     const data = await res.json() as { error?: string };
     alert(data.error ?? 'Action failed');
-  }
-}
-
-async function sendProspect(id: string) {
-  const subject = (document.getElementById(`subject-${id}`) as HTMLInputElement)?.value;
-  const body = (document.getElementById(`body-${id}`) as HTMLTextAreaElement)?.value;
-
-  if (!subject || !body) {
-    alert('Subject and body are required');
-    return;
-  }
-
-  const el = document.getElementById(`prospect-${id}`);
-  if (el) el.style.opacity = '0.5';
-
-  const res = await fetch('/api/outreach/action', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prospect_id: id, action: 'send', subject, body }),
-  });
-
-  if (res.ok) {
-    el?.remove();
-  } else {
-    if (el) el.style.opacity = '1';
-    const data = await res.json() as { error?: string };
-    alert(data.error ?? 'Send failed');
   }
 }
 

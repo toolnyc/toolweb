@@ -64,16 +64,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const runtime = (locals as unknown as Record<string, unknown>).runtime as { ctx?: { waitUntil?: (p: Promise<unknown>) => void } } | undefined;
   const waitUntil = runtime?.ctx?.waitUntil?.bind(runtime.ctx);
 
+  // Always fire-and-forget — runOutreachBatch handles its own error state (updates batch to 'failed')
+  const work = runOutreachBatch(companies, batchId, options);
   if (waitUntil) {
-    waitUntil(runOutreachBatch(companies, batchId, options));
+    waitUntil(work);
   } else {
-    // Dev fallback — await synchronously
-    try {
-      await runOutreachBatch(companies, batchId, options);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      return json({ error: message }, 500);
-    }
+    void work;
   }
 
   return json({ ok: true, batch_id: batchId });

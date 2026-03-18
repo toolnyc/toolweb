@@ -187,6 +187,32 @@ function formatDate(d: string) {
         <option value="5">5 pages (~125 results)</option>
       </select>
     </div>
+    <details class="mb-4 border border-neutral-100 rounded">
+      <summary class="px-3 py-2 text-xs text-neutral-500 cursor-pointer select-none hover:text-neutral-700">⚙ Parameters</summary>
+      <div class="px-3 pb-3 pt-2 space-y-3 border-t border-neutral-100">
+        <div>
+          <label class="text-xs font-medium text-neutral-600 block mb-1">Target titles (one per line)</label>
+          <textarea id="discover-param-titles" rows="5" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-neutral-400 resize-y">Creative Director
+Head of Design
+Head of Marketing
+VP Marketing
+VP Brand
+Brand Director
+Director of Marketing
+Director of Brand
+Head of Brand
+Marketing Director
+CMO
+Founder
+CEO
+Co-founder</textarea>
+        </div>
+        <div>
+          <label class="text-xs font-medium text-neutral-600 block mb-1">Min confidence score</label>
+          <input id="discover-param-min-score" type="number" value="20" min="0" max="100" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+        </div>
+      </div>
+    </details>
     <div id="discover-error" class="text-sm text-red-600 mb-3 hidden"></div>
     <div class="flex gap-3 justify-end">
       <button
@@ -314,13 +340,17 @@ window.submitDiscover = async function submitDiscover() {
   const errEl = document.getElementById('discover-error');
   const btn = document.getElementById('discover-submit');
 
+  const titlesRaw = (document.getElementById('discover-param-titles') as HTMLTextAreaElement)?.value ?? '';
+  const targetTitles = titlesRaw.split('\n').map((s: string) => s.trim()).filter(Boolean);
+  const minScore = parseInt((document.getElementById('discover-param-min-score') as HTMLInputElement)?.value ?? '20', 10);
+
   if (btn) btn.textContent = 'Starting…';
   if (errEl) errEl.classList.add('hidden');
 
   const res = await fetch('/api/outreach/discover', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pages }),
+    body: JSON.stringify({ pages, targetTitles, minScore }),
   });
 
   if (res.ok) {
@@ -395,6 +425,10 @@ window.startPolling = function startPolling(batchId: string) {
         if (bar) { bar.classList.remove('bg-blue-50', 'border-blue-200', 'text-blue-700'); bar.classList.add('bg-green-50', 'border-green-200', 'text-green-700'); }
         if (txt) txt.textContent = `Done — ${data.prospect_count ?? 0} prospects added. Refreshing…`;
         setTimeout(() => window.location.reload(), 1500);
+      } else if (data.status === 'failed') {
+        window.clearInterval(interval);
+        if (bar) { bar.classList.remove('bg-blue-50', 'border-blue-200', 'text-blue-700'); bar.classList.add('bg-red-50', 'border-red-200', 'text-red-700'); }
+        if (txt) txt.textContent = `Batch failed — check server logs. ${(data as unknown as { notes?: string }).notes ?? ''}`;
       }
     } catch { failures++; if (failures >= 5) { window.clearInterval(interval); if (txt) txt.textContent = 'Status check failed — refresh the page.'; } }
   }, 2000) as unknown as number;

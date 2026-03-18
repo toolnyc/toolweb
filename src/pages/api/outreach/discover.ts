@@ -1,17 +1,22 @@
 import type { APIRoute } from 'astro';
-import { runIcpDiscovery } from '../../../lib/outreach';
+import { runIcpDiscovery, type IcpOptions } from '../../../lib/outreach';
 import { getSupabaseAdmin } from '../../../lib/env';
 
 export const POST: APIRoute = async ({ request, locals }) => {
   let pages = 2;
+  const options: IcpOptions = {};
 
   try {
-    const body = await request.json() as { pages?: unknown };
+    const body = await request.json() as { pages?: unknown; targetTitles?: unknown; minScore?: unknown };
     if (typeof body.pages === 'number' && body.pages >= 1 && body.pages <= 5) {
       pages = body.pages;
     }
+    if (Array.isArray(body.targetTitles) && body.targetTitles.length > 0) {
+      options.targetTitles = (body.targetTitles as unknown[]).map(String).filter(Boolean);
+    }
+    if (typeof body.minScore === 'number') options.minScore = body.minScore;
   } catch {
-    // Use default pages if body is missing/invalid
+    // Use defaults if body is missing/invalid
   }
 
   const supabase = getSupabaseAdmin();
@@ -34,16 +39,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const runtime = (locals as unknown as Record<string, unknown>).runtime as { ctx?: { waitUntil?: (p: Promise<unknown>) => void } } | undefined;
   const waitUntil = runtime?.ctx?.waitUntil?.bind(runtime.ctx);
 
+  // Always fire-and-forget — runIcpDiscovery handles its own error state (updates batch to 'failed')
+  const work = runIcpDiscovery(pages, batchId, options);
   if (waitUntil) {
-    waitUntil(runIcpDiscovery(pages, batchId));
+    waitUntil(work);
   } else {
-    // Dev fallback — await synchronously
-    try {
-      await runIcpDiscovery(pages, batchId);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      return json({ error: message }, 500);
-    }
+    void work;
   }
 
   return json({ ok: true, batch_id: batchId });

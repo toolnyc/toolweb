@@ -19,6 +19,14 @@ const TARGET_TITLES = [
   'Co-founder',
 ];
 
+export interface BatchOptions {
+  targetTitles?: string[];
+  minScore?: number;
+  minEmployees?: number;
+  maxEmployees?: number;
+  perPage?: number;
+}
+
 interface ProspectDraft {
   apollo_person_id: string | null;
   name: string;
@@ -29,6 +37,7 @@ interface ProspectDraft {
   signal: string | null;
   company_size: string | null;
   company_industry: string | null;
+  company_description: string | null;
   confidence_score: number;
   draft_subject: string | null;
   draft_body: string | null;
@@ -45,7 +54,7 @@ function quickTitleScore(title: string | null): number {
   return 0;
 }
 
-function scoreProspect(person: ApolloPerson): number {
+function scoreProspect(person: ApolloPerson, minEmployees = 10, maxEmployees = 300): number {
   let score = 0;
   const title = (person.title ?? '').toLowerCase();
 
@@ -61,77 +70,13 @@ function scoreProspect(person: ApolloPerson): number {
   // Has LinkedIn
   if (person.linkedin_url) score += 10;
 
-  // Company size sweet spot (10–300 employees — solo op clientele)
+  // Company size sweet spot
   const employees = person.organization?.estimated_num_employees ?? 0;
-  if (employees >= 10 && employees <= 50) score += 20;
-  else if (employees > 50 && employees <= 300) score += 10;
+  const sweetSpotTop = minEmployees + (maxEmployees - minEmployees) / 5;
+  if (employees >= minEmployees && employees <= sweetSpotTop) score += 20;
+  else if (employees > sweetSpotTop && employees <= maxEmployees) score += 10;
 
   return Math.min(score, 100);
-}
-
-async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      max_tokens: 600,
-      temperature: 0.7,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`OpenAI error ${response.status}: ${await response.text()}`);
-  }
-
-  const result = await response.json() as { choices: Array<{ message: { content: string } }> };
-  return result.choices[0]?.message?.content?.trim() ?? '';
-}
-
-async function draftEmail(
-  apiKey: string,
-  person: ApolloPerson,
-): Promise<{ subject: string; body: string }> {
-  const system = `You write cold outreach emails for Pete, a one-person creative and technical consultancy in New York called Tool (tool.nyc).
-
-Voice rules (non-negotiable):
-- Short. 3–4 sentences max for the body. Subject: 5 words or fewer.
-- Direct and specific. No generic flattery. No "I came across your profile."
-- One concrete observation about why you're reaching out to this person specifically.
-- One clear capability statement relevant to them.
-- End with a simple, low-friction ask (a quick call, not a "partnership").
-- Never: "excited to," "leveraging," "cutting-edge," "we" (it's one person), exclamation marks.
-- Never mention Tool.nyc — sign off as Pete, not Pete from Tool.
-- The email should read like it came from a real person who did 5 minutes of research, not a form letter.
-
-Reply with JSON only: { "subject": "...", "body": "..." }`;
-
-  const user = `Draft a cold outreach email to:
-Name: ${person.name}
-Title: ${person.title ?? 'unknown'}
-Company: ${person.organization?.name ?? 'unknown'}
-Industry: ${person.organization?.industry ?? 'unknown'}
-Company size: ${person.organization?.estimated_num_employees ?? 'unknown'} employees
-Company description: ${person.organization?.short_description ?? 'none'}`;
-
-  const raw = await callOpenAI(apiKey, system, user);
-
-  try {
-    const parsed = JSON.parse(raw) as { subject?: string; body?: string };
-    return {
-      subject: parsed.subject ?? '',
-      body: parsed.body ?? '',
-    };
-  } catch {
-    return { subject: '', body: raw };
-  }
 }
 
 // ICP profile for Pete's solo creative/dev shop
@@ -152,30 +97,20 @@ const ICP_FILTERS = {
  */
 async function processCandidate(
   apolloKey: string,
-  openaiKey: string,
   candidate: ApolloSearchResult,
   batchId: string,
   signal: string,
   fallbackCompany: string,
   supabase: ReturnType<typeof getSupabaseAdmin>,
+  minScore = 20,
+  minEmployees = 10,
+  maxEmployees = 300,
 ): Promise<boolean> {
   const enriched = await enrichPerson(apolloKey, candidate.id);
   if (!enriched) return false;
 
-  const score = scoreProspect(enriched);
-  if (score < 20) return false;
-
-  let draftSubject: string | null = null;
-  let draftBody: string | null = null;
-  if (score >= 40) {
-    try {
-      const draft = await draftEmail(openaiKey, enriched);
-      draftSubject = draft.subject;
-      draftBody = draft.body;
-    } catch (err) {
-      console.error(`Draft failed for ${enriched.name}:`, err);
-    }
-  }
+  const score = scoreProspect(enriched, minEmployees, maxEmployees);
+  if (score < minScore) return false;
 
   const org = enriched.organization;
   const prospect: ProspectDraft = {
@@ -190,9 +125,10 @@ async function processCandidate(
       ? String(org.estimated_num_employees)
       : null,
     company_industry: org?.industry ?? null,
+    company_description: org?.short_description ?? null,
     confidence_score: score,
-    draft_subject: draftSubject,
-    draft_body: draftBody,
+    draft_subject: null,
+    draft_body: null,
   };
 
   await supabase.from('outreach_prospects').insert({ batch_id: batchId, ...prospect });
@@ -202,17 +138,14 @@ async function processCandidate(
 /**
  * Run ICP-based discovery — no company names needed.
  * Searches Apollo by title + company size, enriches promising candidates,
- * deduplicates against existing prospects, and inserts into a new batch.
- * Returns the batch ID.
+ * deduplicates against existing prospects, and updates the given batch.
  */
-export async function runIcpDiscovery(pages = 2): Promise<string> {
+export async function runIcpDiscovery(pages: number, batchId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   const env = getEnv();
   const apolloKey = env.APOLLO_API_KEY;
-  const openaiKey = env.OPENAI_API_KEY;
 
   if (!apolloKey) throw new Error('APOLLO_API_KEY not configured');
-  if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
 
   // Load existing apollo_person_ids to deduplicate
   const { data: existing } = await supabase
@@ -222,19 +155,6 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
 
   const seenIds = new Set((existing ?? []).map((r: { apollo_person_id: string }) => r.apollo_person_id));
 
-  const { data: batch, error: batchError } = await supabase
-    .from('outreach_batches')
-    .insert({
-      status: 'running',
-      visitor_count: 0,
-      notes: `ICP discovery — ${pages} page(s)`,
-    })
-    .select()
-    .single();
-
-  if (batchError || !batch) throw new Error(`Failed to create batch: ${batchError?.message}`);
-
-  const batchId = batch.id as string;
   let totalFromApollo = 0;
   let totalSkipped = 0;
   let totalProspects = 0;
@@ -259,7 +179,7 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
       if (quickTitleScore(candidate.title) === 0) { totalSkipped++; continue; }
 
       const added = await processCandidate(
-        apolloKey, openaiKey, candidate, batchId,
+        apolloKey, candidate, batchId,
         'ICP discovery — profile match',
         candidate.organization?.name ?? 'Unknown',
         supabase,
@@ -278,42 +198,31 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
       notes: `ICP discovery — ${pages} page(s) · ${totalFromApollo} from Apollo · ${totalSkipped} skipped · ${totalProspects} added`,
     })
     .eq('id', batchId);
-
-  return batchId;
 }
 
 /**
  * Run the outreach pipeline for a list of company names.
- * Writes results to outreach_batches + outreach_prospects.
- * Returns the batch ID.
+ * Writes results to outreach_prospects and updates the given batch to complete.
  */
-export async function runOutreachBatch(companies: string[]): Promise<string> {
+export async function runOutreachBatch(companies: string[], batchId: string, options?: BatchOptions): Promise<void> {
   const supabase = getSupabaseAdmin();
   const env = getEnv();
   const apolloKey = env.APOLLO_API_KEY;
-  const openaiKey = env.OPENAI_API_KEY;
 
   if (!apolloKey) throw new Error('APOLLO_API_KEY not configured');
-  if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
 
-  const { data: batch, error: batchError } = await supabase
-    .from('outreach_batches')
-    .insert({
-      status: 'running',
-      visitor_count: companies.length,
-    })
-    .select()
-    .single();
+  const titles = options?.targetTitles ?? TARGET_TITLES;
+  const minScore = options?.minScore ?? 20;
+  const minEmployees = options?.minEmployees ?? 10;
+  const maxEmployees = options?.maxEmployees ?? 300;
+  const perPage = options?.perPage ?? 10;
 
-  if (batchError || !batch) throw new Error(`Failed to create batch: ${batchError?.message}`);
-
-  const batchId = batch.id as string;
   let totalProspects = 0;
 
   for (const company of companies) {
     let searchResults: ApolloSearchResult[] = [];
     try {
-      searchResults = await searchPeopleAtCompany(apolloKey, company, TARGET_TITLES);
+      searchResults = await searchPeopleAtCompany(apolloKey, company, titles, perPage);
     } catch (err) {
       console.error(`Apollo search failed for ${company}:`, err);
       continue;
@@ -324,10 +233,13 @@ export async function runOutreachBatch(companies: string[]): Promise<string> {
       if (quickTitleScore(candidate.title) === 0) continue;
 
       const added = await processCandidate(
-        apolloKey, openaiKey, candidate, batchId,
+        apolloKey, candidate, batchId,
         `Company batch — ${company}`,
         company,
         supabase,
+        minScore,
+        minEmployees,
+        maxEmployees,
       );
       if (added) totalProspects++;
     }
@@ -341,6 +253,4 @@ export async function runOutreachBatch(companies: string[]): Promise<string> {
       completed_at: new Date().toISOString(),
     })
     .eq('id', batchId);
-
-  return batchId;
 }

@@ -140,64 +140,84 @@ async function processCandidate(
  * Searches Apollo by title + company size, enriches promising candidates,
  * deduplicates against existing prospects, and updates the given batch.
  */
-export async function runIcpDiscovery(pages: number, batchId: string): Promise<void> {
+export interface IcpOptions {
+  targetTitles?: string[];
+  minScore?: number;
+}
+
+export async function runIcpDiscovery(pages: number, batchId: string, options?: IcpOptions): Promise<void> {
   const supabase = getSupabaseAdmin();
   const env = getEnv();
   const apolloKey = env.APOLLO_API_KEY;
 
-  if (!apolloKey) throw new Error('APOLLO_API_KEY not configured');
-
-  // Load existing apollo_person_ids to deduplicate
-  const { data: existing } = await supabase
-    .from('outreach_prospects')
-    .select('apollo_person_id')
-    .not('apollo_person_id', 'is', null);
-
-  const seenIds = new Set((existing ?? []).map((r: { apollo_person_id: string }) => r.apollo_person_id));
-
-  let totalFromApollo = 0;
-  let totalSkipped = 0;
-  let totalProspects = 0;
-
-  for (let page = 1; page <= pages; page++) {
-    let searchResults: ApolloSearchResult[] = [];
-    try {
-      const result = await discoverByIcp(apolloKey, { ...ICP_FILTERS, page, perPage: 25 });
-      searchResults = result.people;
-      totalFromApollo += searchResults.length;
-    } catch (err) {
-      console.error(`Apollo ICP discovery page ${page} failed:`, err);
-      break;
-    }
-
-    for (const candidate of searchResults) {
-      // Skip already-seen prospects
-      if (seenIds.has(candidate.id)) { totalSkipped++; continue; }
-      seenIds.add(candidate.id);
-
-      // Pre-filter by title before spending an enrichment call
-      if (quickTitleScore(candidate.title) === 0) { totalSkipped++; continue; }
-
-      const added = await processCandidate(
-        apolloKey, candidate, batchId,
-        'ICP discovery — profile match',
-        candidate.organization?.name ?? 'Unknown',
-        supabase,
-      );
-      if (added) totalProspects++;
-      else totalSkipped++;
-    }
+  if (!apolloKey) {
+    await supabase.from('outreach_batches').update({ status: 'failed', notes: 'APOLLO_API_KEY not configured' }).eq('id', batchId);
+    return;
   }
 
-  await supabase
-    .from('outreach_batches')
-    .update({
-      status: 'complete',
-      prospect_count: totalProspects,
-      completed_at: new Date().toISOString(),
-      notes: `ICP discovery — ${pages} page(s) · ${totalFromApollo} from Apollo · ${totalSkipped} skipped · ${totalProspects} added`,
-    })
-    .eq('id', batchId);
+  try {
+    const titles = options?.targetTitles ?? ICP_FILTERS.titles;
+    const minScore = options?.minScore ?? 20;
+
+    // Load existing apollo_person_ids to deduplicate
+    const { data: existing } = await supabase
+      .from('outreach_prospects')
+      .select('apollo_person_id')
+      .not('apollo_person_id', 'is', null);
+
+    const seenIds = new Set((existing ?? []).map((r: { apollo_person_id: string }) => r.apollo_person_id));
+
+    let totalFromApollo = 0;
+    let totalSkipped = 0;
+    let totalProspects = 0;
+
+    for (let page = 1; page <= pages; page++) {
+      let searchResults: ApolloSearchResult[] = [];
+      try {
+        const result = await discoverByIcp(apolloKey, { ...ICP_FILTERS, titles, page, perPage: 25 });
+        searchResults = result.people;
+        totalFromApollo += searchResults.length;
+      } catch (err) {
+        console.error(`Apollo ICP discovery page ${page} failed:`, err);
+        break;
+      }
+
+      for (const candidate of searchResults) {
+        // Skip already-seen prospects
+        if (seenIds.has(candidate.id)) { totalSkipped++; continue; }
+        seenIds.add(candidate.id);
+
+        // Pre-filter by title before spending an enrichment call
+        if (quickTitleScore(candidate.title) === 0) { totalSkipped++; continue; }
+
+        const added = await processCandidate(
+          apolloKey, candidate, batchId,
+          'ICP discovery — profile match',
+          candidate.organization?.name ?? 'Unknown',
+          supabase,
+          minScore,
+        );
+        if (added) totalProspects++;
+        else totalSkipped++;
+      }
+    }
+
+    await supabase
+      .from('outreach_batches')
+      .update({
+        status: 'complete',
+        prospect_count: totalProspects,
+        completed_at: new Date().toISOString(),
+        notes: `ICP discovery — ${pages} page(s) · ${totalFromApollo} from Apollo · ${totalSkipped} skipped · ${totalProspects} added`,
+      })
+      .eq('id', batchId);
+  } catch (err) {
+    console.error('runIcpDiscovery failed:', err);
+    await supabase
+      .from('outreach_batches')
+      .update({ status: 'failed', notes: `Error: ${err instanceof Error ? err.message : 'Unknown error'}` })
+      .eq('id', batchId);
+  }
 }
 
 /**
@@ -209,48 +229,59 @@ export async function runOutreachBatch(companies: string[], batchId: string, opt
   const env = getEnv();
   const apolloKey = env.APOLLO_API_KEY;
 
-  if (!apolloKey) throw new Error('APOLLO_API_KEY not configured');
-
-  const titles = options?.targetTitles ?? TARGET_TITLES;
-  const minScore = options?.minScore ?? 20;
-  const minEmployees = options?.minEmployees ?? 10;
-  const maxEmployees = options?.maxEmployees ?? 300;
-  const perPage = options?.perPage ?? 10;
-
-  let totalProspects = 0;
-
-  for (const company of companies) {
-    let searchResults: ApolloSearchResult[] = [];
-    try {
-      searchResults = await searchPeopleAtCompany(apolloKey, company, titles, perPage);
-    } catch (err) {
-      console.error(`Apollo search failed for ${company}:`, err);
-      continue;
-    }
-
-    for (const candidate of searchResults) {
-      // Pre-filter by title before enriching
-      if (quickTitleScore(candidate.title) === 0) continue;
-
-      const added = await processCandidate(
-        apolloKey, candidate, batchId,
-        `Company batch — ${company}`,
-        company,
-        supabase,
-        minScore,
-        minEmployees,
-        maxEmployees,
-      );
-      if (added) totalProspects++;
-    }
+  if (!apolloKey) {
+    await supabase.from('outreach_batches').update({ status: 'failed', notes: 'APOLLO_API_KEY not configured' }).eq('id', batchId);
+    return;
   }
 
-  await supabase
-    .from('outreach_batches')
-    .update({
-      status: 'complete',
-      prospect_count: totalProspects,
-      completed_at: new Date().toISOString(),
-    })
-    .eq('id', batchId);
+  try {
+    const titles = options?.targetTitles ?? TARGET_TITLES;
+    const minScore = options?.minScore ?? 20;
+    const minEmployees = options?.minEmployees ?? 10;
+    const maxEmployees = options?.maxEmployees ?? 300;
+    const perPage = options?.perPage ?? 10;
+
+    let totalProspects = 0;
+
+    for (const company of companies) {
+      let searchResults: ApolloSearchResult[] = [];
+      try {
+        searchResults = await searchPeopleAtCompany(apolloKey, company, titles, perPage);
+      } catch (err) {
+        console.error(`Apollo search failed for ${company}:`, err);
+        continue;
+      }
+
+      for (const candidate of searchResults) {
+        // Pre-filter by title before enriching
+        if (quickTitleScore(candidate.title) === 0) continue;
+
+        const added = await processCandidate(
+          apolloKey, candidate, batchId,
+          `Company batch — ${company}`,
+          company,
+          supabase,
+          minScore,
+          minEmployees,
+          maxEmployees,
+        );
+        if (added) totalProspects++;
+      }
+    }
+
+    await supabase
+      .from('outreach_batches')
+      .update({
+        status: 'complete',
+        prospect_count: totalProspects,
+        completed_at: new Date().toISOString(),
+      })
+      .eq('id', batchId);
+  } catch (err) {
+    console.error('runOutreachBatch failed:', err);
+    await supabase
+      .from('outreach_batches')
+      .update({ status: 'failed', notes: `Error: ${err instanceof Error ? err.message : 'Unknown error'}` })
+      .eq('id', batchId);
+  }
 }

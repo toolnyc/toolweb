@@ -7,6 +7,7 @@ export interface ApolloOrganization {
   short_description: string | null;
 }
 
+// Full person record returned by people/match (enrichment)
 export interface ApolloPerson {
   id: string;
   name: string;
@@ -16,16 +17,26 @@ export interface ApolloPerson {
   organization: ApolloOrganization | null;
 }
 
+// Lightweight record returned by mixed_people/api_search.
+// Names are obfuscated; full data requires enrichment via people/match.
+export interface ApolloSearchResult {
+  id: string;
+  first_name: string;
+  title: string | null;
+  has_email: boolean;
+  organization: { name: string } | null;
+}
+
 /**
  * Search for people at a company matching given titles.
- * Free on Apollo — no credits consumed.
+ * Returns lightweight search results — enrich to get full data.
  */
 export async function searchPeopleAtCompany(
   apiKey: string,
   companyName: string,
   targetTitles: string[],
-): Promise<ApolloPerson[]> {
-  const response = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
+): Promise<ApolloSearchResult[]> {
+  const response = await fetch(`${APOLLO_BASE}/mixed_people/api_search`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -44,7 +55,7 @@ export async function searchPeopleAtCompany(
     throw new Error(`Apollo search error ${response.status}: ${err}`);
   }
 
-  const data = await response.json() as { people?: ApolloPerson[] };
+  const data = await response.json() as { people?: ApolloSearchResult[] };
   return data.people ?? [];
 }
 
@@ -52,7 +63,7 @@ export interface IcpFilters {
   titles: string[];
   /** Apollo employee range strings, e.g. ["1,50", "51,200"] */
   employeeRanges: string[];
-  /** City/state/country strings Apollo understands, e.g. ["New York, New York, United States"] */
+  /** City/state/country strings Apollo understands — omit if unsure of exact format */
   locations: string[];
   page?: number;
   perPage?: number;
@@ -60,13 +71,13 @@ export interface IcpFilters {
 
 /**
  * Discover people matching an ICP profile without specifying a company.
- * Uses the same mixed_people/search endpoint — free, no credits.
+ * Returns lightweight search results — enrich to get full data.
  */
 export async function discoverByIcp(
   apiKey: string,
   filters: IcpFilters,
-): Promise<{ people: ApolloPerson[]; total: number }> {
-  const response = await fetch(`${APOLLO_BASE}/mixed_people/search`, {
+): Promise<{ people: ApolloSearchResult[]; total: number }> {
+  const response = await fetch(`${APOLLO_BASE}/mixed_people/api_search`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -75,8 +86,7 @@ export async function discoverByIcp(
     body: JSON.stringify({
       person_titles: filters.titles,
       organization_num_employees_ranges: filters.employeeRanges,
-      // Only send person_locations if non-empty — an empty array can
-      // act as a filter that matches nothing on Apollo's side.
+      // Only send person_locations if non-empty — empty array can match nothing
       ...(filters.locations.length > 0 && { person_locations: filters.locations }),
       page: filters.page ?? 1,
       per_page: filters.perPage ?? 25,
@@ -89,19 +99,19 @@ export async function discoverByIcp(
   }
 
   const data = await response.json() as {
-    people?: ApolloPerson[];
-    pagination?: { total_entries?: number };
+    people?: ApolloSearchResult[];
+    total_entries?: number;
   };
 
   return {
     people: data.people ?? [],
-    total: data.pagination?.total_entries ?? 0,
+    total: data.total_entries ?? 0,
   };
 }
 
 /**
- * Enrich a person by Apollo ID to get verified email and fuller profile.
- * Costs credits — only call for high-confidence prospects.
+ * Enrich a person by Apollo ID to get full name, email, LinkedIn, and org data.
+ * Uses export credits — only call for candidates worth pursuing.
  */
 export async function enrichPerson(
   apiKey: string,

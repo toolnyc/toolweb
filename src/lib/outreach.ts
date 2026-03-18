@@ -1,4 +1,4 @@
-import { searchPeopleAtCompany, discoverByIcp, enrichPerson, type ApolloPerson } from './apollo';
+import { searchPeopleAtCompany, discoverByIcp, enrichPerson, type ApolloPerson, type ApolloSearchResult } from './apollo';
 import { getSupabaseAdmin, getEnv } from './env';
 
 // Titles likely to be decision-makers for a solo creative/dev shop
@@ -32,6 +32,17 @@ interface ProspectDraft {
   confidence_score: number;
   draft_subject: string | null;
   draft_body: string | null;
+}
+
+// Quick title-only score used to pre-screen search results before enrichment.
+// Apollo's api_search only returns title — email/LinkedIn/org come after enrichment.
+function quickTitleScore(title: string | null): number {
+  const t = (title ?? '').toLowerCase();
+  if (/creative director|head of design|head of brand|brand director/.test(t)) return 35;
+  if (/cmo|vp (marketing|brand)|director of (marketing|brand)/.test(t)) return 25;
+  if (/founder|ceo|co-founder/.test(t)) return 15;
+  if (/marketing/.test(t)) return 10;
+  return 0;
 }
 
 function scoreProspect(person: ApolloPerson): number {
@@ -135,9 +146,63 @@ const ICP_FILTERS = {
 };
 
 /**
+ * Enrich a search result candidate and insert it as a prospect if it scores well.
+ * Shared by both runIcpDiscovery and runOutreachBatch.
+ * Returns true if the candidate was inserted.
+ */
+async function processCandidate(
+  apolloKey: string,
+  openaiKey: string,
+  candidate: ApolloSearchResult,
+  batchId: string,
+  signal: string,
+  fallbackCompany: string,
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+): Promise<boolean> {
+  const enriched = await enrichPerson(apolloKey, candidate.id);
+  if (!enriched) return false;
+
+  const score = scoreProspect(enriched);
+  if (score < 20) return false;
+
+  let draftSubject: string | null = null;
+  let draftBody: string | null = null;
+  if (score >= 40) {
+    try {
+      const draft = await draftEmail(openaiKey, enriched);
+      draftSubject = draft.subject;
+      draftBody = draft.body;
+    } catch (err) {
+      console.error(`Draft failed for ${enriched.name}:`, err);
+    }
+  }
+
+  const org = enriched.organization;
+  const prospect: ProspectDraft = {
+    apollo_person_id: enriched.id,
+    name: enriched.name,
+    title: enriched.title,
+    company: org?.name ?? fallbackCompany,
+    email: enriched.email,
+    linkedin_url: enriched.linkedin_url,
+    signal,
+    company_size: org?.estimated_num_employees != null
+      ? String(org.estimated_num_employees)
+      : null,
+    company_industry: org?.industry ?? null,
+    confidence_score: score,
+    draft_subject: draftSubject,
+    draft_body: draftBody,
+  };
+
+  await supabase.from('outreach_prospects').insert({ batch_id: batchId, ...prospect });
+  return true;
+}
+
+/**
  * Run ICP-based discovery — no company names needed.
- * Pulls people matching the ICP profile from Apollo, deduplicates against
- * existing prospects, scores, drafts, and inserts into a new batch.
+ * Searches Apollo by title + company size, enriches promising candidates,
+ * deduplicates against existing prospects, and inserts into a new batch.
  * Returns the batch ID.
  */
 export async function runIcpDiscovery(pages = 2): Promise<string> {
@@ -157,7 +222,6 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
 
   const seenIds = new Set((existing ?? []).map((r: { apollo_person_id: string }) => r.apollo_person_id));
 
-  // Create batch record
   const { data: batch, error: batchError } = await supabase
     .from('outreach_batches')
     .insert({
@@ -171,77 +235,37 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
   if (batchError || !batch) throw new Error(`Failed to create batch: ${batchError?.message}`);
 
   const batchId = batch.id as string;
-  let totalProspects = 0;
   let totalFromApollo = 0;
-  let totalFiltered = 0;
+  let totalSkipped = 0;
+  let totalProspects = 0;
 
   for (let page = 1; page <= pages; page++) {
-    let people: ApolloPerson[] = [];
+    let searchResults: ApolloSearchResult[] = [];
     try {
       const result = await discoverByIcp(apolloKey, { ...ICP_FILTERS, page, perPage: 25 });
-      people = result.people;
-      totalFromApollo += people.length;
+      searchResults = result.people;
+      totalFromApollo += searchResults.length;
     } catch (err) {
       console.error(`Apollo ICP discovery page ${page} failed:`, err);
       break;
     }
 
-    for (const person of people) {
+    for (const candidate of searchResults) {
       // Skip already-seen prospects
-      if (person.id && seenIds.has(person.id)) continue;
-      if (person.id) seenIds.add(person.id);
+      if (seenIds.has(candidate.id)) { totalSkipped++; continue; }
+      seenIds.add(candidate.id);
 
-      const score = scoreProspect(person);
-      // Use a lower threshold for ICP discovery — Apollo search results often
-      // lack org size and email, so raw scores are lower than enriched ones.
-      if (score < 20) { totalFiltered++; continue; }
+      // Pre-filter by title before spending an enrichment call
+      if (quickTitleScore(candidate.title) === 0) { totalSkipped++; continue; }
 
-      let enriched = person;
-      if (score >= 55 && !person.email && person.id) {
-        try {
-          const result = await enrichPerson(apolloKey, person.id);
-          if (result) enriched = result;
-        } catch {
-          // Non-fatal
-        }
-      }
-
-      let draftSubject: string | null = null;
-      let draftBody: string | null = null;
-      if (score >= 40) {
-        try {
-          const draft = await draftEmail(openaiKey, enriched);
-          draftSubject = draft.subject;
-          draftBody = draft.body;
-        } catch (err) {
-          console.error(`Draft failed for ${person.name}:`, err);
-        }
-      }
-
-      const org = enriched.organization;
-      const prospect: ProspectDraft = {
-        apollo_person_id: enriched.id,
-        name: enriched.name,
-        title: enriched.title,
-        company: org?.name ?? 'Unknown',
-        email: enriched.email,
-        linkedin_url: enriched.linkedin_url,
-        signal: 'ICP discovery — profile match',
-        company_size: org?.estimated_num_employees != null
-          ? String(org.estimated_num_employees)
-          : null,
-        company_industry: org?.industry ?? null,
-        confidence_score: score,
-        draft_subject: draftSubject,
-        draft_body: draftBody,
-      };
-
-      await supabase.from('outreach_prospects').insert({
-        batch_id: batchId,
-        ...prospect,
-      });
-
-      totalProspects++;
+      const added = await processCandidate(
+        apolloKey, openaiKey, candidate, batchId,
+        'ICP discovery — profile match',
+        candidate.organization?.name ?? 'Unknown',
+        supabase,
+      );
+      if (added) totalProspects++;
+      else totalSkipped++;
     }
   }
 
@@ -251,7 +275,7 @@ export async function runIcpDiscovery(pages = 2): Promise<string> {
       status: 'complete',
       prospect_count: totalProspects,
       completed_at: new Date().toISOString(),
-      notes: `ICP discovery — ${pages} page(s) · ${totalFromApollo} from Apollo · ${totalFiltered} below threshold · ${totalProspects} added`,
+      notes: `ICP discovery — ${pages} page(s) · ${totalFromApollo} from Apollo · ${totalSkipped} skipped · ${totalProspects} added`,
     })
     .eq('id', batchId);
 
@@ -272,7 +296,6 @@ export async function runOutreachBatch(companies: string[]): Promise<string> {
   if (!apolloKey) throw new Error('APOLLO_API_KEY not configured');
   if (!openaiKey) throw new Error('OPENAI_API_KEY not configured');
 
-  // Create batch record
   const { data: batch, error: batchError } = await supabase
     .from('outreach_batches')
     .insert({
@@ -288,70 +311,28 @@ export async function runOutreachBatch(companies: string[]): Promise<string> {
   let totalProspects = 0;
 
   for (const company of companies) {
-    let people: ApolloPerson[] = [];
+    let searchResults: ApolloSearchResult[] = [];
     try {
-      people = await searchPeopleAtCompany(apolloKey, company, TARGET_TITLES);
+      searchResults = await searchPeopleAtCompany(apolloKey, company, TARGET_TITLES);
     } catch (err) {
       console.error(`Apollo search failed for ${company}:`, err);
       continue;
     }
 
-    for (const person of people) {
-      const score = scoreProspect(person);
-      if (score < 30) continue;
+    for (const candidate of searchResults) {
+      // Pre-filter by title before enriching
+      if (quickTitleScore(candidate.title) === 0) continue;
 
-      // Enrich high-confidence prospects to get verified email
-      let enriched = person;
-      if (score >= 55 && !person.email && person.id) {
-        try {
-          const result = await enrichPerson(apolloKey, person.id);
-          if (result) enriched = result;
-        } catch {
-          // Non-fatal — proceed with what we have
-        }
-      }
-
-      // Draft email for prospects likely to have email contact
-      let draftSubject: string | null = null;
-      let draftBody: string | null = null;
-      if (score >= 40) {
-        try {
-          const draft = await draftEmail(openaiKey, enriched);
-          draftSubject = draft.subject;
-          draftBody = draft.body;
-        } catch (err) {
-          console.error(`Draft failed for ${person.name}:`, err);
-        }
-      }
-
-      const org = enriched.organization;
-      const prospect: ProspectDraft = {
-        apollo_person_id: enriched.id,
-        name: enriched.name,
-        title: enriched.title,
-        company: org?.name ?? company,
-        email: enriched.email,
-        linkedin_url: enriched.linkedin_url,
-        signal: `Visited tool.nyc — company: ${company}`,
-        company_size: org?.estimated_num_employees != null
-          ? String(org.estimated_num_employees)
-          : null,
-        company_industry: org?.industry ?? null,
-        confidence_score: score,
-        draft_subject: draftSubject,
-        draft_body: draftBody,
-      };
-
-      await supabase.from('outreach_prospects').insert({
-        batch_id: batchId,
-        ...prospect,
-      });
-
-      totalProspects++;
+      const added = await processCandidate(
+        apolloKey, openaiKey, candidate, batchId,
+        `Company batch — ${company}`,
+        company,
+        supabase,
+      );
+      if (added) totalProspects++;
     }
   }
 
-  // Mark batch complete
   await supabase
     .from('outreach_batches')
     .update({

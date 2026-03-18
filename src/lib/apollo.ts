@@ -27,6 +27,14 @@ export interface ApolloSearchResult {
   organization: { name: string } | null;
 }
 
+// Apollo frequently returns HTTP 200 with an error in the body (rate limits,
+// credit exhaustion, auth failures). This helper surfaces those as thrown errors.
+function checkApolloBody(data: Record<string, unknown>, context: string): void {
+  if (data.error) {
+    throw new Error(`Apollo ${context} error: ${data.error}`);
+  }
+}
+
 /**
  * Search for people at a company matching given titles.
  * Returns lightweight search results — enrich to get full data.
@@ -56,8 +64,9 @@ export async function searchPeopleAtCompany(
     throw new Error(`Apollo search error ${response.status}: ${err}`);
   }
 
-  const data = await response.json() as { people?: ApolloSearchResult[] };
-  return data.people ?? [];
+  const data = await response.json() as Record<string, unknown>;
+  checkApolloBody(data, 'company search');
+  return (data.people as ApolloSearchResult[] | undefined) ?? [];
 }
 
 export interface IcpFilters {
@@ -99,20 +108,19 @@ export async function discoverByIcp(
     throw new Error(`Apollo ICP search error ${response.status}: ${err}`);
   }
 
-  const data = await response.json() as {
-    people?: ApolloSearchResult[];
-    total_entries?: number;
-  };
+  const data = await response.json() as Record<string, unknown>;
+  checkApolloBody(data, 'ICP search');
 
   return {
-    people: data.people ?? [],
-    total: data.total_entries ?? 0,
+    people: (data.people as ApolloSearchResult[] | undefined) ?? [],
+    total: (data.total_entries as number | undefined) ?? 0,
   };
 }
 
 /**
  * Enrich a person by Apollo ID to get full name, email, LinkedIn, and org data.
  * Uses export credits — only call for candidates worth pursuing.
+ * Returns null if enrichment fails (credits exhausted, not found, etc.).
  */
 export async function enrichPerson(
   apiKey: string,
@@ -131,8 +139,18 @@ export async function enrichPerson(
     }),
   });
 
-  if (!response.ok) return null;
+  if (!response.ok) {
+    console.warn(`Apollo enrichment HTTP ${response.status} for person ${personId}`);
+    return null;
+  }
 
-  const data = await response.json() as { person?: ApolloPerson };
-  return data.person ?? null;
+  const data = await response.json() as Record<string, unknown>;
+
+  // Apollo returns 200 with error bodies for credits exhaustion, rate limits, etc.
+  if (data.error) {
+    console.warn(`Apollo enrichment error for person ${personId}: ${data.error}`);
+    return null;
+  }
+
+  return (data.person as ApolloPerson | undefined) ?? null;
 }

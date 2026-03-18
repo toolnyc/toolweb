@@ -168,8 +168,14 @@ export async function runIcpDiscovery(pages: number, batchId: string, options?: 
     const seenIds = new Set((existing ?? []).map((r: { apollo_person_id: string }) => r.apollo_person_id));
 
     let totalFromApollo = 0;
-    let totalSkipped = 0;
+    let totalDupe = 0;
+    let totalLowTitle = 0;
+    let totalEnrichFailed = 0;
+    let totalLowScore = 0;
     let totalProspects = 0;
+    // Circuit breaker: abort enrichment loop if Apollo keeps failing
+    let consecutiveEnrichFailures = 0;
+    const ENRICH_FAILURE_LIMIT = 5;
 
     for (let page = 1; page <= pages; page++) {
       let searchResults: ApolloSearchResult[] = [];
@@ -177,30 +183,68 @@ export async function runIcpDiscovery(pages: number, batchId: string, options?: 
         const result = await discoverByIcp(apolloKey, { ...ICP_FILTERS, titles, page, perPage: 25 });
         searchResults = result.people;
         totalFromApollo += searchResults.length;
+        console.log(`Apollo ICP page ${page}: ${searchResults.length} results`);
       } catch (err) {
         console.error(`Apollo ICP discovery page ${page} failed:`, err);
-        break;
+        // Surface the Apollo error in batch notes by re-throwing
+        throw err;
       }
 
       for (const candidate of searchResults) {
+        // Stop enriching if Apollo is consistently rejecting calls
+        if (consecutiveEnrichFailures >= ENRICH_FAILURE_LIMIT) {
+          console.error(`Circuit breaker: ${ENRICH_FAILURE_LIMIT} consecutive enrichment failures — aborting`);
+          throw new Error(`Apollo enrichment failed ${ENRICH_FAILURE_LIMIT} times in a row (credits exhausted or rate limited?)`);
+        }
+
         // Skip already-seen prospects
-        if (seenIds.has(candidate.id)) { totalSkipped++; continue; }
+        if (seenIds.has(candidate.id)) { totalDupe++; continue; }
         seenIds.add(candidate.id);
 
         // Pre-filter by title before spending an enrichment call
-        if (quickTitleScore(candidate.title) === 0) { totalSkipped++; continue; }
+        if (quickTitleScore(candidate.title) === 0) { totalLowTitle++; continue; }
 
-        const added = await processCandidate(
-          apolloKey, candidate, batchId,
-          'ICP discovery — profile match',
-          candidate.organization?.name ?? 'Unknown',
-          supabase,
-          minScore,
-        );
-        if (added) totalProspects++;
-        else totalSkipped++;
+        const enriched = await enrichPerson(apolloKey, candidate.id);
+        if (!enriched) {
+          totalEnrichFailed++;
+          consecutiveEnrichFailures++;
+          continue;
+        }
+        consecutiveEnrichFailures = 0;
+
+        const score = scoreProspect(enriched, 10, 300);
+        if (score < minScore) { totalLowScore++; continue; }
+
+        const org = enriched.organization;
+        await supabase.from('outreach_prospects').insert({
+          batch_id: batchId,
+          apollo_person_id: enriched.id,
+          name: enriched.name,
+          title: enriched.title,
+          company: org?.name ?? candidate.organization?.name ?? 'Unknown',
+          email: enriched.email,
+          linkedin_url: enriched.linkedin_url,
+          signal: 'ICP discovery — profile match',
+          company_size: org?.estimated_num_employees != null ? String(org.estimated_num_employees) : null,
+          company_industry: org?.industry ?? null,
+          company_description: org?.short_description ?? null,
+          confidence_score: score,
+          draft_subject: null,
+          draft_body: null,
+        });
+        totalProspects++;
       }
     }
+
+    const notes = [
+      `ICP discovery — ${pages} page(s)`,
+      `${totalFromApollo} from Apollo`,
+      totalDupe > 0 ? `${totalDupe} dupes` : null,
+      totalLowTitle > 0 ? `${totalLowTitle} low-title` : null,
+      totalEnrichFailed > 0 ? `${totalEnrichFailed} enrich-failed` : null,
+      totalLowScore > 0 ? `${totalLowScore} low-score` : null,
+      `${totalProspects} added`,
+    ].filter(Boolean).join(' · ');
 
     await supabase
       .from('outreach_batches')
@@ -208,7 +252,7 @@ export async function runIcpDiscovery(pages: number, batchId: string, options?: 
         status: 'complete',
         prospect_count: totalProspects,
         completed_at: new Date().toISOString(),
-        notes: `ICP discovery — ${pages} page(s) · ${totalFromApollo} from Apollo · ${totalSkipped} skipped · ${totalProspects} added`,
+        notes,
       })
       .eq('id', batchId);
   } catch (err) {

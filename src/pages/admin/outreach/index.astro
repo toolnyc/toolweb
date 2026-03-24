@@ -513,9 +513,16 @@ window.submitDiscover = async function submitDiscover() {
   const maxEmp = numVal('discover-max-emp');
   const minScore = numVal('discover-min-score');
 
+  // Apollo requires specific predefined ranges
+  const APOLLO_RANGES = ['1,10','11,20','21,50','51,100','101,200','201,500','501,1000','1001,2000','2001,5000','5001,10000'];
   const employeeRanges: string[] = [];
   if (minEmp != null || maxEmp != null) {
-    employeeRanges.push(`${minEmp ?? 1},${maxEmp ?? 10000}`);
+    const lo = minEmp ?? 1;
+    const hi = maxEmp ?? 10000;
+    for (const r of APOLLO_RANGES) {
+      const [rLo, rHi] = r.split(',').map(Number);
+      if (rHi >= lo && rLo <= hi) employeeRanges.push(r);
+    }
   }
 
   if (btn) btn.textContent = 'Starting...';

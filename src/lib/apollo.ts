@@ -97,8 +97,7 @@ export async function discoverByIcp(
     },
     body: JSON.stringify({
       person_titles: filters.titles,
-      organization_num_employees_ranges: filters.employeeRanges,
-      // Only send person_locations if non-empty — empty array can match nothing
+      ...(filters.employeeRanges.length > 0 && { organization_num_employees_ranges: filters.employeeRanges }),
       ...(filters.locations.length > 0 && { person_locations: filters.locations }),
       ...(filters.industries && filters.industries.length > 0 && { organization_industry_tag_ids: filters.industries }),
       page: filters.page ?? 1,

@@ -19,8 +19,16 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!prospect_id || !action) return json({ error: 'prospect_id and action required' }, 400);
 
-  const validActions = ['approve', 'contacted', 'skip', 'decline'];
-  if (!validActions.includes(action)) return json({ error: `Unknown action: ${action}` }, 400);
+  // Map action verbs to status values
+  const actionToStatus: Record<string, string> = {
+    approve: 'approved',
+    skip: 'skipped',
+    decline: 'declined',
+    contacted: 'contacted',
+  };
+
+  const status = actionToStatus[action];
+  if (!status) return json({ error: `Unknown action: ${action}` }, 400);
 
   const supabase = getSupabaseAdmin();
 
@@ -46,7 +54,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   await supabase
     .from('outreach_prospects')
-    .update({ status: action })
+    .update({ status })
     .eq('id', prospect_id);
   return json({ ok: true });
 };

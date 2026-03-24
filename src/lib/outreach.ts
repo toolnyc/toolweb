@@ -93,6 +93,7 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
     let totalEnrichFailed = 0;
     let totalLowScore = 0;
     let totalProspects = 0;
+    let pageError: string | null = null;
     let consecutiveEnrichFailures = 0;
     const ENRICH_FAILURE_LIMIT = 5;
 
@@ -112,7 +113,8 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
         console.log(`Apollo ICP page ${page}: ${searchResults.length} results`);
       } catch (err) {
         console.error(`Apollo ICP discovery page ${page} failed:`, err);
-        throw err;
+        pageError = err instanceof Error ? err.message : String(err);
+        break;
       }
 
       for (const candidate of searchResults) {
@@ -161,12 +163,17 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
       totalEnrichFailed > 0 ? `${totalEnrichFailed} enrich-failed` : null,
       totalLowScore > 0 ? `${totalLowScore} low-score` : null,
       `${totalProspects} added`,
+      pageError ? `Apollo error: ${pageError}` : null,
     ].filter(Boolean).join(' · ');
+
+    // Mark failed only if we got an Apollo error AND found nothing — otherwise surface
+    // whatever prospects we collected before the error (partial success is useful).
+    const status = pageError && totalProspects === 0 ? 'failed' : 'complete';
 
     await supabase
       .from('outreach_batches')
       .update({
-        status: 'complete',
+        status,
         prospect_count: totalProspects,
         completed_at: new Date().toISOString(),
         notes,

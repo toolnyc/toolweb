@@ -76,7 +76,7 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
   try {
     const titles = options.targetTitles;
     const minScore = options.minScore ?? 15;
-    const employeeRanges = options.employeeRanges ?? ['1,5000'];
+    const employeeRanges = options.employeeRanges ?? [];
     const locations = options.locations ?? [];
     const industries = options.industries ?? [];
 

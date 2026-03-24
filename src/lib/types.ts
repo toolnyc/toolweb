@@ -186,6 +186,7 @@ export interface OutreachBatch {
   visitor_count: number;
   prospect_count: number;
   notes: string | null;
+  progress: Record<string, unknown> | null;
   created_at: string;
   completed_at: string | null;
 }

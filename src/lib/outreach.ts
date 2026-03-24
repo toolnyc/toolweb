@@ -32,37 +32,51 @@ interface ProspectRow {
   confidence_score: number;
 }
 
-/**
- * Score a prospect based on data completeness and company fit.
- * No hardcoded title weighting — titles are whatever you searched for,
- * so if Apollo returned them they're already relevant.
- */
+export interface BatchProgress {
+  phase: 'searching' | 'enriching' | 'done' | 'error';
+  currentPage?: number;
+  totalPages?: number;
+  currentCompany?: string;
+  totalCompanies?: number;
+  companiesSearched?: number;
+  candidatesFound: number;
+  candidatesChecked: number;
+  enriched: number;
+  enrichFailed: number;
+  dupes: number;
+  lowScore: number;
+  added: number;
+  lastAdded?: string;
+  error?: string;
+}
+
 function scoreProspect(person: ApolloPerson, minEmployees = 1, maxEmployees = 10000): number {
   let score = 0;
-
-  // Has a title at all (matched search criteria)
   if (person.title) score += 25;
-
-  // Has email
   if (person.email) score += 30;
-
-  // Has LinkedIn
   if (person.linkedin_url) score += 15;
-
-  // Company size in target range
   const employees = person.organization?.estimated_num_employees ?? 0;
   if (employees >= minEmployees && employees <= maxEmployees) score += 20;
-
-  // Has company info
   if (person.organization?.short_description) score += 10;
-
   return Math.min(score, 100);
 }
 
-/**
- * Run ICP-based discovery — searches Apollo by the filters you provide.
- * No hardcoded defaults — titles, size, etc. all come from parameters.
- */
+type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
+
+async function updateProgress(supabase: SupabaseAdmin, batchId: string, progress: BatchProgress): Promise<void> {
+  await supabase.from('outreach_batches')
+    .update({ progress: progress as unknown as Record<string, unknown> })
+    .eq('id', batchId);
+}
+
+async function isCancelled(supabase: SupabaseAdmin, batchId: string): Promise<boolean> {
+  const { data } = await supabase.from('outreach_batches')
+    .select('status')
+    .eq('id', batchId)
+    .single();
+  return data?.status === 'failed';
+}
+
 export async function runIcpDiscovery(pages: number, batchId: string, options: DiscoverOptions): Promise<void> {
   const supabase = getSupabaseAdmin();
   const env = getEnv();
@@ -73,6 +87,19 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
     return;
   }
 
+  const progress: BatchProgress = {
+    phase: 'searching',
+    currentPage: 0,
+    totalPages: pages,
+    candidatesFound: 0,
+    candidatesChecked: 0,
+    enriched: 0,
+    enrichFailed: 0,
+    dupes: 0,
+    lowScore: 0,
+    added: 0,
+  };
+
   try {
     const titles = options.targetTitles;
     const minScore = options.minScore ?? 15;
@@ -80,7 +107,6 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
     const locations = options.locations ?? [];
     const industries = options.industries ?? [];
 
-    // Load existing apollo_person_ids to deduplicate
     const { data: existing } = await supabase
       .from('outreach_prospects')
       .select('apollo_person_id')
@@ -88,54 +114,66 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
 
     const seenIds = new Set((existing ?? []).map((r: { apollo_person_id: string }) => r.apollo_person_id));
 
-    let totalFromApollo = 0;
-    let totalDupe = 0;
-    let totalEnrichFailed = 0;
-    let totalLowScore = 0;
-    let totalProspects = 0;
     let pageError: string | null = null;
     let consecutiveEnrichFailures = 0;
     const ENRICH_FAILURE_LIMIT = 5;
 
     for (let page = 1; page <= pages; page++) {
+      // Check for cancellation between pages
+      if (await isCancelled(supabase, batchId)) return;
+
+      progress.currentPage = page;
+      progress.phase = 'searching';
+      await updateProgress(supabase, batchId, progress);
+
       let searchResults: ApolloSearchResult[] = [];
       try {
         const result = await discoverByIcp(apolloKey, {
-          titles,
-          employeeRanges,
-          locations,
-          industries,
-          page,
-          perPage: 25,
+          titles, employeeRanges, locations, industries, page, perPage: 25,
         });
         searchResults = result.people;
-        totalFromApollo += searchResults.length;
-        console.log(`Apollo ICP page ${page}: ${searchResults.length} results`);
+        progress.candidatesFound += searchResults.length;
+        await updateProgress(supabase, batchId, progress);
       } catch (err) {
-        console.error(`Apollo ICP discovery page ${page} failed:`, err);
         pageError = err instanceof Error ? err.message : String(err);
+        progress.phase = 'error';
+        progress.error = pageError;
+        await updateProgress(supabase, batchId, progress);
         break;
       }
 
+      progress.phase = 'enriching';
+      await updateProgress(supabase, batchId, progress);
+
       for (const candidate of searchResults) {
+        // Check for cancellation every 5 candidates
+        if (progress.candidatesChecked % 5 === 0 && await isCancelled(supabase, batchId)) return;
+
         if (consecutiveEnrichFailures >= ENRICH_FAILURE_LIMIT) {
-          console.error(`Circuit breaker: ${ENRICH_FAILURE_LIMIT} consecutive enrichment failures — aborting`);
-          throw new Error(`Apollo enrichment failed ${ENRICH_FAILURE_LIMIT} times in a row (credits exhausted or rate limited?)`);
+          const msg = `Apollo enrichment failed ${ENRICH_FAILURE_LIMIT} times in a row (credits exhausted or rate limited?)`;
+          progress.phase = 'error';
+          progress.error = msg;
+          await updateProgress(supabase, batchId, progress);
+          throw new Error(msg);
         }
 
-        if (seenIds.has(candidate.id)) { totalDupe++; continue; }
+        progress.candidatesChecked++;
+
+        if (seenIds.has(candidate.id)) { progress.dupes++; await updateProgress(supabase, batchId, progress); continue; }
         seenIds.add(candidate.id);
 
         const enriched = await enrichPerson(apolloKey, candidate.id);
         if (!enriched) {
-          totalEnrichFailed++;
+          progress.enrichFailed++;
           consecutiveEnrichFailures++;
+          await updateProgress(supabase, batchId, progress);
           continue;
         }
         consecutiveEnrichFailures = 0;
+        progress.enriched++;
 
         const score = scoreProspect(enriched);
-        if (score < minScore) { totalLowScore++; continue; }
+        if (score < minScore) { progress.lowScore++; await updateProgress(supabase, batchId, progress); continue; }
 
         const org = enriched.organization;
         await supabase.from('outreach_prospects').insert({
@@ -152,46 +190,43 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
           company_description: org?.short_description ?? null,
           confidence_score: score,
         } satisfies ProspectRow);
-        totalProspects++;
+        progress.added++;
+        progress.lastAdded = enriched.name;
+        await updateProgress(supabase, batchId, progress);
       }
     }
 
+    progress.phase = 'done';
+    await updateProgress(supabase, batchId, progress);
+
     const notes = [
       `Discovery — ${pages} page(s)`,
-      `${totalFromApollo} from Apollo`,
-      totalDupe > 0 ? `${totalDupe} dupes` : null,
-      totalEnrichFailed > 0 ? `${totalEnrichFailed} enrich-failed` : null,
-      totalLowScore > 0 ? `${totalLowScore} low-score` : null,
-      `${totalProspects} added`,
+      `${progress.candidatesFound} from Apollo`,
+      progress.dupes > 0 ? `${progress.dupes} dupes` : null,
+      progress.enrichFailed > 0 ? `${progress.enrichFailed} enrich-failed` : null,
+      progress.lowScore > 0 ? `${progress.lowScore} low-score` : null,
+      `${progress.added} added`,
       pageError ? `Apollo error: ${pageError}` : null,
     ].filter(Boolean).join(' · ');
 
-    // Mark failed only if we got an Apollo error AND found nothing — otherwise surface
-    // whatever prospects we collected before the error (partial success is useful).
-    const status = pageError && totalProspects === 0 ? 'failed' : 'complete';
+    const status = pageError && progress.added === 0 ? 'failed' : 'complete';
 
     await supabase
       .from('outreach_batches')
-      .update({
-        status,
-        prospect_count: totalProspects,
-        completed_at: new Date().toISOString(),
-        notes,
-      })
+      .update({ status, prospect_count: progress.added, completed_at: new Date().toISOString(), notes })
       .eq('id', batchId);
   } catch (err) {
     console.error('runIcpDiscovery failed:', err);
+    progress.phase = 'error';
+    progress.error = err instanceof Error ? err.message : 'Unknown error';
+    await updateProgress(supabase, batchId, progress);
     await supabase
       .from('outreach_batches')
-      .update({ status: 'failed', notes: `Error: ${err instanceof Error ? err.message : 'Unknown error'}` })
+      .update({ status: 'failed', notes: `Error: ${progress.error}` })
       .eq('id', batchId);
   }
 }
 
-/**
- * Run the outreach pipeline for a list of company names.
- * Titles and filters are all passed in — no defaults.
- */
 export async function runOutreachBatch(companies: string[], batchId: string, options: BatchOptions): Promise<void> {
   const supabase = getSupabaseAdmin();
   const env = getEnv();
@@ -202,6 +237,19 @@ export async function runOutreachBatch(companies: string[], batchId: string, opt
     return;
   }
 
+  const progress: BatchProgress = {
+    phase: 'searching',
+    totalCompanies: companies.length,
+    companiesSearched: 0,
+    candidatesFound: 0,
+    candidatesChecked: 0,
+    enriched: 0,
+    enrichFailed: 0,
+    dupes: 0,
+    lowScore: 0,
+    added: 0,
+  };
+
   try {
     const titles = options.targetTitles;
     const minScore = options.minScore ?? 15;
@@ -209,23 +257,39 @@ export async function runOutreachBatch(companies: string[], batchId: string, opt
     const maxEmployees = options.maxEmployees ?? 10000;
     const perPage = options.perPage ?? 10;
 
-    let totalProspects = 0;
-
     for (const company of companies) {
+      // Check for cancellation between companies
+      if (await isCancelled(supabase, batchId)) return;
+
+      progress.currentCompany = company;
+      progress.phase = 'searching';
+      await updateProgress(supabase, batchId, progress);
+
       let searchResults: ApolloSearchResult[] = [];
       try {
         searchResults = await searchPeopleAtCompany(apolloKey, company, titles, perPage);
+        progress.candidatesFound += searchResults.length;
       } catch (err) {
         console.error(`Apollo search failed for ${company}:`, err);
+        progress.companiesSearched = (progress.companiesSearched ?? 0) + 1;
+        await updateProgress(supabase, batchId, progress);
         continue;
       }
 
+      progress.phase = 'enriching';
+      await updateProgress(supabase, batchId, progress);
+
       for (const candidate of searchResults) {
+        if (progress.candidatesChecked % 5 === 0 && await isCancelled(supabase, batchId)) return;
+
+        progress.candidatesChecked++;
+
         const enriched = await enrichPerson(apolloKey, candidate.id);
-        if (!enriched) continue;
+        if (!enriched) { progress.enrichFailed++; await updateProgress(supabase, batchId, progress); continue; }
+        progress.enriched++;
 
         const score = scoreProspect(enriched, minEmployees, maxEmployees);
-        if (score < minScore) continue;
+        if (score < minScore) { progress.lowScore++; await updateProgress(supabase, batchId, progress); continue; }
 
         const org = enriched.organization;
         await supabase.from('outreach_prospects').insert({
@@ -242,23 +306,29 @@ export async function runOutreachBatch(companies: string[], batchId: string, opt
           company_description: org?.short_description ?? null,
           confidence_score: score,
         } satisfies ProspectRow);
-        totalProspects++;
+        progress.added++;
+        progress.lastAdded = enriched.name;
+        await updateProgress(supabase, batchId, progress);
       }
+
+      progress.companiesSearched = (progress.companiesSearched ?? 0) + 1;
     }
+
+    progress.phase = 'done';
+    await updateProgress(supabase, batchId, progress);
 
     await supabase
       .from('outreach_batches')
-      .update({
-        status: 'complete',
-        prospect_count: totalProspects,
-        completed_at: new Date().toISOString(),
-      })
+      .update({ status: 'complete', prospect_count: progress.added, completed_at: new Date().toISOString() })
       .eq('id', batchId);
   } catch (err) {
     console.error('runOutreachBatch failed:', err);
+    progress.phase = 'error';
+    progress.error = err instanceof Error ? err.message : 'Unknown error';
+    await updateProgress(supabase, batchId, progress);
     await supabase
       .from('outreach_batches')
-      .update({ status: 'failed', notes: `Error: ${err instanceof Error ? err.message : 'Unknown error'}` })
+      .update({ status: 'failed', notes: `Error: ${progress.error}` })
       .eq('id', batchId);
   }
 }

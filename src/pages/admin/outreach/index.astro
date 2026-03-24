@@ -60,15 +60,47 @@ function formatDate(d: string) {
 ---
 
 <Admin title="Outreach">
-  <div id="batch-status-bar" class="hidden mb-6 px-4 py-3 bg-blue-50 border border-blue-200 rounded flex items-center gap-3 text-sm text-blue-700">
-    <svg class="animate-spin h-4 w-4 text-blue-500 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-    </svg>
-    <span id="batch-status-text">Running batch...</span>
-    <button id="cancel-batch-btn" class="ml-auto px-3 py-1 text-xs bg-white border border-blue-300 rounded hover:bg-blue-100 text-blue-700 shrink-0 hidden" onclick="cancelBatch()">
-      Cancel
-    </button>
+  <div id="batch-status-bar" class="hidden mb-6">
+    <div id="batch-progress-panel" class="bg-white border border-neutral-200 rounded-lg overflow-hidden">
+      <div class="px-5 py-3 border-b border-neutral-100 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <svg id="batch-spinner" class="animate-spin h-4 w-4 text-blue-500 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+          </svg>
+          <span id="batch-phase" class="text-sm font-medium text-neutral-700">Starting...</span>
+        </div>
+        <button id="cancel-batch-btn" class="px-3 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50 hidden" onclick="cancelBatch()">
+          Cancel
+        </button>
+      </div>
+      <div class="px-5 py-3">
+        <div class="grid grid-cols-5 gap-4 text-center" id="batch-stats">
+          <div>
+            <div id="stat-found" class="text-lg font-semibold text-neutral-900 tabular-nums">0</div>
+            <div class="text-xs text-neutral-400">Found</div>
+          </div>
+          <div>
+            <div id="stat-enriched" class="text-lg font-semibold text-neutral-900 tabular-nums">0</div>
+            <div class="text-xs text-neutral-400">Enriched</div>
+          </div>
+          <div>
+            <div id="stat-added" class="text-lg font-semibold text-green-600 tabular-nums">0</div>
+            <div class="text-xs text-neutral-400">Added</div>
+          </div>
+          <div>
+            <div id="stat-skipped" class="text-lg font-semibold text-neutral-400 tabular-nums">0</div>
+            <div class="text-xs text-neutral-400">Filtered</div>
+          </div>
+          <div>
+            <div id="stat-failed" class="text-lg font-semibold text-red-400 tabular-nums">0</div>
+            <div class="text-xs text-neutral-400">Failed</div>
+          </div>
+        </div>
+        <div id="batch-detail" class="mt-3 text-xs text-neutral-400 hidden"></div>
+      </div>
+      <div id="batch-result" class="hidden px-5 py-3 border-t border-neutral-100 text-sm"></div>
+    </div>
   </div>
 
   <div class="mb-8 flex items-start justify-between">
@@ -599,11 +631,67 @@ window.submitBatch = async function submitBatch() {
   }
 }
 
+interface Progress {
+  phase?: string;
+  currentPage?: number;
+  totalPages?: number;
+  currentCompany?: string;
+  totalCompanies?: number;
+  companiesSearched?: number;
+  candidatesFound?: number;
+  candidatesChecked?: number;
+  enriched?: number;
+  enrichFailed?: number;
+  dupes?: number;
+  lowScore?: number;
+  added?: number;
+  lastAdded?: string;
+  error?: string;
+}
+
+function renderProgress(p: Progress) {
+  const setText = (id: string, val: string) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setText('stat-found', String(p.candidatesFound ?? 0));
+  setText('stat-enriched', String(p.enriched ?? 0));
+  setText('stat-added', String(p.added ?? 0));
+  setText('stat-skipped', String((p.dupes ?? 0) + (p.lowScore ?? 0)));
+  setText('stat-failed', String(p.enrichFailed ?? 0));
+
+  const phase = document.getElementById('batch-phase');
+  if (phase) {
+    if (p.phase === 'searching') {
+      if (p.currentCompany) {
+        phase.textContent = `Searching ${p.currentCompany} (${p.companiesSearched ?? 0}/${p.totalCompanies ?? '?'})`;
+      } else {
+        phase.textContent = `Searching Apollo — page ${p.currentPage ?? 1} of ${p.totalPages ?? '?'}`;
+      }
+    } else if (p.phase === 'enriching') {
+      const checked = p.candidatesChecked ?? 0;
+      const found = p.candidatesFound ?? 0;
+      phase.textContent = `Enriching candidates (${checked}/${found})`;
+    } else if (p.phase === 'done') {
+      phase.textContent = 'Complete';
+    } else if (p.phase === 'error') {
+      phase.textContent = 'Error';
+    } else {
+      phase.textContent = 'Starting...';
+    }
+  }
+
+  const detail = document.getElementById('batch-detail');
+  if (detail && p.lastAdded) {
+    detail.classList.remove('hidden');
+    detail.textContent = `Last added: ${p.lastAdded}`;
+  }
+}
+
 window.startPolling = function startPolling(batchId: string) {
   _activeBatchId = batchId;
   const bar = document.getElementById('batch-status-bar');
-  const txt = document.getElementById('batch-status-text');
   const cancelBtn = document.getElementById('cancel-batch-btn');
+  const panel = document.getElementById('batch-progress-panel');
+  const resultEl = document.getElementById('batch-result');
+  const spinner = document.getElementById('batch-spinner');
   if (bar) bar.classList.remove('hidden');
   if (cancelBtn) cancelBtn.classList.remove('hidden');
 
@@ -612,25 +700,51 @@ window.startPolling = function startPolling(batchId: string) {
   interval = window.setInterval(async () => {
     try {
       const res = await fetch(`/api/outreach/batch-status?id=${batchId}`);
-      if (!res.ok) { failures++; if (failures >= 5) { window.clearInterval(interval); if (txt) txt.textContent = 'Status check failed — refresh the page.'; } return; }
+      if (!res.ok) {
+        failures++;
+        if (failures >= 5) {
+          window.clearInterval(interval);
+          if (resultEl) { resultEl.classList.remove('hidden'); resultEl.textContent = 'Status check failed — refresh the page.'; resultEl.className = 'px-5 py-3 border-t border-neutral-100 text-sm text-red-600'; }
+        }
+        return;
+      }
       failures = 0;
-      const data = await res.json() as { status: string; prospect_count: number; notes?: string };
+      const data = await res.json() as { status: string; prospect_count: number; notes?: string; progress?: Progress };
+
+      if (data.progress) renderProgress(data.progress);
+
       if (data.status === 'running') {
-        if (txt) txt.textContent = `Running... ${data.prospect_count ?? 0} prospects found so far`;
+        // Stats update handled by renderProgress
       } else if (data.status === 'complete') {
         window.clearInterval(interval);
         if (cancelBtn) cancelBtn.classList.add('hidden');
-        if (bar) { bar.classList.remove('bg-blue-50', 'border-blue-200', 'text-blue-700'); bar.classList.add('bg-green-50', 'border-green-200', 'text-green-700'); }
-        if (txt) txt.textContent = `Done — ${data.prospect_count ?? 0} prospects added. Refreshing...`;
+        if (spinner) spinner.classList.add('hidden');
+        if (panel) { panel.classList.remove('border-neutral-200'); panel.classList.add('border-green-200'); }
+        const phaseEl = document.getElementById('batch-phase');
+        if (phaseEl) { phaseEl.textContent = `Done — ${data.prospect_count ?? 0} prospects added`; phaseEl.classList.add('text-green-700'); }
+        if (resultEl) { resultEl.classList.remove('hidden'); resultEl.textContent = 'Refreshing...'; resultEl.className = 'px-5 py-3 border-t border-neutral-100 text-sm text-green-600'; }
         setTimeout(() => window.location.reload(), 1500);
       } else if (data.status === 'failed') {
         window.clearInterval(interval);
         if (cancelBtn) cancelBtn.classList.add('hidden');
-        if (bar) { bar.classList.remove('bg-blue-50', 'border-blue-200', 'text-blue-700'); bar.classList.add('bg-red-50', 'border-red-200', 'text-red-700'); }
-        if (txt) txt.textContent = `Batch failed${data.notes ? ' — ' + data.notes : ''}`;
+        if (spinner) spinner.classList.add('hidden');
+        if (panel) { panel.classList.remove('border-neutral-200'); panel.classList.add('border-red-200'); }
+        const phaseEl = document.getElementById('batch-phase');
+        if (phaseEl) { phaseEl.textContent = 'Batch failed'; phaseEl.classList.add('text-red-600'); }
+        if (resultEl) {
+          resultEl.classList.remove('hidden');
+          resultEl.className = 'px-5 py-3 border-t border-neutral-100 text-sm text-red-600';
+          resultEl.textContent = data.notes ?? 'Unknown error';
+        }
       }
-    } catch { failures++; if (failures >= 5) { window.clearInterval(interval); if (txt) txt.textContent = 'Status check failed — refresh the page.'; } }
-  }, 2000) as unknown as number;
+    } catch {
+      failures++;
+      if (failures >= 5) {
+        window.clearInterval(interval);
+        if (resultEl) { resultEl.classList.remove('hidden'); resultEl.textContent = 'Status check failed — refresh the page.'; resultEl.className = 'px-5 py-3 border-t border-neutral-100 text-sm text-red-600'; }
+      }
+    }
+  }, 1500) as unknown as number;
 }
 
 window.cancelBatch = async function cancelBatch() {

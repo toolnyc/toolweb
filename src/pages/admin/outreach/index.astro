@@ -19,13 +19,31 @@ const contacted = prospects.filter(p => p.status === 'contacted');
 const archived = prospects.filter(p => p.status === 'skipped' || p.status === 'declined');
 
 // Check for running batch (auto-poll fix)
+// Only consider batches created in the last 10 minutes as genuinely running.
+// Anything older is a zombie — mark it failed server-side so the page doesn't poll forever.
 const { data: runningBatches } = await supabase
   .from('outreach_batches')
-  .select('id')
+  .select('id, created_at')
   .eq('status', 'running')
-  .limit(1);
+  .order('created_at', { ascending: false });
 
-const runningBatchId = (runningBatches ?? [])[0]?.id as string | undefined;
+const TEN_MINUTES = 10 * 60 * 1000;
+const now = Date.now();
+const zombies = (runningBatches ?? []).filter(
+  (b: { id: string; created_at: string }) => now - new Date(b.created_at).getTime() > TEN_MINUTES
+);
+// Auto-clean zombie batches
+for (const z of zombies) {
+  await supabase
+    .from('outreach_batches')
+    .update({ status: 'failed', notes: 'Timed out — batch never completed' })
+    .eq('id', (z as { id: string }).id);
+}
+
+const activeRunning = (runningBatches ?? []).filter(
+  (b: { id: string; created_at: string }) => now - new Date(b.created_at).getTime() <= TEN_MINUTES
+);
+const runningBatchId = (activeRunning[0] as { id: string } | undefined)?.id;
 
 // Latest batch for summary
 const { data: batches } = await supabase
@@ -48,6 +66,9 @@ function formatDate(d: string) {
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
     </svg>
     <span id="batch-status-text">Running batch...</span>
+    <button id="cancel-batch-btn" class="ml-auto px-3 py-1 text-xs bg-white border border-blue-300 rounded hover:bg-blue-100 text-blue-700 shrink-0 hidden" onclick="cancelBatch()">
+      Cancel
+    </button>
   </div>
 
   <div class="mb-8 flex items-start justify-between">
@@ -406,8 +427,11 @@ declare global {
     startPolling: (batchId: string) => void;
     openContactedModal: (id: string, name: string) => void;
     submitContacted: () => void;
+    cancelBatch: () => void;
   }
 }
+
+let _activeBatchId: string | null = null;
 
 function parseLines(id: string): string[] {
   return ((document.getElementById(id) as HTMLTextAreaElement)?.value ?? '')
@@ -569,9 +593,12 @@ window.submitBatch = async function submitBatch() {
 }
 
 window.startPolling = function startPolling(batchId: string) {
+  _activeBatchId = batchId;
   const bar = document.getElementById('batch-status-bar');
   const txt = document.getElementById('batch-status-text');
+  const cancelBtn = document.getElementById('cancel-batch-btn');
   if (bar) bar.classList.remove('hidden');
+  if (cancelBtn) cancelBtn.classList.remove('hidden');
 
   let failures = 0;
   let interval: number;
@@ -585,15 +612,32 @@ window.startPolling = function startPolling(batchId: string) {
         if (txt) txt.textContent = `Running... ${data.prospect_count ?? 0} prospects found so far`;
       } else if (data.status === 'complete') {
         window.clearInterval(interval);
+        if (cancelBtn) cancelBtn.classList.add('hidden');
         if (bar) { bar.classList.remove('bg-blue-50', 'border-blue-200', 'text-blue-700'); bar.classList.add('bg-green-50', 'border-green-200', 'text-green-700'); }
         if (txt) txt.textContent = `Done — ${data.prospect_count ?? 0} prospects added. Refreshing...`;
         setTimeout(() => window.location.reload(), 1500);
       } else if (data.status === 'failed') {
         window.clearInterval(interval);
+        if (cancelBtn) cancelBtn.classList.add('hidden');
         if (bar) { bar.classList.remove('bg-blue-50', 'border-blue-200', 'text-blue-700'); bar.classList.add('bg-red-50', 'border-red-200', 'text-red-700'); }
         if (txt) txt.textContent = `Batch failed${data.notes ? ' — ' + data.notes : ''}`;
       }
     } catch { failures++; if (failures >= 5) { window.clearInterval(interval); if (txt) txt.textContent = 'Status check failed — refresh the page.'; } }
   }, 2000) as unknown as number;
+}
+
+window.cancelBatch = async function cancelBatch() {
+  if (!_activeBatchId) return;
+  const res = await fetch('/api/outreach/cancel-batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ batch_id: _activeBatchId }),
+  });
+  if (res.ok) {
+    window.location.reload();
+  } else {
+    const data = await res.json() as { error?: string };
+    alert(data.error ?? 'Cancel failed');
+  }
 }
 </script>

@@ -8,7 +8,7 @@ export const GET: APIRoute = async ({ url }) => {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from('outreach_batches')
-    .select('status, prospect_count, completed_at, notes')
+    .select('status, prospect_count, completed_at, notes, progress')
     .eq('id', id)
     .single();
 

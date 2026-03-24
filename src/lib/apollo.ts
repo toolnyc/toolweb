@@ -128,18 +128,25 @@ export async function enrichPerson(
   apiKey: string,
   personId: string,
 ): Promise<ApolloPerson | null> {
-  const response = await fetch(`${APOLLO_BASE}/people/match`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-    },
-    body: JSON.stringify({
-      id: personId,
-      reveal_personal_emails: false,
-      reveal_phone_number: false,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${APOLLO_BASE}/people/match`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        id: personId,
+        reveal_personal_emails: false,
+        reveal_phone_number: false,
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+  } catch (err) {
+    console.warn(`Apollo enrichment timeout/network error for person ${personId}:`, err);
+    return null;
+  }
 
   if (!response.ok) {
     console.warn(`Apollo enrichment HTTP ${response.status} for person ${personId}`);

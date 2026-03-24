@@ -99,7 +99,7 @@ export async function discoverByIcp(
       person_titles: filters.titles,
       ...(filters.employeeRanges.length > 0 && { organization_num_employees_ranges: filters.employeeRanges }),
       ...(filters.locations.length > 0 && { person_locations: filters.locations }),
-      ...(filters.industries && filters.industries.length > 0 && { organization_industry_tag_ids: filters.industries }),
+      ...(filters.industries && filters.industries.length > 0 && { q_organization_keyword_tags: filters.industries }),
       page: filters.page ?? 1,
       per_page: filters.perPage ?? 25,
     }),

@@ -1,6 +1,9 @@
 import { searchPeopleAtCompany, discoverByIcp, enrichPerson, type ApolloPerson, type ApolloSearchResult } from './apollo';
 import { getSupabaseAdmin, getEnv } from './env';
 
+// Apollo rate-limits enrichment to ~12 calls/minute. Cap at 10 to stay safe.
+const ENRICH_LIMIT_PER_BATCH = 10;
+
 export interface BatchOptions {
   targetTitles: string[];
   minScore?: number;
@@ -33,7 +36,7 @@ interface ProspectRow {
 }
 
 export interface BatchProgress {
-  phase: 'searching' | 'enriching' | 'done' | 'error';
+  phase: 'searching' | 'enriching' | 'done' | 'error' | 'stopped';
   currentPage?: number;
   totalPages?: number;
   currentCompany?: string;
@@ -46,6 +49,7 @@ export interface BatchProgress {
   dupes: number;
   lowScore: number;
   added: number;
+  enrichLimit?: number;
   lastAdded?: string;
   error?: string;
 }
@@ -65,7 +69,6 @@ type SupabaseAdmin = ReturnType<typeof getSupabaseAdmin>;
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Throttle progress writes to at most once per second
 function createProgressWriter(supabase: SupabaseAdmin, batchId: string) {
   let pending: BatchProgress | null = null;
   let writing = false;
@@ -96,6 +99,26 @@ async function isCancelled(supabase: SupabaseAdmin, batchId: string): Promise<bo
   return data?.status === 'failed';
 }
 
+/** Complete a batch — used for normal completion, stop, and cancel. */
+async function completeBatch(
+  supabase: SupabaseAdmin,
+  batchId: string,
+  progress: BatchProgress,
+  pw: ReturnType<typeof createProgressWriter>,
+  notes: string,
+) {
+  await pw.flush(progress);
+  await supabase
+    .from('outreach_batches')
+    .update({
+      status: 'complete',
+      prospect_count: progress.added,
+      completed_at: new Date().toISOString(),
+      notes,
+    })
+    .eq('id', batchId);
+}
+
 export async function runIcpDiscovery(pages: number, batchId: string, options: DiscoverOptions): Promise<void> {
   const supabase = getSupabaseAdmin();
   const env = getEnv();
@@ -117,6 +140,7 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
     dupes: 0,
     lowScore: 0,
     added: 0,
+    enrichLimit: ENRICH_LIMIT_PER_BATCH,
   };
 
   const pw = createProgressWriter(supabase, batchId);
@@ -136,11 +160,17 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
     const seenIds = new Set((existing ?? []).map((r: { apollo_person_id: string }) => r.apollo_person_id));
 
     let pageError: string | null = null;
-    let consecutiveEnrichFailures = 0;
-    const ENRICH_FAILURE_LIMIT = 5;
+    let hitEnrichLimit = false;
 
     for (let page = 1; page <= pages; page++) {
-      if (await isCancelled(supabase, batchId)) return;
+      if (hitEnrichLimit) break;
+
+      if (await isCancelled(supabase, batchId)) {
+        progress.phase = 'stopped';
+        await completeBatch(supabase, batchId, progress, pw,
+          `Stopped by user — ${progress.added} added`);
+        return;
+      }
 
       progress.currentPage = page;
       progress.phase = 'searching';
@@ -166,14 +196,17 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
       await pw.flush(progress);
 
       for (const candidate of searchResults) {
-        if (progress.candidatesChecked % 5 === 0 && await isCancelled(supabase, batchId)) return;
+        // Hit enrichment cap — stop gracefully
+        if (progress.enriched >= ENRICH_LIMIT_PER_BATCH) {
+          hitEnrichLimit = true;
+          break;
+        }
 
-        if (consecutiveEnrichFailures >= ENRICH_FAILURE_LIMIT) {
-          const msg = `Apollo enrichment failed ${ENRICH_FAILURE_LIMIT} times in a row (credits exhausted or rate limited?)`;
-          progress.phase = 'error';
-          progress.error = msg;
-          await pw.flush(progress);
-          throw new Error(msg);
+        if (progress.candidatesChecked % 5 === 0 && await isCancelled(supabase, batchId)) {
+          progress.phase = 'stopped';
+          await completeBatch(supabase, batchId, progress, pw,
+            `Stopped by user — ${progress.added} added`);
+          return;
         }
 
         progress.candidatesChecked++;
@@ -181,17 +214,14 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
         if (seenIds.has(candidate.id)) { progress.dupes++; pw.update(progress); continue; }
         seenIds.add(candidate.id);
 
-        // Rate-limit enrichment calls — Apollo throttles after ~10-15/min
         await sleep(1000);
 
         const enriched = await enrichPerson(apolloKey, candidate.id);
         if (!enriched) {
           progress.enrichFailed++;
-          consecutiveEnrichFailures++;
           pw.update(progress);
           continue;
         }
-        consecutiveEnrichFailures = 0;
         progress.enriched++;
 
         const score = scoreProspect(enriched);
@@ -219,7 +249,6 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
     }
 
     progress.phase = 'done';
-    await pw.flush(progress);
 
     const notes = [
       `Discovery — ${pages} page(s)`,
@@ -228,24 +257,34 @@ export async function runIcpDiscovery(pages: number, batchId: string, options: D
       progress.enrichFailed > 0 ? `${progress.enrichFailed} enrich-failed` : null,
       progress.lowScore > 0 ? `${progress.lowScore} low-score` : null,
       `${progress.added} added`,
+      hitEnrichLimit ? `Stopped at enrichment limit (${ENRICH_LIMIT_PER_BATCH}/batch)` : null,
       pageError ? `Apollo error: ${pageError}` : null,
     ].filter(Boolean).join(' · ');
 
-    const status = pageError && progress.added === 0 ? 'failed' : 'complete';
-
-    await supabase
-      .from('outreach_batches')
-      .update({ status, prospect_count: progress.added, completed_at: new Date().toISOString(), notes })
-      .eq('id', batchId);
+    if (pageError && progress.added === 0) {
+      await pw.flush(progress);
+      await supabase
+        .from('outreach_batches')
+        .update({ status: 'failed', notes })
+        .eq('id', batchId);
+    } else {
+      await completeBatch(supabase, batchId, progress, pw, notes);
+    }
   } catch (err) {
     console.error('runIcpDiscovery failed:', err);
     progress.phase = 'error';
     progress.error = err instanceof Error ? err.message : 'Unknown error';
-    await pw.flush(progress);
-    await supabase
-      .from('outreach_batches')
-      .update({ status: 'failed', notes: `Error: ${progress.error}` })
-      .eq('id', batchId);
+    // Still save whatever was found
+    if (progress.added > 0) {
+      await completeBatch(supabase, batchId, progress, pw,
+        `Error after ${progress.added} added: ${progress.error}`);
+    } else {
+      await pw.flush(progress);
+      await supabase
+        .from('outreach_batches')
+        .update({ status: 'failed', notes: `Error: ${progress.error}` })
+        .eq('id', batchId);
+    }
   }
 }
 
@@ -270,6 +309,7 @@ export async function runOutreachBatch(companies: string[], batchId: string, opt
     dupes: 0,
     lowScore: 0,
     added: 0,
+    enrichLimit: ENRICH_LIMIT_PER_BATCH,
   };
 
   const pw = createProgressWriter(supabase, batchId);
@@ -280,9 +320,17 @@ export async function runOutreachBatch(companies: string[], batchId: string, opt
     const minEmployees = options.minEmployees ?? 1;
     const maxEmployees = options.maxEmployees ?? 10000;
     const perPage = options.perPage ?? 10;
+    let hitEnrichLimit = false;
 
     for (const company of companies) {
-      if (await isCancelled(supabase, batchId)) return;
+      if (hitEnrichLimit) break;
+
+      if (await isCancelled(supabase, batchId)) {
+        progress.phase = 'stopped';
+        await completeBatch(supabase, batchId, progress, pw,
+          `Stopped by user — ${progress.added} added`);
+        return;
+      }
 
       progress.currentCompany = company;
       progress.phase = 'searching';
@@ -303,7 +351,17 @@ export async function runOutreachBatch(companies: string[], batchId: string, opt
       await pw.flush(progress);
 
       for (const candidate of searchResults) {
-        if (progress.candidatesChecked % 5 === 0 && await isCancelled(supabase, batchId)) return;
+        if (progress.enriched >= ENRICH_LIMIT_PER_BATCH) {
+          hitEnrichLimit = true;
+          break;
+        }
+
+        if (progress.candidatesChecked % 5 === 0 && await isCancelled(supabase, batchId)) {
+          progress.phase = 'stopped';
+          await completeBatch(supabase, batchId, progress, pw,
+            `Stopped by user — ${progress.added} added`);
+          return;
+        }
 
         progress.candidatesChecked++;
 
@@ -340,20 +398,23 @@ export async function runOutreachBatch(companies: string[], batchId: string, opt
     }
 
     progress.phase = 'done';
-    await pw.flush(progress);
-
-    await supabase
-      .from('outreach_batches')
-      .update({ status: 'complete', prospect_count: progress.added, completed_at: new Date().toISOString() })
-      .eq('id', batchId);
+    const notes = hitEnrichLimit
+      ? `${progress.added} added — stopped at enrichment limit (${ENRICH_LIMIT_PER_BATCH}/batch)`
+      : `${progress.added} added`;
+    await completeBatch(supabase, batchId, progress, pw, notes);
   } catch (err) {
     console.error('runOutreachBatch failed:', err);
     progress.phase = 'error';
     progress.error = err instanceof Error ? err.message : 'Unknown error';
-    await pw.flush(progress);
-    await supabase
-      .from('outreach_batches')
-      .update({ status: 'failed', notes: `Error: ${progress.error}` })
-      .eq('id', batchId);
+    if (progress.added > 0) {
+      await completeBatch(supabase, batchId, progress, pw,
+        `Error after ${progress.added} added: ${progress.error}`);
+    } else {
+      await pw.flush(progress);
+      await supabase
+        .from('outreach_batches')
+        .update({ status: 'failed', notes: `Error: ${progress.error}` })
+        .eq('id', batchId);
+    }
   }
 }

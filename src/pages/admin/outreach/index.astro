@@ -70,8 +70,8 @@ function formatDate(d: string) {
           </svg>
           <span id="batch-phase" class="text-sm font-medium text-neutral-700">Starting...</span>
         </div>
-        <button id="cancel-batch-btn" class="px-3 py-1 text-xs text-red-500 border border-red-200 rounded hover:bg-red-50 hidden" onclick="cancelBatch()">
-          Cancel
+        <button id="cancel-batch-btn" class="px-3 py-1 text-xs text-neutral-500 border border-neutral-200 rounded hover:bg-neutral-50 hidden" onclick="cancelBatch()">
+          Stop &amp; keep
         </button>
       </div>
       <div class="px-5 py-3">
@@ -645,6 +645,7 @@ interface Progress {
   dupes?: number;
   lowScore?: number;
   added?: number;
+  enrichLimit?: number;
   lastAdded?: string;
   error?: string;
 }
@@ -652,7 +653,8 @@ interface Progress {
 function renderProgress(p: Progress) {
   const setText = (id: string, val: string) => { const el = document.getElementById(id); if (el) el.textContent = val; };
   setText('stat-found', String(p.candidatesFound ?? 0));
-  setText('stat-enriched', String(p.enriched ?? 0));
+  const limit = p.enrichLimit ?? 10;
+  setText('stat-enriched', `${p.enriched ?? 0}/${limit}`);
   setText('stat-added', String(p.added ?? 0));
   setText('stat-skipped', String((p.dupes ?? 0) + (p.lowScore ?? 0)));
   setText('stat-failed', String(p.enrichFailed ?? 0));
@@ -666,11 +668,12 @@ function renderProgress(p: Progress) {
         phase.textContent = `Searching Apollo — page ${p.currentPage ?? 1} of ${p.totalPages ?? '?'}`;
       }
     } else if (p.phase === 'enriching') {
-      const checked = p.candidatesChecked ?? 0;
-      const found = p.candidatesFound ?? 0;
-      phase.textContent = `Enriching candidates (${checked}/${found})`;
+      const enriched = p.enriched ?? 0;
+      phase.textContent = `Enriching candidates (${enriched}/${limit})`;
     } else if (p.phase === 'done') {
       phase.textContent = 'Complete';
+    } else if (p.phase === 'stopped') {
+      phase.textContent = 'Stopped — prospects saved';
     } else if (p.phase === 'error') {
       phase.textContent = 'Error';
     } else {

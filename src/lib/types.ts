@@ -178,7 +178,7 @@ export interface SiteContent {
 
 // -- Outreach --
 
-export type OutreachProspectStatus = 'pending' | 'approved' | 'skipped' | 'declined' | 'sent';
+export type OutreachProspectStatus = 'pending' | 'approved' | 'contacted' | 'skipped' | 'declined';
 
 export interface OutreachBatch {
   id: string;
@@ -205,18 +205,9 @@ export interface OutreachProspect {
   company_description: string | null;
   recent_news: string | null;
   confidence_score: number | null;
-  draft_subject: string | null;
-  draft_body: string | null;
+  contacted_at: string | null;
+  contact_notes: string | null;
   status: OutreachProspectStatus;
   created_at: string;
   updated_at: string;
-}
-
-export interface OutreachMessage {
-  id: string;
-  prospect_id: string;
-  subject: string;
-  body: string;
-  resend_message_id: string | null;
-  sent_at: string;
 }

@@ -75,6 +75,8 @@ export interface IcpFilters {
   employeeRanges: string[];
   /** City/state/country strings Apollo understands — omit if unsure of exact format */
   locations: string[];
+  /** Industry keywords, e.g. ["technology", "marketing"] */
+  industries?: string[];
   page?: number;
   perPage?: number;
 }
@@ -98,6 +100,7 @@ export async function discoverByIcp(
       organization_num_employees_ranges: filters.employeeRanges,
       // Only send person_locations if non-empty — empty array can match nothing
       ...(filters.locations.length > 0 && { person_locations: filters.locations }),
+      ...(filters.industries && filters.industries.length > 0 && { organization_industry_tag_ids: filters.industries }),
       page: filters.page ?? 1,
       per_page: filters.perPage ?? 25,
     }),

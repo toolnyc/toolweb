@@ -24,6 +24,10 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: 'companies must be an array of strings' }, 400);
   }
 
+  if (!Array.isArray(targetTitles) || targetTitles.length === 0) {
+    return json({ error: 'targetTitles is required (array of title strings)' }, 400);
+  }
+
   const companies = (rawCompanies as unknown[])
     .map((c) => String(c).trim())
     .filter(Boolean);
@@ -36,10 +40,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return json({ error: 'Max 20 companies per batch' }, 400);
   }
 
-  const options: BatchOptions = {};
-  if (Array.isArray(targetTitles) && targetTitles.length > 0) {
-    options.targetTitles = (targetTitles as unknown[]).map(String).filter(Boolean);
-  }
+  const options: BatchOptions = {
+    targetTitles: (targetTitles as unknown[]).map(String).filter(Boolean),
+  };
   if (typeof minScore === 'number') options.minScore = minScore;
   if (typeof minEmployees === 'number') options.minEmployees = minEmployees;
   if (typeof maxEmployees === 'number') options.maxEmployees = maxEmployees;

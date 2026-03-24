@@ -1,22 +1,43 @@
 import type { APIRoute } from 'astro';
-import { runIcpDiscovery, type IcpOptions } from '../../../lib/outreach';
+import { runIcpDiscovery, type DiscoverOptions } from '../../../lib/outreach';
 import { getSupabaseAdmin } from '../../../lib/env';
 
 export const POST: APIRoute = async ({ request, locals }) => {
-  let pages = 2;
-  const options: IcpOptions = {};
-
+  let body: Record<string, unknown>;
   try {
-    const body = await request.json() as { pages?: unknown; targetTitles?: unknown; minScore?: unknown };
-    if (typeof body.pages === 'number' && body.pages >= 1 && body.pages <= 5) {
-      pages = body.pages;
-    }
-    if (Array.isArray(body.targetTitles) && body.targetTitles.length > 0) {
-      options.targetTitles = (body.targetTitles as unknown[]).map(String).filter(Boolean);
-    }
-    if (typeof body.minScore === 'number') options.minScore = body.minScore;
+    body = await request.json() as Record<string, unknown>;
   } catch {
-    // Use defaults if body is missing/invalid
+    return json({ error: 'Invalid JSON body' }, 400);
+  }
+
+  const { pages: rawPages, targetTitles, minScore, employeeRanges, locations, industries } = body as {
+    pages?: unknown;
+    targetTitles?: unknown;
+    minScore?: unknown;
+    employeeRanges?: unknown;
+    locations?: unknown;
+    industries?: unknown;
+  };
+
+  // Titles are required — no defaults
+  if (!Array.isArray(targetTitles) || targetTitles.length === 0) {
+    return json({ error: 'targetTitles is required (array of title strings)' }, 400);
+  }
+
+  const pages = (typeof rawPages === 'number' && rawPages >= 1 && rawPages <= 5) ? rawPages : 2;
+
+  const options: DiscoverOptions = {
+    targetTitles: (targetTitles as unknown[]).map(String).filter(Boolean),
+  };
+  if (typeof minScore === 'number') options.minScore = minScore;
+  if (Array.isArray(employeeRanges) && employeeRanges.length > 0) {
+    options.employeeRanges = (employeeRanges as unknown[]).map(String).filter(Boolean);
+  }
+  if (Array.isArray(locations) && locations.length > 0) {
+    options.locations = (locations as unknown[]).map(String).filter(Boolean);
+  }
+  if (Array.isArray(industries) && industries.length > 0) {
+    options.industries = (industries as unknown[]).map(String).filter(Boolean);
   }
 
   const supabase = getSupabaseAdmin();
@@ -25,7 +46,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     .insert({
       status: 'running',
       visitor_count: 0,
-      notes: `ICP discovery — ${pages} page(s)`,
+      notes: `Discovery — ${pages} page(s)`,
     })
     .select()
     .single();
@@ -35,8 +56,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   const batchId = batch.id as string;
-
-  // Use the same ctx pattern as middleware.ts and telegram-webhook.ts
   locals.runtime.ctx.waitUntil(runIcpDiscovery(pages, batchId, options));
 
   return json({ ok: true, batch_id: batchId });

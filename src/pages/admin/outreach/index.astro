@@ -5,27 +5,36 @@ import type { OutreachProspect, OutreachBatch } from '../../../lib/types';
 
 const supabase = getSupabaseAdmin();
 
-// Load latest batch + its pending prospects
+// Load ALL prospects across all batches
+const { data: allProspects } = await supabase
+  .from('outreach_prospects')
+  .select('*')
+  .order('confidence_score', { ascending: false });
+
+const prospects = (allProspects ?? []) as OutreachProspect[];
+
+const pending = prospects.filter(p => p.status === 'pending');
+const approved = prospects.filter(p => p.status === 'approved');
+const contacted = prospects.filter(p => p.status === 'contacted');
+const archived = prospects.filter(p => p.status === 'skipped' || p.status === 'declined');
+
+// Check for running batch (auto-poll fix)
+const { data: runningBatches } = await supabase
+  .from('outreach_batches')
+  .select('id')
+  .eq('status', 'running')
+  .limit(1);
+
+const runningBatchId = (runningBatches ?? [])[0]?.id as string | undefined;
+
+// Latest batch for summary
 const { data: batches } = await supabase
   .from('outreach_batches')
   .select('*')
   .order('created_at', { ascending: false })
-  .limit(5);
+  .limit(1);
 
 const latestBatch = (batches ?? [])[0] as OutreachBatch | undefined;
-
-let prospects: OutreachProspect[] = [];
-if (latestBatch) {
-  const { data } = await supabase
-    .from('outreach_prospects')
-    .select('*')
-    .eq('batch_id', latestBatch.id)
-    .order('confidence_score', { ascending: false });
-  prospects = (data ?? []) as OutreachProspect[];
-}
-
-const pending = prospects.filter(p => p.status === 'pending' || p.status === 'approved');
-const done = prospects.filter(p => p.status === 'sent' || p.status === 'skipped' || p.status === 'declined');
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -38,7 +47,7 @@ function formatDate(d: string) {
       <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
     </svg>
-    <span id="batch-status-text">Running batch…</span>
+    <span id="batch-status-text">Running batch...</span>
   </div>
 
   <div class="mb-8 flex items-start justify-between">
@@ -56,6 +65,9 @@ function formatDate(d: string) {
           ]}>{latestBatch.status}</span>
         </p>
       )}
+      <p class="text-xs text-neutral-400 mt-1">
+        {pending.length} pending · {approved.length} approved · {contacted.length} contacted · {archived.length} archived
+      </p>
     </div>
     <div class="flex gap-2">
       <button
@@ -65,64 +77,57 @@ function formatDate(d: string) {
         Discover
       </button>
       <button
-        id="run-btn"
         class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
         onclick="document.getElementById('run-modal').classList.remove('hidden')"
       >
-        Run batch
+        Company search
       </button>
     </div>
   </div>
 
-  {pending.length > 0 ? (
+  <!-- PENDING -->
+  {pending.length > 0 && (
     <div class="space-y-4 mb-10">
-      <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Queue ({pending.length})</h2>
+      <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Pending ({pending.length})</h2>
       {pending.map(p => (
         <div class="bg-white rounded border border-neutral-200" id={`prospect-${p.id}`}>
           <div class="p-5">
-            <div class="flex items-start justify-between gap-4">
-              <div>
-                <div class="flex items-center gap-3">
-                  <span class="font-semibold">{p.name}</span>
-                  {p.confidence_score != null && (
-                    <span class:list={[
-                      'text-xs px-2 py-0.5 rounded',
-                      p.confidence_score >= 70 ? 'bg-green-100 text-green-700' :
-                      p.confidence_score >= 45 ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-neutral-100 text-neutral-500'
-                    ]}>{p.confidence_score}</span>
-                  )}
-                  {p.status === 'approved' && (
-                    <span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">approved</span>
-                  )}
-                  {p.signal === 'ICP discovery — profile match' && (
-                    <span class="text-xs px-2 py-0.5 rounded bg-purple-50 text-purple-500">discovered</span>
-                  )}
-                </div>
-                <div class="text-sm text-neutral-500 mt-0.5">
-                  {p.title && <span>{p.title} · </span>}{p.company}
-                  {p.company_industry && <span class="text-neutral-400"> · {p.company_industry}</span>}
-                  {p.company_size && <span class="text-neutral-400"> · {p.company_size} employees</span>}
-                </div>
-                {p.company_description && (
-                  <p class="text-sm text-neutral-600 mt-2">{p.company_description}</p>
-                )}
-                {p.signal && (
-                  <p class="text-xs text-neutral-400 italic mt-1">{p.signal}</p>
-                )}
-                {p.email && (
-                  <div class="text-sm text-neutral-700 mt-1">{p.email}</div>
-                )}
-                {!p.email && (
-                  <div class="text-sm text-neutral-400 mt-1 italic">No email — enrichment needed</div>
-                )}
-                {p.linkedin_url && (
-                  <a href={p.linkedin_url} target="_blank" rel="noopener" class="text-xs text-neutral-400 underline mt-0.5 inline-block">LinkedIn</a>
-                )}
-              </div>
+            <div class="flex items-center gap-3 mb-1">
+              <span class="font-semibold">{p.name}</span>
+              {p.confidence_score != null && (
+                <span class:list={[
+                  'text-xs px-2 py-0.5 rounded',
+                  p.confidence_score >= 70 ? 'bg-green-100 text-green-700' :
+                  p.confidence_score >= 45 ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-neutral-100 text-neutral-500'
+                ]}>{p.confidence_score}</span>
+              )}
             </div>
-
+            <div class="text-sm text-neutral-500">
+              {p.title && <span>{p.title} · </span>}{p.company}
+              {p.company_industry && <span class="text-neutral-400"> · {p.company_industry}</span>}
+              {p.company_size && <span class="text-neutral-400"> · {p.company_size} employees</span>}
+            </div>
+            {p.company_description && (
+              <p class="text-sm text-neutral-600 mt-2">{p.company_description}</p>
+            )}
+            {p.signal && (
+              <p class="text-xs text-neutral-400 italic mt-1">{p.signal}</p>
+            )}
+            <div class="flex items-center gap-4 mt-1">
+              {p.email && <span class="text-sm text-neutral-700">{p.email}</span>}
+              {!p.email && <span class="text-sm text-neutral-400 italic">No email</span>}
+              {p.linkedin_url && (
+                <a href={p.linkedin_url} target="_blank" rel="noopener" class="text-xs text-neutral-400 underline">LinkedIn</a>
+              )}
+            </div>
             <div class="mt-4 flex gap-2">
+              <button
+                class="px-4 py-1.5 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
+                onclick={`actionProspect('${p.id}', 'approve')`}
+              >
+                Approve
+              </button>
               <button
                 class="px-4 py-1.5 bg-neutral-100 text-neutral-700 text-sm rounded hover:bg-neutral-200"
                 onclick={`actionProspect('${p.id}', 'skip')`}
@@ -140,29 +145,109 @@ function formatDate(d: string) {
         </div>
       ))}
     </div>
-  ) : (
-    <div class="bg-white rounded border border-neutral-200 p-12 text-center mb-10">
-      <p class="text-neutral-400">Queue empty — discover prospects or run a batch.</p>
+  )}
+
+  <!-- APPROVED -->
+  {approved.length > 0 && (
+    <div class="space-y-4 mb-10">
+      <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Approved ({approved.length})</h2>
+      {approved.map(p => (
+        <div class="bg-white rounded border border-blue-200" id={`prospect-${p.id}`}>
+          <div class="p-5">
+            <div class="flex items-center gap-3 mb-1">
+              <span class="font-semibold">{p.name}</span>
+              <span class="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">approved</span>
+            </div>
+            <div class="text-sm text-neutral-500">
+              {p.title && <span>{p.title} · </span>}{p.company}
+              {p.company_industry && <span class="text-neutral-400"> · {p.company_industry}</span>}
+              {p.company_size && <span class="text-neutral-400"> · {p.company_size} employees</span>}
+            </div>
+            {p.company_description && (
+              <p class="text-sm text-neutral-600 mt-2">{p.company_description}</p>
+            )}
+            <div class="flex items-center gap-4 mt-1">
+              {p.email && <span class="text-sm text-neutral-700">{p.email}</span>}
+              {p.linkedin_url && (
+                <a href={p.linkedin_url} target="_blank" rel="noopener" class="text-xs text-neutral-400 underline">LinkedIn</a>
+              )}
+            </div>
+            <div class="mt-4 flex gap-2">
+              <button
+                class="px-4 py-1.5 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
+                onclick={`openContactedModal('${p.id}', '${p.name.replace(/'/g, "\\'")}')`}
+              >
+                Mark contacted
+              </button>
+              <button
+                class="px-4 py-1.5 text-neutral-400 text-sm hover:text-neutral-600"
+                onclick={`actionProspect('${p.id}', 'skip')`}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )}
 
-  {done.length > 0 && (
-    <div>
-      <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider mb-3">Sent / Archived ({done.length})</h2>
+  <!-- CONTACTED -->
+  {contacted.length > 0 && (
+    <div class="space-y-4 mb-10">
+      <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wider">Contacted ({contacted.length})</h2>
+      {contacted.map(p => (
+        <div class="bg-white rounded border border-green-200" id={`prospect-${p.id}`}>
+          <div class="p-5">
+            <div class="flex items-center gap-3 mb-1">
+              <span class="font-semibold">{p.name}</span>
+              <span class="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700">contacted</span>
+              {p.contacted_at && (
+                <span class="text-xs text-neutral-400">{formatDate(p.contacted_at)}</span>
+              )}
+            </div>
+            <div class="text-sm text-neutral-500">
+              {p.title && <span>{p.title} · </span>}{p.company}
+            </div>
+            {p.contact_notes && (
+              <p class="text-sm text-neutral-600 mt-2 bg-neutral-50 rounded px-3 py-2">{p.contact_notes}</p>
+            )}
+            <div class="flex items-center gap-4 mt-1">
+              {p.email && <span class="text-sm text-neutral-700">{p.email}</span>}
+              {p.linkedin_url && (
+                <a href={p.linkedin_url} target="_blank" rel="noopener" class="text-xs text-neutral-400 underline">LinkedIn</a>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+
+  <!-- ARCHIVED -->
+  {archived.length > 0 && (
+    <details class="mb-10">
+      <summary class="text-sm font-semibold text-neutral-400 uppercase tracking-wider cursor-pointer hover:text-neutral-600 mb-3">
+        Archived ({archived.length})
+      </summary>
       <div class="space-y-2">
-        {done.map(p => (
+        {archived.map(p => (
           <div class="flex items-center justify-between px-4 py-3 bg-white rounded border border-neutral-200 text-sm">
             <span class="font-medium">{p.name}</span>
             <span class="text-neutral-400">{p.title} · {p.company}</span>
             <span class:list={[
               'px-2 py-0.5 text-xs rounded',
-              p.status === 'sent' ? 'bg-green-100 text-green-700' :
-              p.status === 'skipped' ? 'bg-neutral-100 text-neutral-500' :
-              'bg-red-50 text-red-400'
+              p.status === 'skipped' ? 'bg-neutral-100 text-neutral-500' : 'bg-red-50 text-red-400'
             ]}>{p.status}</span>
           </div>
         ))}
       </div>
+    </details>
+  )}
+
+  {pending.length === 0 && approved.length === 0 && contacted.length === 0 && archived.length === 0 && (
+    <div class="bg-white rounded border border-neutral-200 p-12 text-center mb-10">
+      <p class="text-neutral-400">No prospects yet — run a discovery or company search.</p>
     </div>
   )}
 </Admin>
@@ -172,147 +257,166 @@ function formatDate(d: string) {
   <div class="bg-white rounded-lg w-full max-w-md mx-4 p-6">
     <h2 class="text-lg font-semibold mb-1">Discover prospects</h2>
     <p class="text-sm text-neutral-500 mb-4">
-      Searches Apollo for people matching your ICP — creative directors, marketing heads, founders
-      at 10–300 person companies in NYC, LA, Chicago, and Miami. Skips anyone already in the queue.
+      Describe who you're looking for. Titles are required — everything else is optional.
     </p>
-    <div class="mb-4">
-      <label class="text-sm font-medium text-neutral-700 block mb-1">Pages to fetch</label>
-      <select
-        id="discover-pages"
-        class="border border-neutral-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-neutral-400"
-      >
-        <option value="1">1 page (~25 results)</option>
-        <option value="2" selected>2 pages (~50 results)</option>
-        <option value="3">3 pages (~75 results)</option>
-        <option value="5">5 pages (~125 results)</option>
-      </select>
-    </div>
-    <details class="mb-4 border border-neutral-100 rounded">
-      <summary class="px-3 py-2 text-xs text-neutral-500 cursor-pointer select-none hover:text-neutral-700">⚙ Parameters</summary>
-      <div class="px-3 pb-3 pt-2 space-y-3 border-t border-neutral-100">
-        <div>
-          <label class="text-xs font-medium text-neutral-600 block mb-1">Target titles (one per line)</label>
-          <textarea id="discover-param-titles" rows="5" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-neutral-400 resize-y">Creative Director
-Head of Design
-Head of Marketing
-VP Marketing
-VP Brand
-Brand Director
-Director of Marketing
-Director of Brand
-Head of Brand
-Marketing Director
-CMO
-Founder
-CEO
-Co-founder</textarea>
-        </div>
-        <div>
-          <label class="text-xs font-medium text-neutral-600 block mb-1">Min confidence score</label>
-          <input id="discover-param-min-score" type="number" value="20" min="0" max="100" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
-        </div>
+    <div class="space-y-4 mb-4">
+      <div>
+        <label class="text-sm font-medium text-neutral-700 block mb-1">Titles to search (one per line)</label>
+        <textarea id="discover-titles" rows="4" placeholder="Creative Director&#10;Head of Marketing&#10;VP Brand" class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y"></textarea>
       </div>
-    </details>
+      <div>
+        <label class="text-sm font-medium text-neutral-700 block mb-1">Pages to fetch</label>
+        <select id="discover-pages" class="border border-neutral-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-neutral-400">
+          <option value="1">1 page (~25 results)</option>
+          <option value="2" selected>2 pages (~50 results)</option>
+          <option value="3">3 pages (~75 results)</option>
+          <option value="5">5 pages (~125 results)</option>
+        </select>
+      </div>
+      <details class="border border-neutral-100 rounded">
+        <summary class="px-3 py-2 text-xs text-neutral-500 cursor-pointer select-none hover:text-neutral-700">More filters</summary>
+        <div class="px-3 pb-3 pt-2 space-y-3 border-t border-neutral-100">
+          <div>
+            <label class="text-xs font-medium text-neutral-600 block mb-1">Industries (one per line)</label>
+            <textarea id="discover-industries" rows="2" placeholder="technology&#10;marketing and advertising" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-neutral-400 resize-y"></textarea>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-neutral-600 block mb-1">Locations (one per line)</label>
+            <textarea id="discover-locations" rows="2" placeholder="New York, US&#10;Los Angeles, US" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-neutral-400 resize-y"></textarea>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="text-xs font-medium text-neutral-600 block mb-1">Min employees</label>
+              <input id="discover-min-emp" type="number" placeholder="any" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-neutral-600 block mb-1">Max employees</label>
+              <input id="discover-max-emp" type="number" placeholder="any" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-neutral-600 block mb-1">Min score</label>
+              <input id="discover-min-score" type="number" value="15" min="0" max="100" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+            </div>
+          </div>
+        </div>
+      </details>
+    </div>
     <div id="discover-error" class="text-sm text-red-600 mb-3 hidden"></div>
     <div class="flex gap-3 justify-end">
-      <button
-        class="px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900"
-        onclick="document.getElementById('discover-modal').classList.add('hidden')"
-      >
+      <button class="px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900" onclick="document.getElementById('discover-modal').classList.add('hidden')">
         Cancel
       </button>
-      <button
-        id="discover-submit"
-        class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
-        onclick="submitDiscover()"
-      >
+      <button id="discover-submit" class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90" onclick="submitDiscover()">
         Discover
       </button>
     </div>
   </div>
 </div>
 
-<!-- Run batch modal -->
+<!-- Company search modal -->
 <div id="run-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
   <div class="bg-white rounded-lg w-full max-w-md mx-4 p-6">
-    <h2 class="text-lg font-semibold mb-1">Run outreach batch</h2>
-    <p class="text-sm text-neutral-500 mb-4">Enter company names to research, one per line.</p>
-    <textarea
-      id="companies-input"
-      rows="6"
-      placeholder="Acme Corp&#10;Globex Industries&#10;Initech"
-      class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y mb-4"
-    ></textarea>
-    <details class="mb-4 border border-neutral-100 rounded">
-      <summary class="px-3 py-2 text-xs text-neutral-500 cursor-pointer select-none hover:text-neutral-700">⚙ Parameters</summary>
-      <div class="px-3 pb-3 pt-2 space-y-3 border-t border-neutral-100">
-        <div>
-          <label class="text-xs font-medium text-neutral-600 block mb-1">Target titles (one per line)</label>
-          <textarea id="param-titles" rows="5" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-xs font-mono focus:outline-none focus:border-neutral-400 resize-y">Creative Director
-Head of Design
-Head of Marketing
-VP Marketing
-VP Brand
-Brand Director
-Director of Marketing
-Director of Brand
-Head of Brand
-Marketing Director
-CMO
-Founder
-CEO
-Co-founder</textarea>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="text-xs font-medium text-neutral-600 block mb-1">Min confidence score</label>
-            <input id="param-min-score" type="number" value="20" min="0" max="100" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
-          </div>
-          <div>
-            <label class="text-xs font-medium text-neutral-600 block mb-1">Results per company</label>
-            <input id="param-per-page" type="number" value="10" min="1" max="25" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
-          </div>
-          <div>
-            <label class="text-xs font-medium text-neutral-600 block mb-1">Min employees</label>
-            <input id="param-min-emp" type="number" value="10" min="1" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
-          </div>
-          <div>
-            <label class="text-xs font-medium text-neutral-600 block mb-1">Max employees</label>
-            <input id="param-max-emp" type="number" value="300" min="1" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
-          </div>
-        </div>
+    <h2 class="text-lg font-semibold mb-1">Company search</h2>
+    <p class="text-sm text-neutral-500 mb-4">Search for people at specific companies.</p>
+    <div class="space-y-4 mb-4">
+      <div>
+        <label class="text-sm font-medium text-neutral-700 block mb-1">Companies (one per line)</label>
+        <textarea id="companies-input" rows="4" placeholder="Acme Corp&#10;Globex Industries" class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y"></textarea>
       </div>
-    </details>
+      <div>
+        <label class="text-sm font-medium text-neutral-700 block mb-1">Titles to search (one per line)</label>
+        <textarea id="batch-titles" rows="3" placeholder="Creative Director&#10;Head of Marketing" class="w-full border border-neutral-200 rounded px-3 py-2 text-sm font-mono focus:outline-none focus:border-neutral-400 resize-y"></textarea>
+      </div>
+      <details class="border border-neutral-100 rounded">
+        <summary class="px-3 py-2 text-xs text-neutral-500 cursor-pointer select-none hover:text-neutral-700">More filters</summary>
+        <div class="px-3 pb-3 pt-2 space-y-3 border-t border-neutral-100">
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="text-xs font-medium text-neutral-600 block mb-1">Results/company</label>
+              <input id="param-per-page" type="number" value="10" min="1" max="25" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-neutral-600 block mb-1">Min employees</label>
+              <input id="param-min-emp" type="number" placeholder="any" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+            </div>
+            <div>
+              <label class="text-xs font-medium text-neutral-600 block mb-1">Max employees</label>
+              <input id="param-max-emp" type="number" placeholder="any" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-medium text-neutral-600 block mb-1">Min score</label>
+            <input id="param-min-score" type="number" value="15" min="0" max="100" class="w-full border border-neutral-200 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+          </div>
+        </div>
+      </details>
+    </div>
     <div id="batch-error" class="text-sm text-red-600 mb-3 hidden"></div>
     <div class="flex gap-3 justify-end">
-      <button
-        class="px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900"
-        onclick="document.getElementById('run-modal').classList.add('hidden')"
-      >
+      <button class="px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900" onclick="document.getElementById('run-modal').classList.add('hidden')">
         Cancel
       </button>
-      <button
-        id="run-submit"
-        class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90"
-        onclick="submitBatch()"
-      >
-        Run
+      <button id="run-submit" class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90" onclick="submitBatch()">
+        Search
       </button>
     </div>
   </div>
 </div>
 
+<!-- Contacted modal -->
+<div id="contacted-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+  <div class="bg-white rounded-lg w-full max-w-sm mx-4 p-6">
+    <h2 class="text-lg font-semibold mb-1">Mark as contacted</h2>
+    <p id="contacted-name" class="text-sm text-neutral-500 mb-4"></p>
+    <input type="hidden" id="contacted-prospect-id" />
+    <div class="space-y-3 mb-4">
+      <div>
+        <label class="text-sm font-medium text-neutral-700 block mb-1">Date</label>
+        <input id="contacted-date" type="date" class="w-full border border-neutral-200 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-neutral-400" />
+      </div>
+      <div>
+        <label class="text-sm font-medium text-neutral-700 block mb-1">Notes (optional)</label>
+        <textarea id="contacted-notes" rows="3" placeholder="Sent LinkedIn message, emailed intro..." class="w-full border border-neutral-200 rounded px-3 py-2 text-sm focus:outline-none focus:border-neutral-400 resize-y"></textarea>
+      </div>
+    </div>
+    <div class="flex gap-3 justify-end">
+      <button class="px-4 py-2 text-sm text-neutral-600 hover:text-neutral-900" onclick="document.getElementById('contacted-modal').classList.add('hidden')">
+        Cancel
+      </button>
+      <button class="px-4 py-2 bg-neutral-900 text-white text-sm rounded hover:opacity-90" onclick="submitContacted()">
+        Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<script define:vars={{ runningBatchId }}>
+  // Auto-poll if page loads with a running batch
+  if (runningBatchId) {
+    window.addEventListener('DOMContentLoaded', () => window.startPolling(runningBatchId));
+  }
+</script>
+
 <script>
-// Expose all handlers on window — Astro scripts are ES modules,
-// so plain function declarations are not in global scope and can't
-// be reached by inline onclick attributes.
 declare global {
   interface Window {
     actionProspect: (id: string, action: string) => void;
     submitDiscover: () => void;
     submitBatch: () => void;
     startPolling: (batchId: string) => void;
+    openContactedModal: (id: string, name: string) => void;
+    submitContacted: () => void;
   }
+}
+
+function parseLines(id: string): string[] {
+  return ((document.getElementById(id) as HTMLTextAreaElement)?.value ?? '')
+    .split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function numVal(id: string): number | undefined {
+  const v = (document.getElementById(id) as HTMLInputElement)?.value;
+  return v ? parseInt(v, 10) : undefined;
 }
 
 window.actionProspect = async function actionProspect(id: string, action: string) {
@@ -335,22 +439,74 @@ window.actionProspect = async function actionProspect(id: string, action: string
   }
 }
 
+window.openContactedModal = function openContactedModal(id: string, name: string) {
+  (document.getElementById('contacted-prospect-id') as HTMLInputElement).value = id;
+  (document.getElementById('contacted-name') as HTMLElement).textContent = name;
+  (document.getElementById('contacted-date') as HTMLInputElement).value = new Date().toISOString().split('T')[0];
+  (document.getElementById('contacted-notes') as HTMLTextAreaElement).value = '';
+  document.getElementById('contacted-modal')?.classList.remove('hidden');
+}
+
+window.submitContacted = async function submitContacted() {
+  const id = (document.getElementById('contacted-prospect-id') as HTMLInputElement).value;
+  const date = (document.getElementById('contacted-date') as HTMLInputElement).value;
+  const notes = (document.getElementById('contacted-notes') as HTMLTextAreaElement).value.trim();
+
+  const res = await fetch('/api/outreach/action', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prospect_id: id,
+      action: 'contacted',
+      contacted_at: date ? new Date(date).toISOString() : undefined,
+      contact_notes: notes || undefined,
+    }),
+  });
+
+  if (res.ok) {
+    document.getElementById('contacted-modal')?.classList.add('hidden');
+    window.location.reload();
+  } else {
+    const data = await res.json() as { error?: string };
+    alert(data.error ?? 'Failed');
+  }
+}
+
 window.submitDiscover = async function submitDiscover() {
-  const pages = parseInt(((document.getElementById('discover-pages') as unknown) as HTMLSelectElement)?.value ?? '2', 10);
+  const titles = parseLines('discover-titles');
   const errEl = document.getElementById('discover-error');
   const btn = document.getElementById('discover-submit');
 
-  const titlesRaw = (document.getElementById('discover-param-titles') as HTMLTextAreaElement)?.value ?? '';
-  const targetTitles = titlesRaw.split('\n').map((s: string) => s.trim()).filter(Boolean);
-  const minScore = parseInt((document.getElementById('discover-param-min-score') as HTMLInputElement)?.value ?? '20', 10);
+  if (titles.length === 0) {
+    if (errEl) { errEl.textContent = 'Enter at least one title to search'; errEl.classList.remove('hidden'); }
+    return;
+  }
 
-  if (btn) btn.textContent = 'Starting…';
+  const pages = parseInt(((document.getElementById('discover-pages') as unknown) as HTMLSelectElement)?.value ?? '2', 10);
+  const industries = parseLines('discover-industries');
+  const locations = parseLines('discover-locations');
+  const minEmp = numVal('discover-min-emp');
+  const maxEmp = numVal('discover-max-emp');
+  const minScore = numVal('discover-min-score');
+
+  const employeeRanges: string[] = [];
+  if (minEmp != null || maxEmp != null) {
+    employeeRanges.push(`${minEmp ?? 1},${maxEmp ?? 10000}`);
+  }
+
+  if (btn) btn.textContent = 'Starting...';
   if (errEl) errEl.classList.add('hidden');
+
+  const payload: Record<string, unknown> = { pages, targetTitles: titles };
+  if (employeeRanges.length > 0) payload.employeeRanges = employeeRanges;
+  if (industries.length > 0) payload.industries = industries;
+  if (locations.length > 0) payload.locations = locations;
+  if (minScore != null) payload.minScore = minScore;
 
   const res = await fetch('/api/outreach/discover', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ pages, targetTitles, minScore }),
+    body: JSON.stringify(payload),
   });
 
   if (res.ok) {
@@ -366,9 +522,8 @@ window.submitDiscover = async function submitDiscover() {
 }
 
 window.submitBatch = async function submitBatch() {
-  const raw = (document.getElementById('companies-input') as HTMLTextAreaElement)?.value ?? '';
-  const companies = raw.split('\n').map((s: string) => s.trim()).filter(Boolean);
-
+  const companies = parseLines('companies-input');
+  const titles = parseLines('batch-titles');
   const errEl = document.getElementById('batch-error');
   const btn = document.getElementById('run-submit');
 
@@ -376,32 +531,40 @@ window.submitBatch = async function submitBatch() {
     if (errEl) { errEl.textContent = 'Enter at least one company name'; errEl.classList.remove('hidden'); }
     return;
   }
+  if (titles.length === 0) {
+    if (errEl) { errEl.textContent = 'Enter at least one title to search'; errEl.classList.remove('hidden'); }
+    return;
+  }
 
-  const titlesRaw = (document.getElementById('param-titles') as HTMLTextAreaElement)?.value ?? '';
-  const targetTitles = titlesRaw.split('\n').map((s: string) => s.trim()).filter(Boolean);
-  const minScore = parseInt((document.getElementById('param-min-score') as HTMLInputElement)?.value ?? '20', 10);
-  const perPage = Math.min(25, parseInt((document.getElementById('param-per-page') as HTMLInputElement)?.value ?? '10', 10));
-  const minEmployees = parseInt((document.getElementById('param-min-emp') as HTMLInputElement)?.value ?? '10', 10);
-  const maxEmployees = parseInt((document.getElementById('param-max-emp') as HTMLInputElement)?.value ?? '300', 10);
+  const perPage = numVal('param-per-page');
+  const minEmployees = numVal('param-min-emp');
+  const maxEmployees = numVal('param-max-emp');
+  const minScore = numVal('param-min-score');
 
-  if (btn) btn.textContent = 'Starting…';
+  if (btn) btn.textContent = 'Starting...';
   if (errEl) errEl.classList.add('hidden');
+
+  const payload: Record<string, unknown> = { companies, targetTitles: titles };
+  if (perPage != null) payload.perPage = perPage;
+  if (minEmployees != null) payload.minEmployees = minEmployees;
+  if (maxEmployees != null) payload.maxEmployees = maxEmployees;
+  if (minScore != null) payload.minScore = minScore;
 
   const res = await fetch('/api/outreach/run-batch', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ companies, targetTitles, minScore, perPage, minEmployees, maxEmployees }),
+    body: JSON.stringify(payload),
   });
 
   if (res.ok) {
     const data = await res.json() as { batch_id?: string };
     document.getElementById('run-modal')?.classList.add('hidden');
-    if (btn) btn.textContent = 'Run';
+    if (btn) btn.textContent = 'Search';
     if (data.batch_id) window.startPolling(data.batch_id);
   } else {
     const data = await res.json() as { error?: string };
     if (errEl) { errEl.textContent = data.error ?? 'Batch failed'; errEl.classList.remove('hidden'); }
-    if (btn) btn.textContent = 'Run';
+    if (btn) btn.textContent = 'Search';
   }
 }
 
@@ -417,18 +580,18 @@ window.startPolling = function startPolling(batchId: string) {
       const res = await fetch(`/api/outreach/batch-status?id=${batchId}`);
       if (!res.ok) { failures++; if (failures >= 5) { window.clearInterval(interval); if (txt) txt.textContent = 'Status check failed — refresh the page.'; } return; }
       failures = 0;
-      const data = await res.json() as { status: string; prospect_count: number };
+      const data = await res.json() as { status: string; prospect_count: number; notes?: string };
       if (data.status === 'running') {
-        if (txt) txt.textContent = `Running… ${data.prospect_count ?? 0} prospects found so far`;
+        if (txt) txt.textContent = `Running... ${data.prospect_count ?? 0} prospects found so far`;
       } else if (data.status === 'complete') {
         window.clearInterval(interval);
         if (bar) { bar.classList.remove('bg-blue-50', 'border-blue-200', 'text-blue-700'); bar.classList.add('bg-green-50', 'border-green-200', 'text-green-700'); }
-        if (txt) txt.textContent = `Done — ${data.prospect_count ?? 0} prospects added. Refreshing…`;
+        if (txt) txt.textContent = `Done — ${data.prospect_count ?? 0} prospects added. Refreshing...`;
         setTimeout(() => window.location.reload(), 1500);
       } else if (data.status === 'failed') {
         window.clearInterval(interval);
         if (bar) { bar.classList.remove('bg-blue-50', 'border-blue-200', 'text-blue-700'); bar.classList.add('bg-red-50', 'border-red-200', 'text-red-700'); }
-        if (txt) txt.textContent = `Batch failed — check server logs. ${(data as unknown as { notes?: string }).notes ?? ''}`;
+        if (txt) txt.textContent = `Batch failed${data.notes ? ' — ' + data.notes : ''}`;
       }
     } catch { failures++; if (failures >= 5) { window.clearInterval(interval); if (txt) txt.textContent = 'Status check failed — refresh the page.'; } }
   }, 2000) as unknown as number;

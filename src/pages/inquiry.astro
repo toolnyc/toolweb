@@ -7,14 +7,14 @@ import StickyBar from '../components/StickyBar.astro';
 
 <BaseLayout 
   title="Start Your Brand or Web Design Project | Tool NYC" 
-  description="Tell us about your brand identity, web design, or development project. We specialize in creative consulting for businesses ready to elevate their digital presence.">
+  description="Tell us about your project, we'll return with quotes and scope of work in 48 hours. We specialize in consulting for businesses looking to develop lasting creative strategy and efficient technical solutions.">
 
   <Header />
   <main class="pb-12" id="main-content">
     <div class="site-grid py-6">
-      <div class="col-span-6 md:col-span-6 lg:col-span-12">
+      <div class="col-start-0 col-span-6 md:col-start-0 md:col-span-6 lg:col-start-7 lg:col-span-12">
         <p class="text-body font-medium mb-1">Tell us about your project</p>
-        <p class="text-body text-caption-gray mb-6">We'll get back to you within 48 hours.</p>
+        <p class="text-body text-caption-gray mb-6">We'll get back to you within 24 hours.</p>
 
         <form method="POST" action="/api/inquiry" id="inquiry-form" class="space-y-4">
           <div>
@@ -80,7 +80,7 @@ import StickyBar from '../components/StickyBar.astro';
           </div>
 
           <button type="submit" id="submit-btn"
-            class="w-full py-3 bg-black text-white text-body font-medium hover:opacity-90 transition-opacity mt-2">
+            class="w-full py-3 text-body font-medium cmyk-highlight border-none cursor-pointer mt-2">
             Send
           </button>
         </form>

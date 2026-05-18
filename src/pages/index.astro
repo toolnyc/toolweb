@@ -53,12 +53,13 @@ for (let i = 0; i < portfolio.length; i += chunkSize) {
 
 const localBusinessSchema = {
   '@context': 'https://schema.org',
-  '@type': ['LocalBusiness', 'ProfessionalService'],
+  '@type': ['LocalBusiness', 'ProfessionalService', 'GraphicDesigner', 'WebDeveloper'],
   name: 'Tool',
   url: 'https://tool.nyc',
   logo: 'https://tool.nyc/og-image.png',
   image: 'https://tool.nyc/og-image.png',
-  description: 'Creative consultancy specializing in brand identity design, web design, and web development for businesses in New York and beyond.',
+  description: 'Tool is a design and development consultancy based in New York, working with clients globally.  From scroll-stopping identities to robust back-office automation pipelines, Tool services the full spectrum of growth-oriented tools businesses need to succeed.'
+,
   address: {
     '@type': 'PostalAddress',
     addressLocality: 'New York',
@@ -70,9 +71,9 @@ const localBusinessSchema = {
     latitude: '40.7128',
     longitude: '-74.0060',
   },
-  email: 'hugetool@proton.me',
-  priceRange: '$$$$',
-  openingHours: 'Mo-Fr 09:00-18:00',
+  email: 'admin@tool.nyc',
+  priceRange: '$$$',
+  openingHours: 'Mo-Fr 08:00-19:00',
   sameAs: [
     'https://instagram.com/tool.nyc',
     'https://linkedin.com/company/toolnyc',
@@ -83,7 +84,7 @@ const serviceSchemas = [
   {
     '@context': 'https://schema.org',
     '@type': 'Service',
-    serviceType: 'Brand Identity Design',
+    serviceType: 'Graphic Design',
     provider: {
       '@type': 'LocalBusiness',
       name: 'Tool',
@@ -92,12 +93,12 @@ const serviceSchemas = [
       '@type': 'Country',
       name: 'United States',
     },
-    description: 'Custom brand identity systems including logo design, visual language, typography, color palettes, and brand guidelines for businesses seeking to establish or refresh their brand.',
+    description: 'Lasting visual identity systems for businesses seeking to establish or refresh their brand.',
   },
   {
     '@context': 'https://schema.org',
     '@type': 'Service',
-    serviceType: 'Web Design',
+    serviceType: 'Web Design and Development',
     provider: {
       '@type': 'LocalBusiness',
       name: 'Tool',
@@ -106,12 +107,12 @@ const serviceSchemas = [
       '@type': 'Country',
       name: 'United States',
     },
-    description: 'Responsive web design services from concept to launch, including user experience design, visual design, prototyping in Figma, and production-ready implementation.',
+    description: 'Efficient and robust websites built to stand out: from prototypes in Figma to secure, live web applications.',
   },
   {
     '@context': 'https://schema.org',
     '@type': 'Service',
-    serviceType: 'Web Development',
+    serviceType: 'Automation and AI Integration',
     provider: {
       '@type': 'LocalBusiness',
       name: 'Tool',
@@ -120,14 +121,14 @@ const serviceSchemas = [
       '@type': 'Country',
       name: 'United States',
     },
-    description: 'Custom web development and web application services using modern frameworks (Astro, React), serverless backends (Supabase), and scalable hosting platforms (Cloudflare Pages).',
+    description: 'Scalable automation pipelines custom built for your businesses unique working patterns: from low-cost AI integration to custom script development.',
   },
 ];
 ---
 
 <BaseLayout 
   title="Tool — Creative Consultancy for Brand Identity, Web Design & Development | NYC"
-  description="Creative consultancy specializing in brand identity design, web development, and digital experiences for innovative businesses. Based in New York, working globally."
+  description="Tool is a design and development consultancy based in New York, working with clients globally.  From scroll-stopping identities to robust back-office automation pipelines, Tool services the full spectrum of growth-oriented tools businesses need to succeed."
   jsonLd={localBusinessSchema}
 >
   <!-- Service schemas as additional script tags -->

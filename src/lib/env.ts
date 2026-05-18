@@ -122,5 +122,5 @@ export function getForgeSupabase(): SupabaseClient {
 }
 
 export function getCalBookingUrl(): string {
-  return (_env?.CAL_BOOKING_URL as string) || 'toolnyc/30min';
+  return (_env?.CAL_BOOKING_URL as string) || 'toolnyc/25-pete';
 }

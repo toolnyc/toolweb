@@ -1,3 +1,5 @@
+@import /Users/pete/Code/.agent/conventions.md
+
 # Tool.NYC — Agent Instructions
 
 ## Critical Rules

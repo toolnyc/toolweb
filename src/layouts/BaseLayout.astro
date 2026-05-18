@@ -56,6 +56,7 @@ const ogImage = image || `${siteUrl}/og-image.png`;
     {jsonLd && (
       <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     )}
+    <slot name="head" />
   </head>
   <body class="font-sans">
     <a href="#main-content" class="skip-link">Skip to content</a>

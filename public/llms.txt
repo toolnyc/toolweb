@@ -1,0 +1,39 @@
+# Tool — Creative Consultancy
+> Brand identity, web design, and web development. New York.
+
+## About
+Tool is a creative consultancy specializing in brand identity design, web design, and web development for businesses. Based in New York, working with clients globally.
+
+## Services
+
+### Brand Identity Design
+Logo design, visual systems, typography, color palettes, and brand guidelines. Creating distinctive brand identities for businesses ready to stand out.
+
+### Web Design
+Responsive website design from concept to launch. User experience design, visual design, prototyping in Figma, and production-ready implementation.
+
+### Web Development
+Custom web development and web applications using modern frameworks (Astro, React), serverless backends (Supabase), and scalable hosting platforms (Cloudflare Pages).
+
+## Key Facts
+- Location: New York, NY
+- Industries: Technology, Creative, B2B Services, Startups
+- Approach: Direct, collaborative, technical. One person, not an agency.
+- Contact: hugetool@proton.me
+- Booking: https://tool.nyc/book
+- Portfolio: https://tool.nyc/#work
+
+## Process
+Projects typically range from brand refreshes to full web applications. We work directly with founders and business leaders, focusing on strategic creative consulting and technical implementation.
+
+## Technologies
+- Frontend: Astro, React, TypeScript, Tailwind CSS
+- Backend: Supabase (Postgres), Cloudflare Workers
+- Hosting: Cloudflare Pages, Cloudflare R2, Cloudflare Stream
+- Tools: Figma, GSAP, Stripe, Resend, Cal.com
+
+## Recent Work
+Portfolio highlights available at tool.nyc — view case studies for brand identity and web design projects.
+
+---
+Last updated: 2026-05-18

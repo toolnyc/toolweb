@@ -38,6 +38,32 @@ const caseStudySchema = {
     url: 'https://tool.nyc',
   },
   url: `https://tool.nyc/work/${slug}`,
+  datePublished: caseStudy.created_at ? new Date(caseStudy.created_at).toISOString().split('T')[0] : undefined,
+  dateModified: caseStudy.updated_at ? new Date(caseStudy.updated_at).toISOString().split('T')[0] : undefined,
+};
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: 'https://tool.nyc/',
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Work',
+      item: 'https://tool.nyc/#work',
+    },
+    {
+      '@type': 'ListItem',
+      position: 3,
+      name: caseStudy.title,
+    },
+  ],
 };
 ---
 
@@ -47,6 +73,9 @@ const caseStudySchema = {
   image={caseStudy.media_type !== 'video' ? caseStudy.media_url : (caseStudy.thumbnail_url ?? undefined)}
   jsonLd={caseStudySchema}
 >
+  {/* Add breadcrumb schema to head */}
+  <script type="application/ld+json" slot="head" set:html={JSON.stringify(breadcrumbSchema)} />
+  
   <Header />
 
   <main class="pb-12" id="main-content">

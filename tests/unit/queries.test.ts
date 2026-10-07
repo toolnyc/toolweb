@@ -28,8 +28,8 @@ const { chain, methods, resolvedRef } = vi.hoisted(() => {
   return { chain, methods, resolvedRef };
 });
 
-vi.mock('../../src/lib/supabase', () => ({
-  supabase: chain,
+vi.mock('../../src/lib/env', () => ({
+  getSupabase: () => chain,
 }));
 
 import {

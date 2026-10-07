@@ -8,12 +8,7 @@ import type {
   ClientLogo,
   Product,
   ProductVariant,
-  Client,
-  Project,
-  ProjectInquiry,
-  Order,
   SiteContent,
-  FeatureFlag,
 } from './types';
 
 // -- Feature flags --
@@ -27,19 +22,6 @@ export async function getFeatureFlag(key: string): Promise<boolean> {
 
   if (error || !data) return false;
   return data.enabled;
-}
-
-export async function getAllFeatureFlags(): Promise<FeatureFlag[]> {
-  const { data, error } = await getSupabase()
-    .from('feature_flags')
-    .select('*')
-    .order('flag_key');
-
-  if (error) {
-    logError('warn', 'Error fetching feature flags', { error });
-    return [];
-  }
-  return data ?? [];
 }
 
 // -- Public queries (anon client, respects RLS) --
@@ -186,64 +168,6 @@ export async function getVisibleTestimonials(): Promise<Testimonial[]> {
 
   if (error) {
     logError('warn', 'Error fetching testimonials', { error });
-    return [];
-  }
-  return data ?? [];
-}
-
-// -- Client portal queries (still anon client — RLS handles scoping) --
-
-export async function getClientByAuthId(authUserId: string): Promise<Client | null> {
-  const { data, error } = await getSupabase()
-    .from('clients')
-    .select('*')
-    .eq('auth_user_id', authUserId)
-    .single();
-
-  if (error) return null;
-  return data as Client;
-}
-
-export async function getProjectsByClientId(clientId: string): Promise<Project[]> {
-  const { data, error } = await getSupabase()
-    .from('projects')
-    .select('*')
-    .eq('client_id', clientId)
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    logError('warn', 'Error fetching projects', { error });
-    return [];
-  }
-  return data ?? [];
-}
-
-// -- Admin queries (use supabaseAdmin in the caller, these use anon for type safety) --
-// Admin pages should import supabaseAdmin directly for full access
-
-export async function getNewInquiries(): Promise<ProjectInquiry[]> {
-  const { data, error } = await getSupabase()
-    .from('project_inquiries')
-    .select('*')
-    .eq('status', 'new')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    logError('warn', 'Error fetching inquiries', { error });
-    return [];
-  }
-  return data ?? [];
-}
-
-export async function getRecentOrders(limit = 20): Promise<Order[]> {
-  const { data, error } = await getSupabase()
-    .from('orders')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(limit);
-
-  if (error) {
-    logError('warn', 'Error fetching orders', { error });
     return [];
   }
   return data ?? [];

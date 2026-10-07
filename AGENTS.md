@@ -1,4 +1,4 @@
-> **Where things live** - Client: Tool internal | Bucket: `products/` | Dropbox: `_Clients/Tool_Internal/` | Registry: `~/Code/toolhub/CoS/REGISTRY.md`
+> **Where things live** - Client: Tool internal | Bucket: (none - top-level `~/Code/`, moved out of `products/` 2026-10-07) | Dropbox: `_Clients/Tool_Internal/` | Registry: Notion "Repos" DB (IDs in `~/Code/toolhub/CoS/NOTION.md`)
 
 @import /Users/pete/Code/.agent/conventions.md
 

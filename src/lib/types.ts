@@ -5,10 +5,6 @@ export type PortfolioMediaType = 'image' | 'video';
 export type DisplaySize = 'small' | 'medium' | 'large';
 export type ContentStatus = 'draft' | 'published';
 export type ProductStatus = 'draft' | 'upcoming' | 'active' | 'sold_out';
-export type OrderStatus = 'paid' | 'shipped' | 'delivered' | 'refunded';
-export type ClientStatus = 'active' | 'inactive';
-export type ProjectStatus = 'inquiry' | 'discovery' | 'proposal' | 'active' | 'review' | 'complete';
-export type InquiryStatus = 'new' | 'reviewed' | 'converted' | 'declined';
 
 // -- Table rows --
 
@@ -71,46 +67,6 @@ export interface ClientLogo {
   created_at: string;
 }
 
-export interface Client {
-  id: string;
-  name: string;
-  email: string;
-  company: string | null;
-  auth_user_id: string | null;
-  status: ClientStatus;
-  created_at: string;
-}
-
-export interface Project {
-  id: string;
-  client_id: string;
-  title: string;
-  status: ProjectStatus;
-  deliverables_url: string | null;
-  stripe_invoice_id: string | null;
-  stripe_invoice_url: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ProjectInquiry {
-  id: string;
-  name: string;
-  email: string;
-  company: string | null;
-  project_type: string | null;
-  description: string;
-  budget_range: string | null;
-  timeline: string | null;
-  status: InquiryStatus;
-  source: string;
-  ai_transcript: string | null;
-  ai_extracted: Record<string, unknown> | null;
-  ai_summary: string | null;
-  created_at: string;
-}
-
 export interface Product {
   id: string;
   name: string;
@@ -132,38 +88,6 @@ export interface ProductVariant {
   stock_count: number;
   stripe_price_id: string | null;
   sort_order: number;
-}
-
-export interface Order {
-  id: string;
-  order_number: number;
-  product_variant_id: string | null;
-  stripe_session_id: string;
-  stripe_payment_intent_id: string | null;
-  customer_email: string;
-  customer_name: string;
-  shipping_address: {
-    line1: string;
-    line2?: string;
-    city: string;
-    state: string;
-    postal_code: string;
-    country: string;
-  };
-  quantity: number;
-  amount_paid: number;
-  shipping_cost: number;
-  status: OrderStatus;
-  tracking_number: string | null;
-  created_at: string;
-}
-
-export interface FeatureFlag {
-  id: string;
-  flag_key: string;
-  enabled: boolean;
-  description: string | null;
-  updated_at: string;
 }
 
 export interface SiteContent {

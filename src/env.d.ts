@@ -24,17 +24,6 @@ declare namespace App {
       caches: CacheStorage;
       ctx: ExecutionContext;
     };
-    user?: {
-      id: string;
-      email?: string;
-    };
-    client?: {
-      id: string;
-      name: string;
-      email: string;
-      company?: string;
-      status: 'active' | 'inactive';
-    };
   }
 }
 

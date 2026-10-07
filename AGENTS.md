@@ -109,7 +109,7 @@ GSAP + Lenis smooth scroll with `prefers-reduced-motion` bailout. Elements use `
 
 ## Voice & Copy
 
-See `docs/style-guide.md`. Direct, understated confidence, plain language.
+Voice & style guide lives in Notion (Tool HQ → Voice & Style Guide). Direct, understated confidence, plain language.
 A person, not an agency — never say "we" when it's one person.
 
 ## Architecture Enforcement

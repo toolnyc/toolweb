@@ -1,3 +1,5 @@
+> **Where things live** - Client: Tool internal | Bucket: `products/` | Dropbox: `_Clients/Tool_Internal/` | Registry: `~/Code/toolhub/CoS/REGISTRY.md`
+
 @import /Users/pete/Code/.agent/conventions.md
 
 # Tool.NYC — Agent Instructions

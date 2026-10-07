@@ -146,19 +146,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response('OK', { status: 200 });
     }
 
-    if (event.type === 'invoice.paid') {
-      // Update project invoice status if linked
-      const invoice = event.data.object as unknown as Record<string, unknown>;
-      const invoiceId = invoice.id as string;
-
-      await supabaseAdmin
-        .from('projects')
-        .update({ stripe_invoice_url: (invoice.hosted_invoice_url as string) ?? null })
-        .eq('stripe_invoice_id', invoiceId);
-
-      return new Response('OK', { status: 200 });
-    }
-
     if (event.type === 'invoice.payment_failed') {
       // Notify admin — fire-and-forget
       const resend = getResendOrNull();

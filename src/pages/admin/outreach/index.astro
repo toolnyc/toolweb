@@ -1,7 +1,36 @@
 ---
 import Admin from '../../../layouts/Admin.astro';
 import { getSupabaseAdmin } from '../../../lib/env';
-import type { OutreachProspect, OutreachBatch } from '../../../lib/types';
+
+// NOTE: the outreach pipeline (src/lib/outreach.ts, /api/outreach/*) has been removed.
+// This page is a read-only view over existing outreach_prospects/outreach_batches rows
+// and is slated for full deletion under the admin-removal issue.
+type ProspectStatus = 'pending' | 'approved' | 'contacted' | 'skipped' | 'declined';
+
+interface Prospect {
+  id: string;
+  name: string;
+  title: string | null;
+  company: string;
+  email: string | null;
+  linkedin_url: string | null;
+  signal: string | null;
+  company_size: string | null;
+  company_industry: string | null;
+  company_description: string | null;
+  confidence_score: number | null;
+  contacted_at: string | null;
+  contact_notes: string | null;
+  status: ProspectStatus;
+}
+
+interface Batch {
+  id: string;
+  status: string;
+  prospect_count: number;
+  notes: string | null;
+  created_at: string;
+}
 
 const supabase = getSupabaseAdmin();
 
@@ -11,7 +40,7 @@ const { data: allProspects } = await supabase
   .select('*')
   .order('confidence_score', { ascending: false });
 
-const prospects = (allProspects ?? []) as OutreachProspect[];
+const prospects = (allProspects ?? []) as Prospect[];
 
 const pending = prospects.filter(p => p.status === 'pending');
 const approved = prospects.filter(p => p.status === 'approved');
@@ -52,7 +81,7 @@ const { data: batches } = await supabase
   .order('created_at', { ascending: false })
   .limit(1);
 
-const latestBatch = (batches ?? [])[0] as OutreachBatch | undefined;
+const latestBatch = (batches ?? [])[0] as Batch | undefined;
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -545,13 +574,13 @@ window.submitDiscover = async function submitDiscover() {
   const maxEmp = numVal('discover-max-emp');
   const minScore = numVal('discover-min-score');
 
-  // Apollo requires specific predefined ranges
-  const APOLLO_RANGES = ['1,10','11,20','21,50','51,100','101,200','201,500','501,1000','1001,2000','2001,5000','5001,10000'];
+  // Headcount filter uses specific predefined ranges
+  const EMPLOYEE_RANGES = ['1,10','11,20','21,50','51,100','101,200','201,500','501,1000','1001,2000','2001,5000','5001,10000'];
   const employeeRanges: string[] = [];
   if (minEmp != null || maxEmp != null) {
     const lo = minEmp ?? 1;
     const hi = maxEmp ?? 10000;
-    for (const r of APOLLO_RANGES) {
+    for (const r of EMPLOYEE_RANGES) {
       const [rLo, rHi] = r.split(',').map(Number);
       if (rHi >= lo && rLo <= hi) employeeRanges.push(r);
     }
@@ -665,7 +694,7 @@ function renderProgress(p: Progress) {
       if (p.currentCompany) {
         phase.textContent = `Searching ${p.currentCompany} (${p.companiesSearched ?? 0}/${p.totalCompanies ?? '?'})`;
       } else {
-        phase.textContent = `Searching Apollo — page ${p.currentPage ?? 1} of ${p.totalPages ?? '?'}`;
+        phase.textContent = `Searching — page ${p.currentPage ?? 1} of ${p.totalPages ?? '?'}`;
       }
     } else if (p.phase === 'enriching') {
       const enriched = p.enriched ?? 0;

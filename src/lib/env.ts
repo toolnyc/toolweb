@@ -20,7 +20,6 @@ export interface RuntimeEnv {
   TELEGRAM_CHAT_ID?: string;
   TELEGRAM_WEBHOOK_SECRET?: string;
   CAL_BOOKING_URL?: string;
-  APOLLO_API_KEY?: string;
   [key: string]: unknown;
 }
 

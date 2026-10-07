@@ -28,9 +28,6 @@ Use when adding tables, columns, indexes, enums, or RLS policies.
    npx supabase migration list
    ```
 
-6. **Update data model skill** if schema changed significantly:
-   Edit `.claude/skills/data-model.md` to reflect new tables/enums.
-
 ## Requires
 
 `SUPABASE_ACCESS_TOKEN` env var must be set before running Supabase CLI commands.

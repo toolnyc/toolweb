@@ -4,7 +4,7 @@
 -- Or paste into the Supabase SQL editor.
 --
 -- All copy here is placeholder. Swap in real text when ready.
--- Voice follows docs/style-guide.md: direct, first-person singular,
+-- Voice follows the style guide in Notion (Tool HQ → Voice & Style Guide):
 -- no marketing speak, no superlatives.
 
 BEGIN;
